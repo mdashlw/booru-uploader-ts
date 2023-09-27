@@ -1,4 +1,4 @@
-import inquirer from "inquirer";
+import { input } from "@inquirer/prompts";
 import scrape from "./scraper.js";
 import { SourceData } from "./scraper/types.js";
 
@@ -8,31 +8,27 @@ export interface MultipleSources {
 }
 
 export default async function inputSources(): Promise<MultipleSources> {
-  const validateSourceUrlInput = (input: string): string | boolean => {
+  const validateSourceUrlInput = (value: string): string | boolean => {
     try {
-      new URL(input);
+      new URL(value);
       return true;
     } catch (error: any) {
       return error.message;
     }
   };
 
-  const { primarySourceUrlString } = await inquirer.prompt({
-    type: "input",
-    name: "primarySourceUrlString",
+  const primarySourceUrlString = await input({
     message: "Primary Source",
-    validate: (input: string) => validateSourceUrlInput(input),
+    validate: (value: string) => validateSourceUrlInput(value),
   });
   const primarySourceUrl = new URL(primarySourceUrlString);
 
   const alternateSourceUrls: URL[] = [];
 
   while (true) {
-    const { alternateSourceUrlString } = await inquirer.prompt({
-      type: "input",
-      name: "alternateSourceUrlString",
+    const alternateSourceUrlString = await input({
       message: "Alternate Source",
-      validate: (input: string) => !input || validateSourceUrlInput(input),
+      validate: (value: string) => !value || validateSourceUrlInput(value),
     });
 
     if (!alternateSourceUrlString) {
