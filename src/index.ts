@@ -12,8 +12,8 @@ import inputTags from "./tag-input.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+process.on("unhandledRejection", (reason) => {
+  console.error(reason);
 });
 
 const sources = await inputSources();
