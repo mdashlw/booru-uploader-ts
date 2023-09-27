@@ -1,8 +1,9 @@
-import inquirer from "inquirer";
+import { confirm, select } from "@inquirer/prompts";
 import process from "node:process";
 import util from "node:util";
 import selectBoorus from "./booru-selector.js";
 import TagLists from "./booru/tag-lists.js";
+import { TagName } from "./booru/types.js";
 import makeDescription from "./description-maker.js";
 import selectImage from "./image-selector.js";
 import { ratingTags } from "./rating-tags.js";
@@ -22,24 +23,22 @@ const boorus = await selectBoorus();
 
 const tags = new TagLists(boorus);
 
-const { ratingTag } = await inquirer.prompt({
-  type: "list",
-  name: "ratingTag",
+const ratingTag = await select({
   message: "Rating",
-  choices: ratingTags,
+  choices: ratingTags.map((value) => ({ value })),
+  pageSize: Infinity,
 });
-await tags.addByName(ratingTag);
+await tags.addByName(ratingTag as TagName);
 
 while (true) {
   await inputTags(tags);
 
-  const { confirm } = await inquirer.prompt({
-    type: "confirm",
-    name: "confirm",
+  const confirmAnswer = await confirm({
     message: "Confirm?",
+    default: true,
   });
 
-  if (confirm) {
+  if (confirmAnswer) {
     break;
   }
 }
