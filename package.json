@@ -1,21 +1,19 @@
 {
   "type": "module",
   "dependencies": {
+    "@inquirer/prompts": "^3.1.2",
     "async-mutex": "^0.4.0",
     "chalk": "^5.3.0",
     "chalk-template": "^1.1.0",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.3.1",
-    "inquirer": "^9.2.11",
-    "inquirer-autocomplete-prompt": "github:ChesterYue/inquirer-autocomplete-prompt#34f7dd03964cd98727911e08e1746c5ef4a80aaa",
+    "inquirer-autocomplete-standalone": "^0.4.0",
     "lodash": "^4.17.21",
     "probe-image-size": "^7.2.3",
     "undici": "^5.24.0",
     "unzipit": "^1.4.3"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.3",
-    "@types/inquirer-autocomplete-prompt": "^3.0.0",
     "@types/lodash": "^4.14.198",
     "@types/node": "^20.6.0",
     "@types/probe-image-size": "^7.2.0",
