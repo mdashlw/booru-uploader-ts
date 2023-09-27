@@ -1,4 +1,4 @@
-import inquirer from "inquirer";
+import { select } from "@inquirer/prompts";
 import { SourceData, SourceImageData } from "./scraper/types.js";
 
 export default async function selectImage(
@@ -12,16 +12,13 @@ export default async function selectImage(
     return source.images[0];
   }
 
-  const { image } = await inquirer.prompt({
-    type: "list",
-    name: "image",
+  const image = await select({
     message: "Image",
     choices: source.images.map((image, index) => ({
-      name: `#${index + 1}`,
       value: image,
+      name: `#${index + 1}`,
     })),
-    loop: false,
   });
 
-  return image as SourceImageData;
+  return image;
 }
