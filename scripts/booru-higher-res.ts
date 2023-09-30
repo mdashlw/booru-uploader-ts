@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import chalkTemplate from "chalk-template";
 import process from "node:process";
+import readline from "node:readline/promises";
 import util from "node:util";
-import { convertTagNameToSlug } from "../src/booru/index.js";
 import { Image, TagName } from "../src/booru/types.js";
 import { boorus } from "../src/boorus.js";
 import { ratingTags } from "../src/rating-tags.js";
@@ -72,6 +72,8 @@ async function* images(query: string, sort?: string[] | string) {
     yield* images;
   }
 }
+
+const rl = readline.createInterface(process.stdin);
 
 for await (const image of images(
   args.query,
@@ -177,5 +179,8 @@ for await (const image of images(
         ", ",
       )}}`,
     );
+    await rl.question(chalk.gray("Press <enter> to continue..."));
   }
 }
+
+rl.close();
