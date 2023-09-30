@@ -58,8 +58,18 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const originalImageUrl = `https://portfolio.commishes.com/image/${uploadId}/original`;
   const directImageUrl = await undici
-    .request(originalImageUrl, { maxRedirections: 0 })
-    .then((response) => response.headers["location"] as string);
+    .request(originalImageUrl, {
+      method: "HEAD",
+      throwOnError: true,
+      maxRedirections: 0,
+    })
+    .then((response) => {
+      if (response.statusCode === 302) {
+        return response.headers["location"] as string;
+      } else {
+        return originalImageUrl;
+      }
+    });
 
   const widthMatch = /var imgWidth {2}= (\d+);/.exec(body);
   const heightMatch = /var imgHeight = (\d+);/.exec(body);
