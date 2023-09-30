@@ -48,6 +48,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     initialState["@@entities"].deviationExtended[deviationId];
   const author: User = initialState["@@entities"].user[deviation.author];
 
+  let title: string | null = deviation.title;
+  if (title === "Untitled") {
+    title = null;
+  }
+
   return {
     source: "DeviantArt",
     url: deviation.url,
@@ -60,7 +65,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     ],
     artist: author.username,
     date: formatDate(new Date(deviation.publishedTime)),
-    title: deviation.title,
+    title,
     description: extractDescription(deviationExtended),
   };
 }
