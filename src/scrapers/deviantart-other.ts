@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import process from "node:process";
 import undici from "undici";
 import type { IncomingHttpHeaders } from "undici/types/header.js";
 import { SourceData } from "../scraper/types.js";
