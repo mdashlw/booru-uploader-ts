@@ -5,6 +5,7 @@ type Brand<T, B> = T & { readonly [brand]: B };
 export interface Image {
   id: number;
   first_seen_at: string;
+  uploader: string;
   description: string;
   tags: TagName[];
   width: number;

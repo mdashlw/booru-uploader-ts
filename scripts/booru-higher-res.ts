@@ -106,7 +106,11 @@ for await (const image of images(
       }),
   );
 
-  const contextTags = [...imageRatingTags, ...artistTags];
+  const contextTags = [
+    ...imageRatingTags,
+    ...artistTags,
+    `uploader:${image.uploader}`,
+  ];
 
   const sourceUrls =
     image.source_urls ?? (image.source_url ? [image.source_url] : []);
