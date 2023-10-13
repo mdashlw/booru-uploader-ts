@@ -5,6 +5,30 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import fastProbe from "../utils/probe-image-size.js";
 
+const COOKIE = process.env.DEVIANTART_COOKIE;
+const HEADERS = {
+  accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  cookie: COOKIE,
+  dnt: "1",
+  pragma: "no-cache",
+  "sec-ch-ua":
+    '"Microsoft Edge";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "sec-ch-viewport-height": "1075",
+  "sec-ch-viewport-width": "1912",
+  "sec-fetch-dest": "document",
+  "sec-fetch-mode": "navigate",
+  "sec-fetch-site": "none",
+  "sec-fetch-user": "?1",
+  "upgrade-insecure-requests": "1",
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
+};
+
 interface User {
   username: string;
 }
@@ -30,6 +54,11 @@ interface Deviation {
 
 interface DeviationExtended {
   originalFile: {
+    width: number;
+    height: number;
+  };
+  download?: {
+    url: string;
     width: number;
     height: number;
   };
@@ -81,7 +110,10 @@ export async function scrape(url: URL): Promise<SourceData> {
   ) {
     const { cardImage } = await extractInitialState(
       "https://www.deviantart.com/users/login",
-      { referer: url.toString() },
+      {
+        cookie: "",
+        referer: url.toString(),
+      },
     );
     const cardImageUrl = new URL(cardImage);
 
@@ -103,8 +135,21 @@ export async function scrape(url: URL): Promise<SourceData> {
       ({ width, height } = deviationExtended.originalFile);
     } else if (deviation.isDownloadable) {
       console.log(`Deviation ${deviation.deviationId} is downloadable`);
-      imageUrl = new URL("https://not-available.com");
-      ({ width, height } = deviationExtended.originalFile);
+
+      if (!deviationExtended.download) {
+        throw new Error("Deviation is downloadable but no download object");
+      }
+
+      console.log(deviationExtended.download.url);
+      imageUrl = new URL(
+        await undici
+          .request(deviationExtended.download.url, {
+            headers: HEADERS,
+            throwOnError: true,
+          })
+          .then((response) => response.headers["location"] as string),
+      );
+      ({ width, height } = deviationExtended.download);
     } else if (deviationId <= 790_677_560) {
       console.log(
         `Deviation ${deviation.deviationId} is old enough for intermediary`,
@@ -144,22 +189,7 @@ async function extractInitialState(
   const response = await undici
     .request(url, {
       headers: {
-        accept: "text/html",
-        "accept-language": "en-US,en;q=0.9",
-        "cache-control": "no-cache",
-        dnt: "1",
-        pragma: "no-cache",
-        "sec-ch-ua":
-          '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
-        "sec-fetch-user": "?1",
-        "upgrade-insecure-requests": "1",
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        ...HEADERS,
         ...headers,
       },
       maxRedirections: 2,
