@@ -162,6 +162,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       imageUrl = new URL(deviation.media.baseUri);
       imageUrl.pathname = `/intermediary${imageUrl.pathname}`;
       ({ width, height } = await fastProbe(imageUrl));
+
       if (
         width !== deviationExtended.originalFile.width ||
         height !== deviationExtended.originalFile.height
