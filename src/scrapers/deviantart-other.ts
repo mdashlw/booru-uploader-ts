@@ -47,6 +47,7 @@ interface Deviation {
     types: {
       t: string;
       r: number;
+      c?: string;
       h: number;
       w: number;
     }[];
@@ -100,7 +101,9 @@ export async function scrape(url: URL): Promise<SourceData> {
   }
 
   imageUrl = new URL(deviation.media.baseUri);
-  imageUrl.pathname = `${imageUrl.pathname}/v1/fill/w_${fullview.w},h_${fullview.h}/fullview.png`;
+  imageUrl.pathname = fullview.c
+    ? `${imageUrl.pathname}/v1/fill/w_${fullview.w},h_${fullview.h}/fullview.png`
+    : imageUrl.pathname;
   imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
   width = fullview.w;
   height = fullview.h;
