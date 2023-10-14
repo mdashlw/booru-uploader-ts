@@ -89,7 +89,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     initialState["@@entities"].deviationExtended[deviationId];
   const author: User = initialState["@@entities"].user[deviation.author];
 
-  let imageUrl: URL, width: number, height: number;
+  let imageUrl: URL | undefined, width: number, height: number;
 
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
@@ -106,6 +106,8 @@ export async function scrape(url: URL): Promise<SourceData> {
   imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
   width = fullview.w;
   height = fullview.h;
+
+  let imageUrlFn: (() => Promise<string>) | undefined;
 
   if (
     fullview.w !== deviationExtended.originalFile.width ||
@@ -143,15 +145,14 @@ export async function scrape(url: URL): Promise<SourceData> {
         throw new Error("Deviation is downloadable but no download object");
       }
 
-      console.log(deviationExtended.download.url);
-      imageUrl = new URL(
+      imageUrl = undefined;
+      imageUrlFn = async () =>
         await undici
-          .request(deviationExtended.download.url, {
+          .request(deviationExtended.download!.url, {
             headers: HEADERS,
             throwOnError: true,
           })
-          .then((response) => response.headers["location"] as string),
-      );
+          .then((response) => response.headers["location"] as string);
       ({ width, height } = deviationExtended.download);
     } else if (deviationId <= 790_677_560) {
       console.log(
@@ -180,7 +181,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: deviation.url,
     images: [
       {
-        url: imageUrl.toString(),
+        url: imageUrlFn ?? imageUrl!.toString(),
         width,
         height,
       },
