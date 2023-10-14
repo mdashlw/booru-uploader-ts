@@ -6,13 +6,12 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import fastProbe from "../utils/probe-image-size.js";
 
-const COOKIE = process.env.DEVIANTART_COOKIE;
 const HEADERS = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "accept-language": "en-US,en;q=0.9",
   "cache-control": "no-cache",
-  cookie: COOKIE,
+  cookie: process.env.DEVIANTART_COOKIE!,
   dnt: "1",
   pragma: "no-cache",
   "sec-ch-ua":
@@ -205,6 +204,27 @@ async function extractInitialState(
       },
       maxRedirections: 2,
       throwOnError: true,
+    })
+    .then((response) => {
+      const setCookieHeader = response.headers["set-cookie"];
+
+      if (headers?.cookie === undefined && setCookieHeader) {
+        const setCookies = Array.isArray(setCookieHeader)
+          ? setCookieHeader
+          : [setCookieHeader];
+        const cookies = setCookies.flatMap((c) => c.split("; ")[0]);
+
+        HEADERS.cookie = Object.entries({
+          ...Object.fromEntries(
+            HEADERS.cookie.split("; ").map((kv) => kv.split("=")),
+          ),
+          ...Object.fromEntries(cookies.map((kv) => kv.split("="))),
+        })
+          .map(([k, v]) => `${k}=${v}`)
+          .join("; ");
+      }
+
+      return response;
     })
     .catch((error) => {
       throw new Error(`Failed to fetch ${url}`, { cause: error });
