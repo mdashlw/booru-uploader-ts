@@ -6,6 +6,8 @@ import { TagName } from "./booru/types.js";
 import { debounceAsync } from "./lodash.js";
 
 export default async function inputTags(tags: TagLists) {
+  const userInput: string[] = [];
+
   while (true) {
     console.log();
     await tags.printAll();
@@ -97,11 +99,15 @@ export default async function inputTags(tags: TagLists) {
           continue;
         }
 
+        userInput.splice(userInput.indexOf(tagName), 1);
         await tags.removeByName(tagName as TagName);
         continue;
       }
 
+      userInput.push(tagName);
       await tags.addByName(tagName as TagName);
     }
   }
+
+  console.log(userInput.join(", "));
 }
