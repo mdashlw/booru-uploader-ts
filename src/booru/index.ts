@@ -103,7 +103,7 @@ export default abstract class Booru {
         })
         .then((response) => response.body.json() as T);
     } catch (error: any) {
-      console.error(error); //todo
+      console.error(options, error); //todo
       if (
         retryNumber < this.maxRetries &&
         (error.code === "ECONNRESET" ||
