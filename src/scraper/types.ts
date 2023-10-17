@@ -8,7 +8,7 @@ export interface SourceData {
   url: string;
   images: SourceImageData[];
   artist: string | null;
-  date: string;
+  date: string | null;
   title: string | null;
   description: string | null;
 }

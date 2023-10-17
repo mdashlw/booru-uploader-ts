@@ -10,7 +10,7 @@ function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
           source.url,
         )
       : ""
-    : source.date;
+    : source.date ?? "";
 
   const formattedTitle =
     source.title && booru.markdown.bold(booru.markdown.escape(source.title));
