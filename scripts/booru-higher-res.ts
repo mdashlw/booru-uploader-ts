@@ -153,6 +153,9 @@ for await (const image of images(
     }
 
     if (sourceData.images.length !== 1) {
+      console.log(
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright Skipping - has ${sourceData.images.length} images}`,
+      );
       continue;
     }
 
