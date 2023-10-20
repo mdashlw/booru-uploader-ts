@@ -103,7 +103,10 @@ export async function scrape(url: URL): Promise<SourceData> {
   imageUrl.pathname = fullview.c
     ? `${imageUrl.pathname}/v1/fill/w_${fullview.w},h_${fullview.h}/fullview.png`
     : imageUrl.pathname;
-  imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
+  if (fullview.r !== -1) {
+    imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
+  }
+
   width = fullview.w;
   height = fullview.h;
 
