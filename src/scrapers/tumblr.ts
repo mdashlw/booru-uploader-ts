@@ -219,8 +219,8 @@ export async function scrape(url: URL): Promise<SourceData> {
                 ),
               )[index];
 
-              width = Number(match[1]);
-              height = Number(match[2]);
+              width = Number(match[2]);
+              height = Number(match[1]);
             } else if (v1Post.type === "photo") {
               if (v1Post.photos.length) {
                 ({ width, height } = v1Post.photos[index]);
