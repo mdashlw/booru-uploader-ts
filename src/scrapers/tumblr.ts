@@ -64,7 +64,7 @@ import { formatDate } from "../scraper/utils.js";
 
 const COOKIE = process.env.TUMBLR_COOKIE;
 
-type V1Post = V1RegularPost | V1PhotoPost;
+type V1Post = V1RegularPost | V1PhotoPost | V1AnswerPost;
 
 interface V1RegularPost {
   type: "regular";
@@ -79,6 +79,12 @@ interface V1PhotoPost {
     width: number;
     height: number;
   }[];
+}
+
+interface V1AnswerPost {
+  type: "answer";
+  question: string;
+  answer: string;
 }
 
 interface Blog {
@@ -221,6 +227,15 @@ export async function scrape(url: URL): Promise<SourceData> {
 
               width = Number(match[2]);
               height = Number(match[1]);
+            } else if (v1Post.type === "answer") {
+              const match = Array.from(
+                v1Post.answer.matchAll(
+                  /<img src=".+?" alt="image" data-orig-width="(\d+)" data-orig-height="(\d+)"/g,
+                ),
+              )[index];
+
+              width = Number(match[1]);
+              height = Number(match[2]);
             } else if (v1Post.type === "photo") {
               if (v1Post.photos.length) {
                 ({ width, height } = v1Post.photos[index]);
