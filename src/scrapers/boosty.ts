@@ -46,12 +46,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     date: formatDate(new Date(post.publishTime * 1_000)),
     title: post.title,
     description: post.data
-      .filter(
-        ({ type, modificator }) =>
-          type === "text" && modificator !== "BLOCK_END",
+      .filter(({ type }) => type === "text" || type === "link")
+      .map(({ modificator, content }) =>
+        modificator === "BLOCK_END" ? "\n" : JSON.parse(content)[0],
       )
-      .map(({ content }) => JSON.parse(content)[0])
-      .join("\n"),
+      .join(""),
   };
 }
 
