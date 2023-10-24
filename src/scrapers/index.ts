@@ -1,4 +1,5 @@
 import { Scraper } from "../scraper/types.js";
+import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
 import * as Commishes from "./commishes.js";
 import * as DeviantArt from "./deviantart-other.js";
@@ -11,6 +12,7 @@ import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 
 export const scrapers: Scraper[] = [
+  Booru,
   Boosty,
   Commishes,
   DeviantArt,

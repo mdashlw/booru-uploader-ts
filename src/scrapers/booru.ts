@@ -35,7 +35,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   return {
     source: booru.name,
-    url: new URL(`/images/${imageId}`, url).href,
+    url: new URL(`/images/${imageId}`, booru.baseUrl).toString(),
     images: [
       {
         url: image.representations.full,
