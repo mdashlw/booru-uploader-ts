@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
+import probeImageType from "../utils/probe-image-type.js";
 
 export function canHandle(url: URL): boolean {
   return (
@@ -94,6 +95,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: directImageUrl,
+        type: await probeImageType(directImageUrl),
         width,
         height,
       },

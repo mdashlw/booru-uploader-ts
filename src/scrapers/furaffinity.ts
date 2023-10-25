@@ -35,12 +35,15 @@ export async function scrape(url: URL): Promise<SourceData> {
     .split(" x ")
     .map(Number);
 
+  const imageUrl = "https:" + $(".download > a").attr("href");
+
   return {
     source: "FurAffinity",
     url: $("meta[property='og:url']").attr("content")!,
     images: [
       {
-        url: "https:" + $(".download > a").attr("href"),
+        url: imageUrl,
+        type: imageUrl.substring(imageUrl.lastIndexOf(".") + 1),
         width,
         height,
       },
