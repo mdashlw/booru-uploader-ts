@@ -2,6 +2,7 @@ import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import probeImageSize from "../utils/probe-image-size.js";
+import probeImageType from "../utils/probe-image-type.js";
 
 // https://github.com/mikf/gallery-dl/blob/32da3c70d3153568eb9aaf5a71ab2875e7767850/gallery_dl/extractor/tumblr.py#L482
 const API_KEY = "O3hU2tMi5e4Qs5t3vezEi6L0qRORJ5y9oUpSGsrWu8iA3UCc3B";
@@ -73,6 +74,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             media: [media],
           } = block;
           let url: string = media.url;
+          let type: string;
           let width: number, height: number;
 
           if (media.media_key && !media.has_original_dimensions) {
@@ -96,14 +98,16 @@ export async function scrape(url: URL): Promise<SourceData> {
             [, url] = match;
 
             console.log("probing", url);
-            ({ width, height } = await probeImageSize(url));
+            ({ type, width, height } = await probeImageSize(url));
           } else {
             console.log("not probing", media);
             ({ width, height } = media);
+            type = await probeImageType(url);
           }
 
           return {
             url,
+            type,
             width,
             height,
           };

@@ -19,6 +19,7 @@ interface Deviation {
 
 interface DeviationExtended {
   originalFile: {
+    type: string;
     width: number;
     height: number;
   };
@@ -59,6 +60,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: extractMediaUrl(deviation).toString(),
+        type: deviationExtended.originalFile.type,
         width: deviationExtended.originalFile.width,
         height: deviationExtended.originalFile.height,
       },
