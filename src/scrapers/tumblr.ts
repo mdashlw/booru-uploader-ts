@@ -197,6 +197,8 @@ export async function scrape(url: URL): Promise<SourceData> {
         let url: string | (() => Promise<string>);
         let width: number, height: number;
 
+        media.url = media.url.replace(".pnj", ".png");
+
         if (media.hasOriginalDimensions) {
           url = media.url;
           width = media.width;
