@@ -175,11 +175,12 @@ export async function scrape(url: URL): Promise<SourceData> {
     );
   }
 
-  if (
-    width !== deviationExtended.originalFile.width ||
-    height !== deviationExtended.originalFile.height
-  ) {
-    throw new Error("Not original dimensions");
+  const isOriginalDimensions =
+    width === deviationExtended.originalFile.width &&
+    height === deviationExtended.originalFile.height;
+
+  if (!isOriginalDimensions) {
+    console.log("Not original dimensions");
   }
 
   return {
