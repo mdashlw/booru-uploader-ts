@@ -1,7 +1,7 @@
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import fastProbe from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image-size.js";
 
 interface ItakuImageData {
   id: number;
@@ -21,7 +21,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   const image = await fetchImage(imageId);
 
   const imageUrl = image.image;
-  const { width, height } = await fastProbe(imageUrl);
+  const { type, width, height } = await probeImageSize(imageUrl);
 
   return {
     source: "Itaku",
@@ -29,6 +29,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: imageUrl,
+        type,
         width,
         height,
       },

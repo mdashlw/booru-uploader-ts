@@ -1,6 +1,7 @@
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import probeImageType from "../utils/probe-image-type.js";
 
 interface BoostyPost {
   id: string;
@@ -35,13 +36,16 @@ export async function scrape(url: URL): Promise<SourceData> {
   return {
     source: "Boosty",
     url: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}`,
-    images: post.data
-      .filter(({ type }) => type === "image")
-      .map(({ url, width, height }) => ({
-        url,
-        width,
-        height,
-      })),
+    images: await Promise.all(
+      post.data
+        .filter(({ type }) => type === "image")
+        .map(async ({ url, width, height }) => ({
+          url,
+          type: await probeImageType(url),
+          width,
+          height,
+        })),
+    ),
     artist: post.user.name,
     date: formatDate(new Date(post.publishTime * 1_000)),
     title: post.title,

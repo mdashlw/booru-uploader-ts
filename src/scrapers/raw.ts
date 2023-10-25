@@ -1,5 +1,5 @@
 import { SourceData } from "../scraper/types.js";
-import fastProbe from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image-size.js";
 
 export function canHandle(url: URL): boolean {
   return (
@@ -10,7 +10,7 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const { width, height } = await fastProbe(url);
+  const { type, width, height } = await probeImageSize(url);
 
   return {
     source: "Direct",
@@ -18,6 +18,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: url.toString(),
+        type,
         width,
         height,
       },

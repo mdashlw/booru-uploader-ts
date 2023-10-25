@@ -173,11 +173,23 @@ for await (const image of images(
       console.log(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${
           imageData.width
-        }x${imageData.height} (${sourceData.source}) vs ${image.width}x${
-          image.height
-        } (${booru.name})${
+        }x${imageData.height} ${imageData.type} (${sourceData.source}) vs ${
+          image.width
+        }x${image.height} ${image.format} (${booru.name})${
           sameAspectRatio ? "" : " ! different aspect ratio"
         }}`,
+      );
+    }
+
+    if (
+      image.width === imageData.width &&
+      image.height === imageData.height &&
+      image.format === "jpg" &&
+      imageData.type === "png"
+    ) {
+      ok = false;
+      console.log(
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${imageData.type} (${sourceData.source}) vs ${image.format} (${booru.name})}`,
       );
     }
   }

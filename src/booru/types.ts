@@ -10,6 +10,7 @@ export interface Image {
   tags: TagName[];
   width: number;
   height: number;
+  format: string;
   representations: {
     full: string;
   };

@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import fastProbe from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image-size.js";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "tabun.everypony.ru";
@@ -23,10 +23,11 @@ export async function scrape(url: URL): Promise<SourceData> {
             url = `https:${url}`;
           }
 
-          const { width, height } = await fastProbe(url);
+          const { type, width, height } = await probeImageSize(url);
 
           return {
             url,
+            type,
             width,
             height,
           };

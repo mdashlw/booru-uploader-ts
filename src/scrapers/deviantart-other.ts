@@ -4,7 +4,7 @@ import undici from "undici";
 import type { IncomingHttpHeaders } from "undici/types/header.js";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import fastProbe from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image-size.js";
 
 const HEADERS = {
   accept:
@@ -55,11 +55,13 @@ interface Deviation {
 
 interface DeviationExtended {
   originalFile: {
+    type: string;
     width: number;
     height: number;
   };
   download?: {
     url: string;
+    type: string;
     width: number;
     height: number;
   };
@@ -89,7 +91,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     initialState["@@entities"].deviationExtended[deviationId];
   const author: User = initialState["@@entities"].user[deviation.author];
 
-  let imageUrl: URL | undefined, width: number, height: number;
+  let imageUrl: URL | undefined, type: string, width: number, height: number;
 
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
@@ -107,6 +109,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
   }
 
+  type = deviationExtended.originalFile.type;
   width = fullview.w;
   height = fullview.h;
 
@@ -140,7 +143,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         ),
       );
       imageUrl = cardImageUrl;
-      ({ width, height } = deviationExtended.originalFile);
+      ({ type, width, height } = deviationExtended.originalFile);
     } else if (deviation.isDownloadable) {
       console.log(`Deviation ${deviation.deviationId} is downloadable`);
 
@@ -156,7 +159,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             throwOnError: true,
           })
           .then((response) => response.headers["location"] as string);
-      ({ width, height } = deviationExtended.download);
+      ({ type, width, height } = deviationExtended.download);
     } else if (deviationId <= 790_677_560) {
       console.log(
         `Deviation ${deviation.deviationId} is old enough for intermediary`,
@@ -164,7 +167,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       // https://github.com/danbooru/danbooru/blob/ddd2d2335fb09b30f2b5b06fbd4e7aa5c37b5b6a/app/logical/source/extractor/deviant_art.rb#L49
       imageUrl = new URL(deviation.media.baseUri);
       imageUrl.pathname = `/intermediary${imageUrl.pathname}`;
-      ({ width, height } = await fastProbe(imageUrl));
+      ({ type, width, height } = await probeImageSize(imageUrl));
     }
   } else {
     console.log(
@@ -185,6 +188,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: imageUrlFn ?? imageUrl!.toString(),
+        type,
         width,
         height,
       },

@@ -39,6 +39,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [
       {
         url: image.representations.full,
+        type: image.format,
         width: image.width,
         height: image.height,
       },

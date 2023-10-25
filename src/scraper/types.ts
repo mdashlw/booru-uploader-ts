@@ -15,6 +15,7 @@ export interface SourceData {
 
 export interface SourceImageData {
   url: string | (() => Promise<string>);
+  type: string | undefined;
   width: number;
   height: number;
 }

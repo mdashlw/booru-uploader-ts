@@ -5,6 +5,7 @@ import { unzip } from "unzipit";
 import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import probeImageType from "../utils/probe-image-type.js";
 
 /*
  * Images can be:
@@ -195,6 +196,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           media: [media],
         } = block as NPFImageBlock;
         let url: string | (() => Promise<string>);
+        let type: string | undefined;
         let width: number, height: number;
 
         media.url = media.url.replace(".pnj", ".png");
@@ -271,25 +273,9 @@ export async function scrape(url: URL): Promise<SourceData> {
           }
 
           if (media.mediaKey) {
-            url = async () => {
-              const url = media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/");
-              const body = await undici
-                .request(url, {
-                  headers: {
-                    accept: "text/html",
-                  },
-                  throwOnError: true,
-                })
-                .then((response) => response.body.text());
-
-              const match = /" src="(.+?)"/.exec(body);
-
-              if (!match) {
-                throw new Error("Could not find new image url");
-              }
-
-              return match[1];
-            };
+            url = await fetchNewImageUrl(
+              media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/"),
+            );
           } else {
             url = async () => {
               const reblogPostId = await createReblogPostAsDraft(
@@ -328,8 +314,13 @@ export async function scrape(url: URL): Promise<SourceData> {
           }
         }
 
+        if (typeof url === "string") {
+          type = await probeImageType(url);
+        }
+
         return {
           url,
+          type,
           width,
           height,
         };
@@ -609,4 +600,25 @@ async function pollBackup(apiUrl: string, csrfToken: string): Promise<string> {
 
     return downloadLink!;
   }
+}
+
+async function fetchNewImageUrl(url: string): Promise<string> {
+  const response = await undici.request(url, {
+    headers: {
+      accept: "text/html",
+    },
+    throwOnError: true,
+  });
+  const body = await response.body.text();
+  const match = /" src="(.+?)"/.exec(body);
+
+  if (!match) {
+    const error: any = new Error("Could not find new image url");
+    error.url = url;
+    error.response = response;
+    error.body = body;
+    throw error;
+  }
+
+  return match[1];
 }

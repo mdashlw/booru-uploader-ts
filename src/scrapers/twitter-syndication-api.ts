@@ -48,6 +48,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: (tweet.mediaDetails ?? []).map(
       ({ media_url_https, original_info: { width, height } }) => ({
         url: `${media_url_https}:orig`,
+        type: "jpg",
         width,
         height,
       }),
