@@ -10,6 +10,7 @@
     "inquirer-autocomplete-standalone": "^0.7.0",
     "lodash": "^4.17.21",
     "probe-image-size": "^7.2.3",
+    "sharp": "^0.32.6",
     "undici": "^5.25.2",
     "unzipit": "^1.4.3"
   },
