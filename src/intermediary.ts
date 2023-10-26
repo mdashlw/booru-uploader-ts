@@ -1,10 +1,11 @@
+import { Blob } from "node:buffer";
 import process from "node:process";
 import undici from "undici";
 
 const URL = process.env.INTERMEDIARY_DISCORD_WEBHOOK_URL;
 
 export default async function getIntermediateImageUrl(
-  blob: any,
+  blob: Blob,
 ): Promise<string> {
   const formData = new undici.FormData();
 
