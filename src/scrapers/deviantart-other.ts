@@ -79,7 +79,10 @@ interface DeviationExtended {
 }
 
 export function canHandle(url: URL): boolean {
-  return url.hostname.endsWith(".deviantart.com");
+  return (
+    url.hostname.endsWith(".deviantart.com") &&
+    url.pathname.substring(1).includes("/")
+  );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
