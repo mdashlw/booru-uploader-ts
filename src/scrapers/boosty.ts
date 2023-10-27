@@ -46,7 +46,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           height,
         })),
     ),
-    artist: post.user.name,
+    artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),
     title: post.title,
     description: post.data
