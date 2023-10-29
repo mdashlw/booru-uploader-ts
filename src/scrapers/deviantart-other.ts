@@ -50,7 +50,7 @@ const Deviation = z.object({
   author: z.number().int(),
   media: z.object({
     baseUri: z.string().url(),
-    token: z.string().array(),
+    token: z.string().array().optional(),
     types: z
       .object({
         t: z.string(),
@@ -126,7 +126,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     ? `${imageUrl.pathname}/v1/fill/w_${fullview.w},h_${fullview.h}/fullview.png`
     : imageUrl.pathname;
   if (fullview.r !== -1) {
-    imageUrl.searchParams.set("token", deviation.media.token[fullview.r]);
+    imageUrl.searchParams.set("token", deviation.media.token![fullview.r]);
   }
 
   type = deviationExtended.originalFile.type;
@@ -231,7 +231,7 @@ export async function scrape(url: URL): Promise<SourceData> {
               chunkHeight,
               imageHeight - y,
             )},x_${x},y_${y},q_100/image.png?token=${
-              deviation.media.token[fullview.r]
+              deviation.media.token![fullview.r]
             }`;
 
             chunkPromises.push(
