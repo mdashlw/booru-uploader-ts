@@ -1,28 +1,35 @@
 import undici from "undici";
+import z from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 
-interface Tweet {
-  url: string;
-  text: string;
-  created_timestamp: number;
-  author: User;
-  media?: {
-    all: Media[];
-    photos?: Media[];
-    videos?: Media[];
-  };
-}
+const APIAuthor = z.object({
+  id: z.string(),
+  screen_name: z.string(),
+});
+type APIAuthor = z.infer<typeof APIAuthor>;
 
-interface User {
-  screen_name: string;
-}
+const APIPhoto = z.object({
+  type: z.literal("photo"),
+  url: z.string().url(),
+  width: z.number().int(),
+  height: z.number().int(),
+});
+type APIPhoto = z.infer<typeof APIPhoto>;
 
-interface Media {
-  url: string;
-  width: number;
-  height: number;
-}
+const APITweet = z.object({
+  id: z.string(),
+  url: z.string().url(),
+  text: z.string(),
+  created_timestamp: z.number().int(),
+  author: APIAuthor,
+  media: z
+    .object({
+      photos: APIPhoto.array().optional(),
+    })
+    .optional(),
+});
+type APITweet = z.infer<typeof APITweet>;
 
 export function canHandle(url: URL): boolean {
   return (
@@ -67,7 +74,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   };
 }
 
-async function fetchTweet(tweetId: string): Promise<Tweet> {
+async function fetchTweet(tweetId: string): Promise<APITweet> {
   const response = await undici
     .request(`https://api.fxtwitter.com/status/${tweetId}`, {
       throwOnError: true,
@@ -77,16 +84,20 @@ async function fetchTweet(tweetId: string): Promise<Tweet> {
       error.tweetId = tweetId;
       throw error;
     });
-  const data = (await response.body.json().catch((error) => {
-    error = new Error("Failed to read response body", { cause: error });
-    error.tweetId = tweetId;
-    error.response = response;
-    throw error;
-  })) as {
-    code: number;
-    message: string;
-    tweet: Tweet;
-  };
+  const data = z
+    .object({
+      code: z.number().int(),
+      message: z.string(),
+      tweet: APITweet.optional(),
+    })
+    .parse(
+      await response.body.json().catch((error) => {
+        error = new Error("Failed to read response body", { cause: error });
+        error.tweetId = tweetId;
+        error.response = response;
+        throw error;
+      }),
+    );
 
   if (data.code !== 200) {
     const error: any = new Error(data.message);
@@ -96,5 +107,5 @@ async function fetchTweet(tweetId: string): Promise<Tweet> {
     throw error;
   }
 
-  return data.tweet;
+  return data.tweet!;
 }
