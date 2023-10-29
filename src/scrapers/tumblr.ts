@@ -2,6 +2,7 @@ import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
 import { unzip } from "unzipit";
+import z from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
@@ -65,63 +66,82 @@ import probeImageType from "../utils/probe-image-type.js";
 
 const COOKIE = process.env.TUMBLR_COOKIE;
 
-type V1Post = V1RegularPost | V1PhotoPost | V1AnswerPost;
+const V1RegularPost = z.object({
+  type: z.literal("regular"),
+  "regular-body": z.string(),
+});
+type V1RegularPost = z.infer<typeof V1RegularPost>;
 
-interface V1RegularPost {
-  type: "regular";
-  "regular-body": string;
-}
+const V1PhotoPost = z.object({
+  type: z.literal("photo"),
+  width: z.number().int(),
+  height: z.number().int(),
+  photos: z
+    .object({
+      width: z.number().int(),
+      height: z.number().int(),
+    })
+    .array(),
+});
+type V1PhotoPost = z.infer<typeof V1PhotoPost>;
 
-interface V1PhotoPost {
-  type: "photo";
-  width: number;
-  height: number;
-  photos: {
-    width: number;
-    height: number;
-  }[];
-}
+const V1AnswerPost = z.object({
+  type: z.literal("answer"),
+  question: z.string(),
+  answer: z.string(),
+});
+type V1AnswerPost = z.infer<typeof V1AnswerPost>;
 
-interface V1AnswerPost {
-  type: "answer";
-  question: string;
-  answer: string;
-}
+const V1Post = z.discriminatedUnion("type", [
+  V1RegularPost,
+  V1PhotoPost,
+  V1AnswerPost,
+]);
+type V1Post = z.infer<typeof V1Post>;
 
-interface Blog {
-  uuid: string;
-}
+const Blog = z.object({
+  uuid: z.string(),
+});
+type Blog = z.infer<typeof Blog>;
 
-interface NPFPost {
-  blog: Blog;
-  blogName: string;
-  id: string;
-  postUrl: string;
-  timestamp: number;
-  reblogKey: string;
-  summary: string;
-  content: NPFContentBlock[];
-}
+const NPFMediaObject = z.object({
+  url: z.string().url(),
+  width: z.number().int(),
+  height: z.number().int(),
+  hasOriginalDimensions: z.boolean().optional(),
+  mediaKey: z.string().optional(),
+});
+type NPFMediaObject = z.infer<typeof NPFMediaObject>;
 
-type NPFContentBlock = NPFTextBlock | NPFImageBlock;
+const NPFTextBlock = z.object({
+  type: z.literal("text"),
+  text: z.string(),
+});
+type NPFTextBlock = z.infer<typeof NPFTextBlock>;
 
-interface NPFTextBlock {
-  type: "text";
-  text: string;
-}
+const NPFImageBlock = z.object({
+  type: z.literal("image"),
+  media: NPFMediaObject.array(),
+});
+type NPFImageBlock = z.infer<typeof NPFImageBlock>;
 
-interface NPFImageBlock {
-  type: "image";
-  media: NPFMediaObject[];
-}
+const NPFContentBlock = z.discriminatedUnion("type", [
+  NPFTextBlock,
+  NPFImageBlock,
+]);
+type NPFContentBlock = z.infer<typeof NPFContentBlock>;
 
-interface NPFMediaObject {
-  url: string;
-  width: number;
-  height: number;
-  hasOriginalDimensions?: boolean;
-  mediaKey?: string;
-}
+const NPFPost = z.object({
+  blog: Blog,
+  blogName: z.string(),
+  id: z.string(),
+  postUrl: z.string().url(),
+  timestamp: z.number().int(),
+  reblogKey: z.string(),
+  summary: z.string(),
+  content: NPFContentBlock.array(),
+});
+type NPFPost = z.infer<typeof NPFPost>;
 
 const lazyInit = <T, Args extends any[]>(fn: (...args: Args) => T) => {
   let prom: T | undefined = undefined;
@@ -190,11 +210,11 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const images: SourceImageData[] = await Promise.all(
     post.content
-      .filter((block) => block.type === "image")
+      .filter((block): block is NPFImageBlock => block.type === "image")
       .map(async (block, index, imageArray) => {
         const {
           media: [media],
-        } = block as NPFImageBlock;
+        } = block;
         let url: string | (() => Promise<string>);
         let type: string | undefined;
         let width: number, height: number;
@@ -346,7 +366,7 @@ async function extractInitialState(url: URL): Promise<{
   csrfToken: string;
   PeeprRoute: {
     initialTimeline: {
-      objects: [NPFPost];
+      objects: NPFPost[];
     };
   };
 }> {
@@ -411,7 +431,19 @@ async function extractInitialState(url: URL): Promise<{
     throw error;
   }
 
-  return eval(`(${match[1]})`);
+  const data = eval(`(${match[1]})`);
+
+  return z
+    .object({
+      apiUrl: z.string().url(),
+      csrfToken: z.string(),
+      PeeprRoute: z.object({
+        initialTimeline: z.object({
+          objects: NPFPost.array().length(1),
+        }),
+      }),
+    })
+    .parse(data);
 }
 
 async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
@@ -446,9 +478,7 @@ async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
     throw error;
   }
 
-  let data: {
-    posts: [V1Post];
-  };
+  let data: any;
 
   try {
     data = JSON.parse(body.slice("var tumblr_api_read = ".length, -2));
@@ -461,7 +491,11 @@ async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
     throw error;
   }
 
-  return data.posts[0];
+  return z
+    .object({
+      posts: V1Post.array().length(1),
+    })
+    .parse(data).posts[0];
 }
 
 async function fetchTumblrAPI<T>(
