@@ -4,6 +4,7 @@ import process from "node:process";
 import sharp from "sharp";
 import undici from "undici";
 import type { IncomingHttpHeaders } from "undici/types/header.js";
+import z from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
@@ -34,50 +35,58 @@ const HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
 };
 
-interface User {
-  username: string;
-}
+const User = z.object({
+  userId: z.number().int(),
+  username: z.string(),
+});
+type User = z.infer<typeof User>;
 
-interface Deviation {
-  deviationId: number;
-  url: string;
-  title: string;
-  publishedTime: string;
-  isDownloadable: boolean;
-  author: number;
-  media: {
-    baseUri: string;
-    token: string[];
-    types: {
-      t: string;
-      r: number;
-      c?: string;
-      h: number;
-      w: number;
-    }[];
-  };
-}
+const Deviation = z.object({
+  deviationId: z.number().int(),
+  url: z.string().url(),
+  title: z.string(),
+  publishedTime: z.string().datetime({ offset: true }),
+  isDownloadable: z.boolean(),
+  author: z.number().int(),
+  media: z.object({
+    baseUri: z.string().url(),
+    token: z.string().array(),
+    types: z
+      .object({
+        t: z.string(),
+        r: z.number().int(),
+        c: z.string().optional(),
+        h: z.number().int(),
+        w: z.number().int(),
+      })
+      .array(),
+  }),
+});
+type Deviation = z.infer<typeof Deviation>;
 
-interface DeviationExtended {
-  originalFile: {
-    type: string;
-    width: number;
-    height: number;
-  };
-  download?: {
-    url: string;
-    type: string;
-    width: number;
-    height: number;
-  };
-  descriptionText: {
-    excerpt: string;
-    html: {
-      type: "writer" | "draft";
-      markup: string;
-    };
-  };
-}
+const DeviationExtended = z.object({
+  originalFile: z.object({
+    type: z.string(),
+    width: z.number().int(),
+    height: z.number().int(),
+  }),
+  download: z
+    .object({
+      url: z.string().url(),
+      type: z.string(),
+      width: z.number().int(),
+      height: z.number().int(),
+    })
+    .optional(),
+  descriptionText: z.object({
+    excerpt: z.string(),
+    html: z.object({
+      type: z.enum(["writer", "draft"]),
+      markup: z.string(),
+    }),
+  }),
+});
+type DeviationExtended = z.infer<typeof DeviationExtended>;
 
 export function canHandle(url: URL): boolean {
   return (
@@ -94,11 +103,13 @@ export async function scrape(url: URL): Promise<SourceData> {
   });
   const deviationId: number =
     initialState["@@DUPERBROWSE"].rootStream.currentOpenItem;
-  const deviation: Deviation =
-    initialState["@@entities"].deviation[deviationId];
-  const deviationExtended: DeviationExtended =
-    initialState["@@entities"].deviationExtended[deviationId];
-  const author: User = initialState["@@entities"].user[deviation.author];
+  const deviation = Deviation.parse(
+    initialState["@@entities"].deviation[deviationId],
+  );
+  const deviationExtended = DeviationExtended.parse(
+    initialState["@@entities"].deviationExtended[deviationId],
+  );
+  const author = User.parse(initialState["@@entities"].user[deviation.author]);
 
   let imageUrl: URL | undefined, type: string, width: number, height: number;
 
