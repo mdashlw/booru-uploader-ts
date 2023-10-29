@@ -73,6 +73,7 @@ interface DeviationExtended {
   descriptionText: {
     excerpt: string;
     html: {
+      type: "writer" | "draft";
       markup: string;
     };
   };
@@ -317,31 +318,37 @@ async function extractInitialState(
 function extractDescription(
   deviationExtended: DeviationExtended,
 ): string | null {
-  return (
-    deviationExtended.descriptionText.excerpt ||
-    cheerio
-      .load(
-        deviationExtended.descriptionText.html.markup
-          .replace(
-            '<br/><br/><p><a class="external" href="https://www.deviantart.com/users/outgoing?http://www.postybirb.com">Posted using PostyBirb</a></p>',
-            "",
-          )
-          .replaceAll(
-            /<a target="_self" href="(.+?)" ><img class="avatar" width="50" height="50" src=".+?" alt=".+?" title=".+?" \/><\/a>/g,
-            "$1",
-          )
-          .replaceAll(
-            /<span class="shadow-holder" data-embed-type="deviation" data-embed-id="950347966" data-embed-format="thumb"><span class="shadow mild" ><a class="thumb" href="(.+?)" title=".+?"data-super-img=".+?" data-super-width=".+?" data-super-height=".+?" data-super-transparent=".+?" data-super-alt=".+?" data-super-full-img=".+?" data-super-full-width=".+?" data-super-full-height=".+?" {8}data-sigil="thumb">\n {8}<i><\/i><img {4}width=".+?" height=".+?" alt=".+?" src=".+?" data-src=".+?" srcset=".+?" sizes=".+?"><\/a><\/span><!-- \^TTT --><!-- TTT\$ --><\/span>/g,
-            "$1",
-          )
-          .replaceAll("<br />", "\n")
-          .replaceAll(
-            /<a class="external" href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)">.+?<\/a>/g,
-            "$1",
-          ),
-      )
-      .text()
-      .trim() ||
-    null
-  );
+  if (deviationExtended.descriptionText.excerpt) {
+    return deviationExtended.descriptionText.excerpt;
+  }
+
+  if (deviationExtended.descriptionText.html.type !== "draft") {
+    return (
+      cheerio
+        .load(
+          deviationExtended.descriptionText.html.markup
+            .replace(
+              '<br/><br/><p><a class="external" href="https://www.deviantart.com/users/outgoing?http://www.postybirb.com">Posted using PostyBirb</a></p>',
+              "",
+            )
+            .replaceAll(
+              /<a target="_self" href="(.+?)" ><img class="avatar" width="50" height="50" src=".+?" alt=".+?" title=".+?" \/><\/a>/g,
+              "$1",
+            )
+            .replaceAll(
+              /<span class="shadow-holder" data-embed-type="deviation" data-embed-id="950347966" data-embed-format="thumb"><span class="shadow mild" ><a class="thumb" href="(.+?)" title=".+?"data-super-img=".+?" data-super-width=".+?" data-super-height=".+?" data-super-transparent=".+?" data-super-alt=".+?" data-super-full-img=".+?" data-super-full-width=".+?" data-super-full-height=".+?" {8}data-sigil="thumb">\n {8}<i><\/i><img {4}width=".+?" height=".+?" alt=".+?" src=".+?" data-src=".+?" srcset=".+?" sizes=".+?"><\/a><\/span><!-- \^TTT --><!-- TTT\$ --><\/span>/g,
+              "$1",
+            )
+            .replaceAll("<br />", "\n")
+            .replaceAll(
+              /<a class="external" href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)">.+?<\/a>/g,
+              "$1",
+            ),
+        )
+        .text()
+        .trim() || null
+    );
+  }
+
+  return null;
 }
