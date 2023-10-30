@@ -26,7 +26,6 @@ const tags = new TagLists(boorus);
 const ratingTag = await select({
   message: "Rating",
   choices: ratingTags.map((value) => ({ value })),
-  pageSize: Infinity,
 });
 await tags.addByName(ratingTag as TagName);
 
