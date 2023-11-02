@@ -11,7 +11,6 @@ import { formatDate } from "../scraper/utils.js";
 import probeImageSize from "../utils/probe-image-size.js";
 import { readableToBuffer } from "../utils/stream.js";
 
-const COMBINE_CHUNKS = process.argv.includes("--deviantart-combine-chunks");
 const HEADERS = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -202,9 +201,10 @@ export async function scrape(url: URL): Promise<SourceData> {
   if (!isOriginalDimensions) {
     console.log("Not original dimensions");
 
-    if (COMBINE_CHUNKS && fullview.c && fullview.r !== -1) {
+    if (fullview.c && fullview.r !== -1) {
       console.log("Combining chunks");
 
+      imageUrl = undefined;
       imageUrlFn = async () => {
         const { width: imageWidth, height: imageHeight } =
           deviationExtended.originalFile;
@@ -224,24 +224,33 @@ export async function scrape(url: URL): Promise<SourceData> {
 
         for (let x = 0; x < imageWidth; x += chunkWidth) {
           for (let y = 0; y < imageHeight; y += chunkHeight) {
-            const chunkUrl = `${deviation.media.baseUri}/v1/crop/w_${Math.min(
-              chunkWidth,
-              imageWidth - x,
-            )},h_${Math.min(
-              chunkHeight,
-              imageHeight - y,
-            )},x_${x},y_${y},q_100/image.png?token=${
+            const chunkWidthActual = Math.min(chunkWidth, imageWidth - x);
+            const chunkHeightActual = Math.min(chunkHeight, imageHeight - y);
+            const chunkUrl = `${
+              deviation.media.baseUri
+            }/v1/crop/w_${chunkWidthActual},h_${chunkHeightActual},x_${x},y_${y}/image.png?token=${
               deviation.media.token![fullview.r]
             }`;
 
             chunkPromises.push(
               undici
                 .request(chunkUrl, { throwOnError: true })
-                .then(async (response) => ({
-                  input: await readableToBuffer(response.body),
-                  left: x,
-                  top: y,
-                })),
+                .then(async (response) => {
+                  const chunk = {
+                    input: await readableToBuffer(response.body),
+                    left: x,
+                    top: y,
+                  };
+                  const metadata = await sharp(chunk.input).metadata();
+
+                  if (!metadata.density) {
+                    throw new Error(
+                      `Chunk [${x}, ${y}] (${chunkWidthActual}x${chunkHeightActual}) is bad`,
+                    );
+                  }
+
+                  return chunk;
+                }),
             );
           }
         }
