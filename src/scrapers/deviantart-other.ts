@@ -372,6 +372,7 @@ function extractDescription(
           .replaceAll(/<a\s*href="(.+?)"\s*>.+?<\/a>/g, "$1")
           .replaceAll("<div><br /></div>", "\n")
           .replaceAll(/(?:<br \/>)?<\/div>/g, "</div>\n")
+          .replaceAll("</p>", "</p>\n")
           .replaceAll("<br />", "\n"),
       )
       .text()
