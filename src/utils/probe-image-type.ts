@@ -14,7 +14,7 @@ export default async function probeImageType(
     method: "HEAD",
     throwOnError: true,
   });
-  const contentType = response.headers["content-type"];
+  let contentType = response.headers["content-type"];
 
   if (!contentType) {
     throw new Error(`No content type header for ${url}`);
@@ -22,6 +22,10 @@ export default async function probeImageType(
 
   if (typeof contentType !== "string") {
     throw new Error(`Unexpected content type header ${contentType} for ${url}`);
+  }
+
+  if (contentType.includes(";")) {
+    contentType = contentType.substring(0, contentType.indexOf(";"));
   }
 
   const imageType = contentTypeMap[contentType];
