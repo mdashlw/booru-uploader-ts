@@ -26,9 +26,9 @@ export async function scrape(url: URL): Promise<SourceData> {
       width: Number(groups!.width),
       height: Number(groups!.height),
     })),
-    artist: /<h1><a href="\/">(.+?)<\/a><\/h1>/.exec(body)![1],
+    artist: /<a href="\/">(.+?)<\/a>\s*<\/h1>/.exec(body)![1],
     date: "",
-    title: "",
-    description: $(".content .text").text(),
+    title: null,
+    description: $(".content .text").text() || $(".ct .text").text() || null,
   };
 }
