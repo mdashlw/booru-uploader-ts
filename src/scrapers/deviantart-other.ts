@@ -266,6 +266,10 @@ export async function scrape(url: URL): Promise<SourceData> {
     }
   }
 
+  if (type === "jpeg") {
+    type = "jpg";
+  }
+
   return {
     source: "DeviantArt",
     url: deviation.url,
