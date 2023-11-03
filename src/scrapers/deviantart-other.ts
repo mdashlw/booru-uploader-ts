@@ -347,25 +347,27 @@ function extractDescription(
       cheerio
         .load(
           deviationExtended.descriptionText.html.markup
-            .replace(
-              '<br/><br/><p><a class="external" href="https://www.deviantart.com/users/outgoing?http://www.postybirb.com">Posted using PostyBirb</a></p>',
-              "",
-            )
             .replaceAll(
-              /<a target="_self" href="(.+?)" ><img class="avatar" width="50" height="50" src=".+?" alt=".+?" title=".+?" \/><\/a>/g,
+              /<span\s*class="shadow.+?"\s*data-embed-type="deviation"\s*data-embed-id="\d+"\s*data-embed-format=".+?"\s*>\s*<span\s*class=".+?"\s*>\s*<a\s*class=".+?"\s*href="(.+?)"\s*title=".+?"\s*data-super-img=".+?"\s*data-super-width="\d+"\s*data-super-height="\d+"\s*data-super-transparent=".+?"\s*data-super-alt=".+?"\s*data-super-full-img=".+?"\s*data-super-full-width="\d+"\s*data-super-full-height="\d+"\s*data-sigil=".+?"\s*>\s*<i>\s*<\/i>\s*<img\s*width="\d+"\s*height="\d+"\s*alt=".+?"\s*src=".+?"\s*data-src=".+?"\s*srcset=".+?"\s*sizes=".+?"\s*>\s*<\/a>\s*<\/span>\s*<!--\s*\^TTT\s*-->\s*<!--\s*TTT\$\s*-->\s*<\/span>/g,
               "$1",
             )
             .replaceAll(
-              /<span class="shadow-holder" data-embed-type="deviation" data-embed-id="950347966" data-embed-format="thumb"><span class="shadow mild" ><a class="thumb" href="(.+?)" title=".+?"data-super-img=".+?" data-super-width=".+?" data-super-height=".+?" data-super-transparent=".+?" data-super-alt=".+?" data-super-full-img=".+?" data-super-full-width=".+?" data-super-full-height=".+?" {8}data-sigil="thumb">\n {8}<i><\/i><img {4}width=".+?" height=".+?" alt=".+?" src=".+?" data-src=".+?" srcset=".+?" sizes=".+?"><\/a><\/span><!-- \^TTT --><!-- TTT\$ --><\/span>/g,
+              /<a\s*target="_self"\s*href="(.+?)"\s*>\s*<img\s*class="avatar"\s*width="\d+"\s*height="\d+"\s*src=".+?"\s*alt=".+?"\s*title=".+?"\s*\/>\s*<\/a>/g,
               "$1",
             )
-            .replaceAll("<br />", "\n")
             .replaceAll(
-              /<a class="external" href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)">.+?<\/a>/g,
+              /<a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*>.+?<\/a>/g,
               "$1",
-            ),
+            )
+            .replaceAll(/<a\s*href="(.+?)"\s*>.+?<\/a>/g, "$1")
+            .replaceAll("<div><br /></div>", "\n")
+            .replaceAll(/(?:<br \/>)?<\/div>/g, "</div>\n")
+            .replaceAll("<br />", "\n"),
         )
         .text()
+        .split("\n")
+        .map((line) => line.trim())
+        .join("\n")
         .trim() || null
     );
   }
