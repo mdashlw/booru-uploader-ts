@@ -77,6 +77,13 @@ const DeviationExtended = z.object({
       height: z.number().int(),
     })
     .optional(),
+  tags: z
+    .object({
+      name: z.string(),
+      url: z.string().url(),
+    })
+    .array()
+    .optional(),
   descriptionText: z.object({
     excerpt: z.string(),
     html: z.object({
@@ -342,39 +349,47 @@ async function extractInitialState(
 function extractDescription(
   deviationExtended: DeviationExtended,
 ): string | null {
+  let description: string = "";
+
   if (deviationExtended.descriptionText.excerpt) {
-    return deviationExtended.descriptionText.excerpt;
+    description = deviationExtended.descriptionText.excerpt;
+  } else if (deviationExtended.descriptionText.html.type !== "draft") {
+    description = cheerio
+      .load(
+        deviationExtended.descriptionText.html.markup
+          .replaceAll(
+            /<span\s*class="shadow.+?"\s*data-embed-type="deviation"\s*data-embed-id="\d+"\s*data-embed-format=".+?"\s*>\s*<span\s*class=".+?"\s*>\s*<a\s*class=".+?"\s*href="(.+?)"\s*title=".+?"\s*data-super-img=".+?"\s*data-super-width="\d+"\s*data-super-height="\d+"\s*data-super-transparent=".+?"\s*data-super-alt=".+?"\s*data-super-full-img=".+?"\s*data-super-full-width="\d+"\s*data-super-full-height="\d+"\s*data-sigil=".+?"\s*>\s*<i>\s*<\/i>\s*<img\s*width="\d+"\s*height="\d+"\s*alt=".+?"\s*src=".+?"\s*data-src=".+?"\s*srcset=".+?"\s*sizes=".+?"\s*>\s*<\/a>\s*<\/span>\s*<!--\s*\^TTT\s*-->\s*<!--\s*TTT\$\s*-->\s*<\/span>/g,
+            "$1",
+          )
+          .replaceAll(
+            /<a\s*target="_self"\s*href="(.+?)"\s*>\s*<img\s*class="avatar"\s*width="\d+"\s*height="\d+"\s*src=".+?"\s*alt=".+?"\s*title=".+?"\s*\/>\s*<\/a>/g,
+            "$1",
+          )
+          .replaceAll(
+            /<a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*>.+?<\/a>/g,
+            "$1",
+          )
+          .replaceAll(/<a\s*href="(.+?)"\s*>.+?<\/a>/g, "$1")
+          .replaceAll("<div><br /></div>", "\n")
+          .replaceAll(/(?:<br \/>)?<\/div>/g, "</div>\n")
+          .replaceAll("<br />", "\n"),
+      )
+      .text()
+      .split("\n")
+      .map((line) => line.trim())
+      .join("\n")
+      .trim();
   }
 
-  if (deviationExtended.descriptionText.html.type !== "draft") {
-    return (
-      cheerio
-        .load(
-          deviationExtended.descriptionText.html.markup
-            .replaceAll(
-              /<span\s*class="shadow.+?"\s*data-embed-type="deviation"\s*data-embed-id="\d+"\s*data-embed-format=".+?"\s*>\s*<span\s*class=".+?"\s*>\s*<a\s*class=".+?"\s*href="(.+?)"\s*title=".+?"\s*data-super-img=".+?"\s*data-super-width="\d+"\s*data-super-height="\d+"\s*data-super-transparent=".+?"\s*data-super-alt=".+?"\s*data-super-full-img=".+?"\s*data-super-full-width="\d+"\s*data-super-full-height="\d+"\s*data-sigil=".+?"\s*>\s*<i>\s*<\/i>\s*<img\s*width="\d+"\s*height="\d+"\s*alt=".+?"\s*src=".+?"\s*data-src=".+?"\s*srcset=".+?"\s*sizes=".+?"\s*>\s*<\/a>\s*<\/span>\s*<!--\s*\^TTT\s*-->\s*<!--\s*TTT\$\s*-->\s*<\/span>/g,
-              "$1",
-            )
-            .replaceAll(
-              /<a\s*target="_self"\s*href="(.+?)"\s*>\s*<img\s*class="avatar"\s*width="\d+"\s*height="\d+"\s*src=".+?"\s*alt=".+?"\s*title=".+?"\s*\/>\s*<\/a>/g,
-              "$1",
-            )
-            .replaceAll(
-              /<a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*>.+?<\/a>/g,
-              "$1",
-            )
-            .replaceAll(/<a\s*href="(.+?)"\s*>.+?<\/a>/g, "$1")
-            .replaceAll("<div><br /></div>", "\n")
-            .replaceAll(/(?:<br \/>)?<\/div>/g, "</div>\n")
-            .replaceAll("<br />", "\n"),
-        )
-        .text()
-        .split("\n")
-        .map((line) => line.trim())
-        .join("\n")
-        .trim() || null
-    );
+  if (deviationExtended.tags) {
+    if (description) {
+      description += "\n\n";
+    }
+
+    description += deviationExtended.tags
+      .map((tag) => `#${tag.name}`)
+      .join(" ");
   }
 
-  return null;
+  return description;
 }
