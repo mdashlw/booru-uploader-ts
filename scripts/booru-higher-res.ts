@@ -73,7 +73,10 @@ async function* images(query: string, sort?: string[] | string) {
   }
 }
 
-const rl = readline.createInterface(process.stdin);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
 for await (const image of images(
   args.query,
