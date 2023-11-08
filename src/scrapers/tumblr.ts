@@ -138,6 +138,7 @@ const NPFPost = z.object({
   postUrl: z.string().url(),
   timestamp: z.number().int(),
   reblogKey: z.string(),
+  tags: z.string().array(),
   summary: z.string(),
   content: NPFContentBlock.array(),
 });
@@ -347,6 +348,19 @@ export async function scrape(url: URL): Promise<SourceData> {
       }),
   );
 
+  let description: string = post.content
+    .filter((block) => block.type === "text")
+    .map((block) => (block as NPFTextBlock).text)
+    .join("\n");
+
+  if (post.tags.length) {
+    if (description) {
+      description += "\n\n";
+    }
+
+    description += post.tags.map((tag) => `#${tag}`).join(" ");
+  }
+
   return {
     source: "Tumblr",
     url: post.postUrl,
@@ -354,10 +368,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     artist: post.blogName,
     date: formatDate(new Date(post.timestamp * 1_000)),
     title: null,
-    description: post.content
-      .filter((block) => block.type === "text")
-      .map((block) => (block as NPFTextBlock).text)
-      .join("\n"),
+    description,
   };
 }
 
