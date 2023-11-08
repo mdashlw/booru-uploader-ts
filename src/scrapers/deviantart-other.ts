@@ -209,7 +209,10 @@ export async function scrape(url: URL): Promise<SourceData> {
     console.log("Not original dimensions");
 
     if (fullview.c && fullview.r !== -1) {
-      console.log("Combining chunks");
+      console.log(
+        "Combining chunks",
+        JSON.stringify({ originalFile: deviationExtended.originalFile }),
+      );
 
       imageUrl = undefined;
       imageUrlFn = async () => {
@@ -270,6 +273,12 @@ export async function scrape(url: URL): Promise<SourceData> {
         return await getIntermediateImageUrl(blob);
       };
       ({ type, width, height } = deviationExtended.originalFile);
+
+      if (type === "jpeg" || type === "jpg") {
+        console.log(
+          "Warning: original file is jpg but resulting file will be png",
+        );
+      }
     }
   }
 
