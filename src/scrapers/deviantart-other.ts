@@ -83,6 +83,7 @@ const DeviationExtended = z.object({
       url: z.string().url(),
     })
     .array()
+    .nonempty()
     .optional(),
   descriptionText: z.object({
     excerpt: z.string(),
