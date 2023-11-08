@@ -349,8 +349,8 @@ export async function scrape(url: URL): Promise<SourceData> {
   );
 
   let description: string = post.content
-    .filter((block) => block.type === "text")
-    .map((block) => (block as NPFTextBlock).text)
+    .filter((block): block is NPFTextBlock => block.type === "text")
+    .map((block) => block.text)
     .join("\n");
 
   if (post.tags.length) {
