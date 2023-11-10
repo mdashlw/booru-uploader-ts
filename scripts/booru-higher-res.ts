@@ -168,8 +168,8 @@ for await (const image of images(
 
     const imageData = sourceData.images[0];
     const sameAspectRatio =
-      Math.trunc((image.width / image.height) * 100) ===
-      Math.trunc((imageData.width / imageData.height) * 100);
+      Math.trunc(Number((image.width / image.height).toFixed(3)) * 100) ===
+      Math.trunc(Number((imageData.width / imageData.height).toFixed(3)) * 100);
 
     if (image.width < imageData.width || image.height < imageData.height) {
       ok = false;
