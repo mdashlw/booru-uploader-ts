@@ -35,18 +35,18 @@ const HEADERS = {
 };
 
 const User = z.object({
-  userId: z.number().int(),
+  userId: z.number().int().positive(),
   username: z.string(),
 });
 type User = z.infer<typeof User>;
 
 const Deviation = z.object({
-  deviationId: z.number().int(),
+  deviationId: z.number().int().positive(),
   url: z.string().url(),
   title: z.string(),
-  publishedTime: z.string().datetime({ offset: true }),
+  publishedTime: z.coerce.date(),
   isDownloadable: z.boolean(),
-  author: z.number().int(),
+  author: z.number().int().positive(),
   media: z.object({
     baseUri: z.string().url(),
     token: z.string().array().optional(),
@@ -55,8 +55,8 @@ const Deviation = z.object({
         t: z.string(),
         r: z.number().int(),
         c: z.string().optional(),
-        h: z.number().int(),
-        w: z.number().int(),
+        h: z.number().int().positive(),
+        w: z.number().int().positive(),
       })
       .array(),
   }),
@@ -299,7 +299,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       },
     ],
     artist: author.username,
-    date: formatDate(new Date(deviation.publishedTime)),
+    date: formatDate(deviation.publishedTime),
     title: deviation.title,
     description: extractDescription(deviationExtended),
   };

@@ -12,8 +12,8 @@ type APIAuthor = z.infer<typeof APIAuthor>;
 const APIPhoto = z.object({
   type: z.literal("photo"),
   url: z.string().url(),
-  width: z.number().int(),
-  height: z.number().int(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
 });
 type APIPhoto = z.infer<typeof APIPhoto>;
 
@@ -21,7 +21,7 @@ const APITweet = z.object({
   id: z.string(),
   url: z.string().url(),
   text: z.string(),
-  created_timestamp: z.number().int(),
+  created_timestamp: z.number().int().positive(),
   author: APIAuthor,
   media: z
     .object({

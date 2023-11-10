@@ -74,12 +74,12 @@ type V1RegularPost = z.infer<typeof V1RegularPost>;
 
 const V1PhotoPost = z.object({
   type: z.literal("photo"),
-  width: z.number().int(),
-  height: z.number().int(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
   photos: z
     .object({
-      width: z.number().int(),
-      height: z.number().int(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
     })
     .array(),
 });
@@ -106,8 +106,8 @@ type Blog = z.infer<typeof Blog>;
 
 const NPFMediaObject = z.object({
   url: z.string().url(),
-  width: z.number().int(),
-  height: z.number().int(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
   hasOriginalDimensions: z.boolean().optional(),
   mediaKey: z.string().optional(),
 });
@@ -136,7 +136,7 @@ const NPFPost = z.object({
   blogName: z.string(),
   id: z.string(),
   postUrl: z.string().url(),
-  timestamp: z.number().int(),
+  timestamp: z.number().int().positive(),
   reblogKey: z.string(),
   tags: z.string().array(),
   summary: z.string(),
