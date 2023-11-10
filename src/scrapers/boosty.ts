@@ -1,21 +1,30 @@
 import undici from "undici";
+import z from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import probeImageType from "../utils/probe-image-type.js";
 
-interface BoostyPost {
-  id: string;
-  user: BoostyUser;
-  publishTime: number;
-  title: string;
-  data: any[];
-}
+const BoostyUser = z.object({
+  id: z.number().int().positive(),
+  blogUrl: z.string(),
+  name: z.string(),
+});
+type BoostyUser = z.infer<typeof BoostyUser>;
 
-interface BoostyUser {
-  id: number;
-  blogUrl: string;
-  name: string;
-}
+const BoostyPost = z.object({
+  id: z.string().uuid(),
+  user: BoostyUser,
+  publishTime: z.number().int().positive(),
+  title: z.string().trim(),
+  data: z.any().array(),
+  tags: z
+    .object({
+      id: z.number().int().positive(),
+      title: z.string(),
+    })
+    .array(),
+});
+type BoostyPost = z.infer<typeof BoostyPost>;
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "boosty.to" && url.pathname.includes("/posts/");
@@ -48,7 +57,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     ),
     artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),
-    title: post.title.trim(),
+    title: post.title,
     description: post.data
       .filter(({ type }) => type === "text" || type === "link")
       .map(({ modificator, content }) =>
@@ -76,5 +85,5 @@ async function fetchPost(blogUrl: string, postId: string): Promise<BoostyPost> {
     throw error;
   });
 
-  return json as BoostyPost;
+  return BoostyPost.parse(json);
 }
