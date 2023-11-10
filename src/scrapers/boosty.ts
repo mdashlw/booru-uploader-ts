@@ -48,13 +48,14 @@ export async function scrape(url: URL): Promise<SourceData> {
     ),
     artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),
-    title: post.title,
+    title: post.title.trim(),
     description: post.data
       .filter(({ type }) => type === "text" || type === "link")
       .map(({ modificator, content }) =>
         modificator === "BLOCK_END" ? "\n" : JSON.parse(content)[0],
       )
-      .join(""),
+      .join("")
+      .trim(),
   };
 }
 
