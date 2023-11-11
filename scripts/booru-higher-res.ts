@@ -149,8 +149,16 @@ for await (const image of images(
     try {
       sourceData = await scraper.scrape(sourceUrl);
     } catch (error: any) {
+      const collectErrorMessages = (error: Error): string[] => [
+        error.message,
+        ...(error.cause ? collectErrorMessages(error.cause as Error) : []),
+      ];
+      const messages: string[] = collectErrorMessages(error);
+
       console.log(
-        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {red ${error.message}}`,
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {red ${messages.join(
+          " - ",
+        )}}`,
       );
       continue;
     }
