@@ -172,10 +172,13 @@ for await (const image of images(
       imageData = sourceData.images[0];
     } else {
       imageData = sourceData.images
-        .map((data): [SourceImageData, number] => [
-          data,
-          Math.abs(image.width / image.height - data.width / data.height),
-        ])
+        .map(
+          (data) =>
+            [
+              data,
+              Math.abs(image.width / image.height - data.width / data.height),
+            ] as const,
+        )
         .sort(([, a], [, b]) => a - b)[0][0];
 
       console.log(
