@@ -13,6 +13,7 @@ export default async function probeImageType(
 ): Promise<string> {
   const response = await undici.request(url, {
     method: "HEAD",
+    reset: true,
     headers,
     throwOnError: true,
   });
