@@ -9,9 +9,11 @@ const contentTypeMap: Record<string, string> = {
 
 export default async function probeImageType(
   url: string | URL,
+  headers?: Record<string, string>,
 ): Promise<string> {
   const response = await undici.request(url, {
     method: "HEAD",
+    headers,
     throwOnError: true,
   });
   let contentType = response.headers["content-type"];
