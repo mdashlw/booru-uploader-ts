@@ -7,7 +7,7 @@ import { Image, TagName } from "../src/booru/types.js";
 import { boorus } from "../src/boorus.js";
 import { ratingTags } from "../src/rating-tags.js";
 import { findScraper } from "../src/scraper.js";
-import { SourceData } from "../src/scraper/types.js";
+import type { SourceData, SourceImageData } from "../src/scraper/types.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 
@@ -166,7 +166,25 @@ for await (const image of images(
       // continue;
     }
 
-    const imageData = sourceData.images[0];
+    let imageData: SourceImageData;
+
+    if (sourceData.images.length === 1) {
+      imageData = sourceData.images[0];
+    } else {
+      imageData = sourceData.images
+        .map((data): [SourceImageData, number] => [
+          data,
+          Math.abs(image.width / image.height - data.width / data.height),
+        ])
+        .sort(([, a], [, b]) => a - b)[0][0];
+
+      console.log(
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright ${
+          sourceData.images.length
+        } images - picked ${sourceData.images.indexOf(imageData)}}`,
+      );
+    }
+
     const sameAspectRatio =
       Math.trunc(Number((image.width / image.height).toFixed(3)) * 100) ===
       Math.trunc(Number((imageData.width / imageData.height).toFixed(3)) * 100);
