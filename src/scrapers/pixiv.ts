@@ -1,8 +1,11 @@
+import process from "node:process";
 import undici from "undici";
 import z from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+
+const COOKIE = process.env.PIXIV_COOKIE;
 
 const IllustPage = z.object({
   width: z.number().int().positive(),
@@ -100,6 +103,11 @@ async function fetchAjax<T extends z.ZodType<any, any, any>>(
 ): Promise<z.infer<T>> {
   const response = await undici
     .request(`https://www.pixiv.net/ajax/${path}`, {
+      headers: {
+        cookie: COOKIE,
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+      },
       throwOnError: true,
     })
     .catch((error) => {
@@ -118,7 +126,7 @@ async function fetchAjax<T extends z.ZodType<any, any, any>>(
       z.object({
         error: z.literal(true),
         message: z.string().min(1),
-        body: z.never(),
+        body: z.unknown(),
       }),
       z.object({
         error: z.literal(false),
