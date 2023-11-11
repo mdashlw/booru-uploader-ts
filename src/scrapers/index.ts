@@ -7,6 +7,7 @@ import * as FurAffinity from "./furaffinity.js";
 import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter.js";
 import * as PassThrough from "./pass-through.js";
+import * as Pixiv from "./pixiv.js";
 import * as Raw from "./raw.js";
 import * as Tabun from "./tabun.js";
 import * as Tumblr from "./tumblr.js";
@@ -21,6 +22,7 @@ export const scrapers: Scraper[] = [
   Itaku,
   Lofter,
   PassThrough,
+  Pixiv,
   Raw,
   Tabun,
   Tumblr,
