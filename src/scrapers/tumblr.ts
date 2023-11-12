@@ -152,9 +152,7 @@ const lazyInit = <T, Args extends any[]>(fn: (...args: Args) => T) => {
 const getIntermediaryBlogName = lazyInit(
   async (apiUrl: string, csrfToken: string) => {
     const {
-      user: {
-        blogs: [blog],
-      },
+      user: { blogs },
     } = await fetchTumblrAPI<{
       user: {
         blogs: { name: string }[];
@@ -162,6 +160,7 @@ const getIntermediaryBlogName = lazyInit(
     }>(apiUrl, csrfToken, {
       path: "user/info",
     });
+    const blog = blogs.at(-1)!;
 
     return blog.name;
   },
