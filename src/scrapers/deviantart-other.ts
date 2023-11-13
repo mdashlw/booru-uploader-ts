@@ -43,7 +43,7 @@ type User = z.infer<typeof User>;
 const Deviation = z.object({
   deviationId: z.number().int().positive(),
   url: z.string().url(),
-  title: z.string(),
+  title: z.string().trim(),
   publishedTime: z.coerce.date(),
   isDownloadable: z.boolean(),
   author: z.number().int().positive(),
