@@ -125,9 +125,16 @@ const NPFImageBlock = z.object({
 });
 type NPFImageBlock = z.infer<typeof NPFImageBlock>;
 
+const NPFLinkBlock = z.object({
+  type: z.literal("link"),
+  url: z.string().url(),
+});
+type NPFLinkBlock = z.infer<typeof NPFLinkBlock>;
+
 const NPFContentBlock = z.discriminatedUnion("type", [
   NPFTextBlock,
   NPFImageBlock,
+  NPFLinkBlock,
 ]);
 type NPFContentBlock = z.infer<typeof NPFContentBlock>;
 
