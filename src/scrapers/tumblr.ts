@@ -134,7 +134,7 @@ type NPFImageBlock = z.infer<typeof NPFImageBlock>;
 
 const NPFVideoBlock = z.object({
   type: z.literal("video"),
-  media: NPFMediaObject.array(),
+  media: NPFMediaObject,
 });
 type NPFVideoBlock = z.infer<typeof NPFVideoBlock>;
 
