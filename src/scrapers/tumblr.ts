@@ -106,6 +106,7 @@ type Blog = z.infer<typeof Blog>;
 
 const NPFMediaObject = z.object({
   url: z.string().url(),
+  type: z.string(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   hasOriginalDimensions: z.boolean().optional(),
@@ -119,22 +120,29 @@ const NPFTextBlock = z.object({
 });
 type NPFTextBlock = z.infer<typeof NPFTextBlock>;
 
-const NPFImageBlock = z.object({
-  type: z.literal("image"),
-  media: NPFMediaObject.array(),
-});
-type NPFImageBlock = z.infer<typeof NPFImageBlock>;
-
 const NPFLinkBlock = z.object({
   type: z.literal("link"),
   url: z.string().url(),
 });
 type NPFLinkBlock = z.infer<typeof NPFLinkBlock>;
 
+const NPFImageBlock = z.object({
+  type: z.literal("image"),
+  media: NPFMediaObject.array(),
+});
+type NPFImageBlock = z.infer<typeof NPFImageBlock>;
+
+const NPFVideoBlock = z.object({
+  type: z.literal("video"),
+  media: NPFMediaObject.array(),
+});
+type NPFVideoBlock = z.infer<typeof NPFVideoBlock>;
+
 const NPFContentBlock = z.discriminatedUnion("type", [
   NPFTextBlock,
-  NPFImageBlock,
   NPFLinkBlock,
+  NPFImageBlock,
+  NPFVideoBlock,
 ]);
 type NPFContentBlock = z.infer<typeof NPFContentBlock>;
 
