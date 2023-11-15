@@ -77,6 +77,9 @@ export async function scrape(url: URL): Promise<SourceData> {
 async function fetchTweet(tweetId: string): Promise<APITweet> {
   const response = await undici
     .request(`https://api.fxtwitter.com/status/${tweetId}`, {
+      headers: {
+        "user-agent": "Derpibooru-Uploader/1.0 (by https://github.com/mdashlw)",
+      },
       throwOnError: true,
     })
     .catch((error) => {
