@@ -9,6 +9,7 @@ export default async function probeImageSize(
     signal: ac.signal,
     reset: true,
     throwOnError: true,
+    maxRedirections: 1,
   });
 
   return await probe(response.body).finally(() => {
