@@ -24,7 +24,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   const uploadPathnameMatch =
     /history\.replaceState\({}, window\.title, '(.+)'\);/.exec(body);
   if (!uploadPathnameMatch) {
-    throw new Error("Could not find conventional upload pathname");
+    throw new Error("Could not find canonical upload pathname");
   }
   const uploadUrl = new URL(url.href);
   [, uploadUrl.pathname] = uploadPathnameMatch;
