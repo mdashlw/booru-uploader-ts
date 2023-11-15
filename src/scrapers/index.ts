@@ -1,7 +1,7 @@
 import { Scraper } from "../scraper/types.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
-import * as Commishes from "./commishes.js";
+import * as Commishes from "./commishes-api.js";
 import * as DeviantArt from "./deviantart-other.js";
 import * as FurAffinity from "./furaffinity.js";
 import * as Itaku from "./itaku.js";
