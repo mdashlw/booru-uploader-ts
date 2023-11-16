@@ -5,6 +5,14 @@ import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 
+/*
+ * Samples:
+ * - Safe 1 page: https://www.pixiv.net/en/artworks/104188649
+ * - Safe 6 pages: https://www.pixiv.net/en/artworks/51278790
+ * - NSFW 1 page: https://www.pixiv.net/en/artworks/101972973
+ * - NSFW 2 pages: https://www.pixiv.net/en/artworks/41201085
+ */
+
 const COOKIE = process.env.PIXIV_COOKIE;
 
 const IllustPage = z.object({
