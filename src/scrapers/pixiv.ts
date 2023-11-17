@@ -7,10 +7,14 @@ import { formatDate } from "../scraper/utils.js";
 
 /*
  * Samples:
+ * - Safe 1 page: https://www.pixiv.net/en/artworks/85613406
  * - Safe 1 page: https://www.pixiv.net/en/artworks/104188649
  * - Safe 6 pages: https://www.pixiv.net/en/artworks/51278790
+ * - Safe 4 pages: https://www.pixiv.net/en/artworks/55387206
  * - NSFW 1 page: https://www.pixiv.net/en/artworks/101972973
+ * - NSFW 1 page: https://www.pixiv.net/en/artworks/93454369
  * - NSFW 2 pages: https://www.pixiv.net/en/artworks/41201085
+ * - NSFW 2 pages: https://www.pixiv.net/en/artworks/58565901
  */
 
 const COOKIE = process.env.PIXIV_COOKIE;
