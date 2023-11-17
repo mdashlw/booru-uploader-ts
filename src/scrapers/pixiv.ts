@@ -51,8 +51,9 @@ type Illust = z.infer<typeof Illust>;
 
 export function canHandle(url: URL): boolean {
   return (
-    url.hostname === "www.pixiv.net" &&
+    (url.hostname === "www.pixiv.net" || url.hostname === "pixiv.net") &&
     (url.pathname.includes("/artworks/") ||
+      url.pathname.startsWith("/i/") ||
       url.pathname === "/member_illust.php")
   );
 }
