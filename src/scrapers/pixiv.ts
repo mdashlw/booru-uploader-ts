@@ -26,7 +26,7 @@ type User = z.infer<typeof User>;
 const Illust = z.object({
   id: z.coerce.number().int().positive(),
   title: z.string(),
-  comment: z.string(),
+  comment: z.string().nullable(),
   upload_timestamp: z
     .number()
     .int()
