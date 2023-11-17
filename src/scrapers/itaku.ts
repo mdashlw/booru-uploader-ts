@@ -3,6 +3,17 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import probeImageSize from "../utils/probe-image-size.js";
 
+/*
+ * Samples:
+ * - SFW: https://itaku.ee/images/582647 (709x1080 png)
+ * - SFW: https://itaku.ee/images/499189 (2550x3300 png)
+ * - SFW: https://itaku.ee/images/669780 (6500x4500 png)
+ * - Questionable: https://itaku.ee/images/516330 (1079x900 png)
+ * - Questionable: https://itaku.ee/images/647530 (2890x2289 jpg)
+ * - NSFW: https://itaku.ee/images/622847 (1109x879 png)
+ * - NSFW: https://itaku.ee/images/647416 (1820x2389 png)
+ */
+
 interface ItakuImageData {
   id: number;
   owner_username: string;
