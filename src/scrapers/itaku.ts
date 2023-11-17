@@ -1,4 +1,5 @@
 import undici from "undici";
+import z from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import probeImageSize from "../utils/probe-image-size.js";
@@ -14,14 +15,15 @@ import probeImageSize from "../utils/probe-image-size.js";
  * - NSFW: https://itaku.ee/images/647416 (1820x2389 png)
  */
 
-interface ItakuImageData {
-  id: number;
-  owner_username: string;
-  title: string;
-  description: string;
-  image: string;
-  date_added: string;
-}
+const ItakuImageData = z.object({
+  id: z.number().int().positive(),
+  owner_username: z.string(),
+  title: z.string(),
+  description: z.string(),
+  image: z.string().url(),
+  date_added: z.coerce.date(),
+});
+type ItakuImageData = z.infer<typeof ItakuImageData>;
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "itaku.ee" && url.pathname.startsWith("/images/");
@@ -46,7 +48,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       },
     ],
     artist: image.owner_username,
-    date: formatDate(new Date(image.date_added)),
+    date: formatDate(image.date_added),
     title: image.title,
     description: image.description,
   };
@@ -69,5 +71,5 @@ async function fetchImage(imageId: number): Promise<ItakuImageData> {
     throw error;
   });
 
-  return json as ItakuImageData;
+  return ItakuImageData.parse(json);
 }
