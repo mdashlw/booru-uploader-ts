@@ -1,4 +1,3 @@
-import process from "node:process";
 import undici from "undici";
 import z from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
@@ -17,40 +16,48 @@ import { formatDate } from "../scraper/utils.js";
  * - NSFW 2 pages: https://www.pixiv.net/en/artworks/58565901
  */
 
-const COOKIE = process.env.PIXIV_COOKIE;
-
-const IllustPage = z.object({
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
-  urls: z.object({
-    original: z.string().url(),
-  }),
+const User = z.object({
+  user_id: z.coerce.number().int().positive(),
+  user_name: z.string(),
+  user_account: z.string(),
 });
-type IllustPage = z.infer<typeof IllustPage>;
+type User = z.infer<typeof User>;
 
-const Illust = z
-  .object({
-    illustId: z.string(),
-    illustTitle: z.string(),
-    illustComment: z.string(),
-    createDate: z.coerce.date(),
-    tags: z.object({
-      tags: z
-        .object({
-          tag: z.string(),
-        })
-        .array(),
-    }),
-    userId: z.string(),
-    userName: z.string(),
-    pageCount: z.number().int().positive(),
-    extraData: z.object({
-      meta: z.object({
-        canonical: z.string().url(),
-      }),
-    }),
-  })
-  .merge(IllustPage);
+const Illust = z.object({
+  id: z.coerce.number().int().positive(),
+  title: z.string(),
+  comment: z.string(),
+  upload_timestamp: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
+  page_count: z.coerce.number().int().positive(),
+  url_big: z.string().url(),
+  width: z.coerce.number().int().positive(),
+  height: z.coerce.number().int().positive(),
+  illust_images: z
+    .object({
+      illust_image_width: z.coerce.number().int().positive(),
+      illust_image_height: z.coerce.number().int().positive(),
+    })
+    .array()
+    .nonempty(),
+  manga_a: z
+    .object({
+      page: z.number().int().nonnegative(),
+      url_big: z.string().url(),
+    })
+    .array()
+    .nonempty()
+    .optional(),
+  tags: z.string().array(),
+  meta: z.object({
+    canonical: z.string().url(),
+  }),
+  author_details: User,
+});
 type Illust = z.infer<typeof Illust>;
 
 export function canHandle(url: URL): boolean {
@@ -67,45 +74,47 @@ export async function scrape(url: URL): Promise<SourceData> {
     ? url.searchParams.get("illust_id")!
     : url.pathname.split("/").pop()!;
   const illust = await fetchIllust(illustId);
-  let illustPages: IllustPage[];
+  const illustPages = illust.manga_a?.map(({ page, url_big }) => ({
+    url: url_big,
+    width: illust.illust_images[page].illust_image_width,
+    height: illust.illust_images[page].illust_image_height,
+  })) ?? [
+    {
+      url: illust.url_big,
+      width: illust.width,
+      height: illust.height,
+    },
+  ];
 
-  if (illust.pageCount === 1) {
-    illustPages = [illust];
-  } else {
-    illustPages = await fetchIllustPages(illustId);
-  }
+  let description = illust.comment;
 
-  let description = illust.illustComment;
-
-  if (illust.tags.tags.length) {
+  if (illust.tags.length) {
     if (description) {
       description += "\n\n";
     }
 
-    description += illust.tags.tags.map((tag) => `#${tag.tag}`).join(" ");
+    description += illust.tags.map((tag) => `#${tag}`).join(" ");
   }
 
   return {
     source: "pixiv",
-    url: illust.extraData.meta.canonical,
+    url: illust.meta.canonical,
     images: illustPages.map((page) => ({
       url: async () => {
-        const response = await undici.request(page.urls.original, {
+        const response = await undici.request(page.url, {
           headers: { referer: "https://www.pixiv.net/" },
           throwOnError: true,
         });
         const blob = await response.body.blob();
         return await getIntermediateImageUrl(blob);
       },
-      type: page.urls.original.substring(
-        page.urls.original.lastIndexOf(".") + 1,
-      ),
+      type: page.url.substring(page.url.lastIndexOf(".") + 1),
       width: page.width,
       height: page.height,
     })),
-    artist: illust.userName,
-    date: formatDate(illust.createDate),
-    title: illust.illustTitle,
+    artist: illust.author_details.user_name,
+    date: formatDate(illust.upload_timestamp),
+    title: illust.title,
     description,
   };
 }
@@ -115,14 +124,7 @@ async function fetchAjax<T extends z.ZodType<any, any, any>>(
   body: T,
 ): Promise<z.infer<T>> {
   const response = await undici
-    .request(`https://www.pixiv.net/ajax/${path}`, {
-      headers: {
-        cookie: COOKIE,
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-      },
-      throwOnError: true,
-    })
+    .request(`https://www.pixiv.net/touch/ajax/${path}`, { throwOnError: true })
     .catch((error) => {
       error = new Error("Failed to fetch", { cause: error });
       error.path = path;
@@ -160,10 +162,13 @@ async function fetchAjax<T extends z.ZodType<any, any, any>>(
   return data.body;
 }
 
-function fetchIllust(illustId: string): Promise<Illust> {
-  return fetchAjax(`illust/${illustId}`, Illust);
-}
+async function fetchIllust(illustId: string): Promise<Illust> {
+  const { illust_details } = await fetchAjax(
+    `illust/details?illust_id=${illustId}`,
+    z.object({
+      illust_details: Illust,
+    }),
+  );
 
-function fetchIllustPages(illustId: string): Promise<IllustPage[]> {
-  return fetchAjax(`illust/${illustId}/pages`, IllustPage.array().nonempty());
+  return illust_details;
 }
