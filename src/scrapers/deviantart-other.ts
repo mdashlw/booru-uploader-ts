@@ -376,6 +376,10 @@ function extractDescription(
             "$1",
           )
           .replaceAll(
+            /<a\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*><a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?\1"\s*>.+?<\/a><\/a>/g,
+            "$1",
+          )
+          .replaceAll(
             /<a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*>.+?<\/a>/g,
             "$1",
           )
