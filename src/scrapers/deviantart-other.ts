@@ -390,7 +390,7 @@ function extractDescription(
           .replaceAll("<br />", "\n"),
       )
       .text()
-      .replaceAll(" ", "\n")
+      // .replaceAll(" ", "\n")
       .split("\n")
       .map((line) => line.trim())
       .join("\n")
