@@ -1,7 +1,7 @@
 import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
-import { unzip } from "unzipit";
+import { ZipEntry, unzip } from "unzipit";
 import z from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
 import { SourceData, SourceImageData } from "../scraper/types.js";
@@ -329,7 +329,7 @@ export async function scrape(url: URL): Promise<SourceData> {
                 imageArray.length > 1
                   ? `media/${reblogPostId}_${index}`
                   : `media/${reblogPostId}`;
-              let entry =
+              let entry: ZipEntry | undefined =
                 entries[`${baseEntryKey}.png`] ??
                 entries[`${baseEntryKey}.jpg`];
 
