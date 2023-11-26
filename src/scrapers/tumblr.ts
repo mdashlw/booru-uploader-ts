@@ -1,10 +1,10 @@
 import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
-import { ZipEntry, unzip } from "unzipit";
-import z from "zod";
+import { unzip } from "unzipit";
+import { z } from "zod";
 import getIntermediateImageUrl from "../intermediary.js";
-import { SourceData, SourceImageData } from "../scraper/types.js";
+import type { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import probeImageType from "../utils/probe-image-type.js";
 
@@ -325,19 +325,25 @@ export async function scrape(url: URL): Promise<SourceData> {
               await deletePost(apiUrl, csrfToken, reblogPostId);
 
               const { entries } = await unzip(backupDownloadUrl);
+              const findEntry = (baseKey: string) =>
+                Object.entries(entries).find(([key]) =>
+                  key.startsWith(baseKey),
+                )?.[1];
+
+              const entryIndex =
+                index - Number(Boolean(findEntry(`media/${reblogPostId}.`)));
               const baseEntryKey =
-                imageArray.length > 1
-                  ? `media/${reblogPostId}_${index}`
+                entryIndex !== -1
+                  ? `media/${reblogPostId}_${entryIndex}`
                   : `media/${reblogPostId}`;
-              let entry: ZipEntry | undefined =
-                entries[`${baseEntryKey}.png`] ??
-                entries[`${baseEntryKey}.jpg`];
+              const entry = findEntry(`${baseEntryKey}.`);
 
               if (!entry) {
                 const error: any = new Error(
                   "Could not find entry in the backup archive",
                 );
                 error.entries = entries;
+                error.entryIndex = entryIndex;
                 error.baseEntryKey = baseEntryKey;
                 throw error;
               }
