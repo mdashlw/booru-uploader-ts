@@ -445,7 +445,7 @@ async function extractInitialState(url: URL): Promise<{
       ),
     );
 
-    if (cookies.get("logged_in") !== "1") {
+    if (cookies.has("logged_in") && cookies.get("logged_in") !== "1") {
       const error: any = new Error("Invalid tumblr cookies");
       error.response = response;
       throw error;
