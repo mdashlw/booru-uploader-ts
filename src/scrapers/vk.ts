@@ -145,7 +145,7 @@ async function fetchWallPost(wallPostId: string) {
   };
 }
 
-async function fetchAPI<T extends z.ZodType<any, any, any>>(
+async function fetchAPI<T extends z.ZodTypeAny>(
   method: string,
   params: Record<string, string>,
   body: T,

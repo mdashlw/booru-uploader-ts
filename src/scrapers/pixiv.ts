@@ -119,7 +119,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   };
 }
 
-async function fetchAjax<T extends z.ZodType<any, any, any>>(
+async function fetchAjax<T extends z.ZodTypeAny>(
   path: string,
   body: T,
 ): Promise<z.infer<T>> {
