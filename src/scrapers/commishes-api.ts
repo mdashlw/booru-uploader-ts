@@ -24,35 +24,80 @@ const Upload = z.object({
 });
 type Upload = z.infer<typeof Upload>;
 
+const Auction = z.object({
+  id: z.number().int().positive(),
+  username: z.string(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  endsunix: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
+  media: z.object({
+    original: z.string().url(),
+  }),
+});
+type Auction = z.infer<typeof Auction>;
+
 export function canHandle(url: URL): boolean {
   return (
-    url.hostname === "portfolio.commishes.com" &&
-    url.pathname.startsWith("/upload/show/")
+    (url.hostname === "portfolio.commishes.com" &&
+      url.pathname.startsWith("/upload/show/")) ||
+    (url.hostname === "ych.commishes.com" &&
+      url.pathname.startsWith("/auction/show/"))
   );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const uploadId = url.pathname.split("/")[3]!;
-  const upload = await fetchUpload(uploadId);
+  const objectId = url.pathname.split("/")[3]!;
 
-  const { type, width, height } = await probeImageSize(upload.media.o);
+  if (url.hostname === "ych.commishes.com") {
+    const auction = await fetchAuction(objectId);
+    const { type, width, height } = await probeImageSize(
+      auction.media.original,
+    );
 
-  return {
-    source: "Commishes",
-    url: `https://${url.host}/upload/show/${uploadId}/`,
-    images: [
-      {
-        url: upload.media.o,
-        type,
-        width,
-        height,
-      },
-    ],
-    artist: upload.author.username,
-    date: formatDate(upload.created),
-    title: upload.title,
-    description: upload.description,
-  };
+    return {
+      source: "Commishes",
+      url: `https://${url.host}/auction/show/${objectId}/`,
+      images: [
+        {
+          url: auction.media.original,
+          type,
+          width,
+          height,
+        },
+      ],
+      artist: auction.username,
+      date: `(Ends) ${formatDate(auction.endsunix)}`,
+      title: auction.title,
+      description: auction.description?.replaceAll("\r\n", "\n") ?? null,
+    };
+  } else if (url.hostname === "portfolio.commishes.com") {
+    const upload = await fetchUpload(objectId);
+    const { type, width, height } = await probeImageSize(upload.media.o);
+
+    return {
+      source: "Commishes",
+      url: `https://${url.host}/upload/show/${objectId}/`,
+      images: [
+        {
+          url: upload.media.o,
+          type,
+          width,
+          height,
+        },
+      ],
+      artist: upload.author.username,
+      date: formatDate(upload.created),
+      title: upload.title,
+      description: upload.description,
+    };
+  } else {
+    throw new Error("Unknown hostname");
+  }
 }
 
 async function fetchUpload(uploadId: string): Promise<Upload> {
@@ -73,4 +118,30 @@ async function fetchUpload(uploadId: string): Promise<Upload> {
   });
 
   return Upload.parse(json);
+}
+
+async function fetchAuction(auctionId: string): Promise<Auction> {
+  const response = await undici
+    .request(`https://ych.commishes.com/auction/show/${auctionId}.json`, {
+      throwOnError: true,
+    })
+    .catch((error) => {
+      error = new Error("Failed to fetch", { cause: error });
+      error.auctionId = auctionId;
+      throw error;
+    });
+  const json = await response.body.json().catch((error) => {
+    error = new Error("Failed to read response body", { cause: error });
+    error.auctionId = auctionId;
+    error.response = response;
+    throw error;
+  });
+  const data = z
+    .object({
+      result: z.literal("200 OK"),
+      payload: Auction,
+    })
+    .parse(json);
+
+  return data.payload;
 }
