@@ -184,7 +184,10 @@ export async function scrape(url: URL): Promise<SourceData> {
             throw new Error(`Unsupported doc type: ${attachment.doc.type}`);
           }
 
-          return await probeImageSize(attachment.doc.url);
+          return {
+            ...(await probeImageSize(attachment.doc.url)),
+            url: attachment.doc.url,
+          };
         }
 
         throw new Error("Unsupported attachment type");
