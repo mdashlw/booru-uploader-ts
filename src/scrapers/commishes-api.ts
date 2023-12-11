@@ -66,21 +66,11 @@ export async function scrape(url: URL): Promise<SourceData> {
       auction.username,
       auction.id,
     );
-    const { type, width, height } = await probeImageSize(
-      auction.media.original,
-    );
 
     return {
       source: "Commishes",
       url: `https://${url.host}${auctionExtended.url}`,
-      images: [
-        {
-          url: auction.media.original,
-          type,
-          width,
-          height,
-        },
-      ],
+      images: [await probeImageSize(auction.media.original)],
       artist: auction.username,
       date: formatDate(auctionExtended.started),
       title: auction.title,
@@ -88,19 +78,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     };
   } else if (url.hostname === "portfolio.commishes.com") {
     const upload = await fetchUpload(objectId);
-    const { type, width, height } = await probeImageSize(upload.media.o);
 
     return {
       source: "Commishes",
       url: `https://${url.host}/upload/show/${objectId}/`,
-      images: [
-        {
-          url: upload.media.o,
-          type,
-          width,
-          height,
-        },
-      ],
+      images: [await probeImageSize(upload.media.o)],
       artist: upload.author.username,
       date: formatDate(upload.created),
       title: upload.title,
