@@ -12,7 +12,12 @@ export default async function probeImageSize(
     maxRedirections: 1,
   });
 
-  return await probe(response.body).finally(() => {
+  const probeResult = await probe(response.body).finally(() => {
     ac.abort();
   });
+
+  return {
+    ...probeResult,
+    url: (response.context as { history: URL[] }).history.at(-1)!.href,
+  };
 }
