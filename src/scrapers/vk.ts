@@ -3,6 +3,7 @@ import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import probeImageSize from "../utils/probe-image-size.js";
 
 const API_VERSION = "5.199";
 const API_ACCESS_TOKEN = process.env.VK_ACCESS_TOKEN;
@@ -11,10 +12,12 @@ const VkPhoto = z.object({
   id: z.number().int(),
   album_id: z.number().int(),
   owner_id: z.number().int(),
+  access_key: z.string(),
 });
 type VkPhoto = z.infer<typeof VkPhoto>;
 
 const VkPhotoExtended = VkPhoto.extend({
+  access_key: z.string().optional(),
   orig_photo: z.object({
     width: z.number().int().positive(),
     height: z.number().int().positive(),
@@ -22,6 +25,14 @@ const VkPhotoExtended = VkPhoto.extend({
   }),
 });
 type VkPhotoExtended = z.infer<typeof VkPhotoExtended>;
+
+const VkDoc = z.object({
+  id: z.number().int(),
+  owner_id: z.number().int(),
+  type: z.number().int().positive(),
+  url: z.string().url(),
+});
+type VkDoc = z.infer<typeof VkDoc>;
 
 const VkPhotoAttachment = z.object({
   type: z.literal("photo"),
@@ -35,11 +46,18 @@ const VkVideoAttachment = z.object({
 });
 type VkVideoAttachment = z.infer<typeof VkVideoAttachment>;
 
-const VkPostAttachment = z.discriminatedUnion("type", [
+const VkDocAttachment = z.object({
+  type: z.literal("doc"),
+  doc: VkDoc,
+});
+type VkDocAttachment = z.infer<typeof VkDocAttachment>;
+
+const VkAttachment = z.discriminatedUnion("type", [
   VkPhotoAttachment,
   VkVideoAttachment,
+  VkDocAttachment,
 ]);
-type VkPostAttachment = z.infer<typeof VkPostAttachment>;
+type VkAttachment = z.infer<typeof VkAttachment>;
 
 const VkPost = z.object({
   id: z.number().int(),
@@ -51,12 +69,25 @@ const VkPost = z.object({
     .transform((ts) => ts * 1_000)
     .pipe(z.coerce.date()),
   text: z.string(),
-  attachments: VkPostAttachment.array(),
+  attachments: VkAttachment.array().optional(),
 });
 type VkPost = z.infer<typeof VkPost>;
 
+const VkComment = z.object({
+  id: z.number().int(),
+  date: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
+  text: z.string(),
+  attachments: VkAttachment.array().optional(),
+});
+type VkComment = z.infer<typeof VkComment>;
+
 const VkGroup = z.object({
-  id: z.number(),
+  id: z.number().int(),
   name: z.string(),
   screen_name: z.string(),
 });
@@ -75,30 +106,113 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const wallPostId = url.pathname.substring("/wall".length);
-  const wallPost = await fetchWallPost(wallPostId);
+  const wallId = url.pathname.substring("/wall".length);
+  const post = await fetchPostWithOwner(wallId);
+  let comment: VkComment | undefined;
+  let attachments: VkAttachment[] | undefined;
+
+  if (
+    url.searchParams.has("reply") ||
+    url.searchParams.get("w")?.includes("_r")
+  ) {
+    const commentId = Number(
+      url.searchParams.get("reply") ??
+        url.searchParams
+          .get("w")!
+          .substring(url.searchParams.get("w")!.indexOf("_r") + "_r".length),
+    );
+    comment = await fetchComment(post.owner_id, post.id, commentId);
+    attachments = comment.attachments;
+  } else {
+    attachments = post.attachments;
+  }
+
+  let extendedPhotos: VkPhotoExtended[] | undefined;
+  if (attachments?.some((attachment) => attachment.type === "photo")) {
+    extendedPhotos = await fetchAPI(
+      "photos.getById",
+      {
+        photos: attachments
+          .filter(
+            (attachment): attachment is VkPhotoAttachment =>
+              attachment.type === "photo",
+          )
+          .map(
+            ({ photo }) => `${photo.owner_id}_${photo.id}_${photo.access_key}`,
+          )
+          .join(","),
+        extended: "1",
+      },
+      VkPhotoExtended.array(),
+    );
+  }
+
+  let description = post.text;
+  if (comment) {
+    if (description) {
+      description += "\n\n";
+    }
+    description += comment.text;
+  }
 
   return {
     source: "VK",
-    url: `https://vk.com${url.pathname}`,
-    images: wallPost.photos.map((photo) => ({
-      url: photo.orig_photo.url,
-      type: "jpg",
-      width: photo.orig_photo.width,
-      height: photo.orig_photo.height,
-    })),
-    artist: wallPost.owner.screen_name,
-    date: formatDate(wallPost.date),
+    url: `https://vk.com/wall${post.owner_id}_${post.id}${
+      comment ? `?reply=${comment.id}` : ""
+    }`,
+    images: await Promise.all(
+      attachments?.map(async (attachment) => {
+        if (attachment.type === "photo") {
+          const photo = extendedPhotos?.find(
+            ({ id }) => id === attachment.photo.id,
+          );
+
+          if (!photo) {
+            throw new Error("Extended photo not found");
+          }
+
+          return {
+            url: photo.orig_photo.url,
+            type: "jpg",
+            width: photo.orig_photo.width,
+            height: photo.orig_photo.height,
+          };
+        }
+
+        if (attachment.type === "doc") {
+          if (attachment.doc.type !== 4) {
+            throw new Error(`Unsupported doc type: ${attachment.doc.type}`);
+          }
+
+          const { type, width, height } = await probeImageSize(
+            attachment.doc.url,
+          );
+
+          return {
+            url: attachment.doc.url,
+            type,
+            width,
+            height,
+          };
+        }
+
+        throw new Error("Unsupported attachment type");
+      }) ?? [],
+    ),
+    artist: post.owner.screen_name,
+    date: formatDate((comment ?? post).date),
     title: null,
-    description: wallPost.text,
+    description,
   };
 }
 
-async function fetchWallPost(wallPostId: string) {
+async function fetchPostWithOwner(
+  wallId: string,
+): Promise<VkPost & { owner: VkGroup }> {
   const data = await fetchAPI(
     "wall.getById",
     {
-      posts: wallPostId,
+      posts: wallId,
       extended: "1",
     },
     z.object({
@@ -106,7 +220,7 @@ async function fetchWallPost(wallPostId: string) {
       groups: VkGroup.array(),
     }),
   );
-  const post = data.items[0];
+  const [post] = data.items;
 
   if (!post) {
     throw new Error("Post not found");
@@ -123,26 +237,36 @@ async function fetchWallPost(wallPostId: string) {
     throw new Error("Owner not found");
   }
 
-  const photos = await fetchAPI(
-    "photos.getById",
-    {
-      photos: post.attachments
-        .filter(
-          (attachment): attachment is VkPhotoAttachment =>
-            attachment.type === "photo",
-        )
-        .map(({ photo }) => `${photo.owner_id}_${photo.id}`)
-        .join(","),
-      extended: "1",
-    },
-    VkPhotoExtended.array(),
-  );
-
   return {
     ...post,
     owner,
-    photos,
   };
+}
+
+async function fetchComment(
+  ownerId: number,
+  postId: number,
+  commentId: number,
+): Promise<VkComment> {
+  const data = await fetchAPI(
+    "wall.getComments",
+    {
+      owner_id: ownerId.toString(),
+      post_id: postId.toString(),
+      start_comment_id: commentId.toString(),
+      count: "1",
+    },
+    z.object({
+      items: VkComment.array(),
+    }),
+  );
+  const [comment] = data.items;
+
+  if (!comment) {
+    throw new Error("Comment not found");
+  }
+
+  return comment;
 }
 
 async function fetchAPI<T extends z.ZodTypeAny>(
