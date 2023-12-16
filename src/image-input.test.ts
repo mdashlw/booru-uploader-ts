@@ -9,14 +9,15 @@ const sources = await inputSources();
 const image = await selectImage(sources.primary);
 
 const url = typeof image.url === "string" ? image.url : await image.url();
-let { width, height } = image;
+let { type, width, height } = image;
 
-if (!Number.isInteger(width) || !Number.isInteger(height)) {
-  ({ width, height } = await probeImageSize(url));
+if (!Number.isInteger(width) || !Number.isInteger(height) || !type) {
+  ({ type, width, height } = await probeImageSize(url));
 }
 
 console.log({
   url,
+  type,
   width,
   height,
 });
