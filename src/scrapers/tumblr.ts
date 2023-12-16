@@ -147,15 +147,28 @@ const NPFContentBlock = z.discriminatedUnion("type", [
 type NPFContentBlock = z.infer<typeof NPFContentBlock>;
 
 const NPFPost = z.object({
-  blog: Blog,
+  objectType: z.literal("post"),
   blogName: z.string(),
+  blog: Blog,
   id: z.string(),
   postUrl: z.string().url(),
   timestamp: z.number().int().positive(),
   reblogKey: z.string(),
   tags: z.string().array(),
-  summary: z.string(),
   content: NPFContentBlock.array(),
+  trail: z
+    .object({
+      content: NPFContentBlock.array(),
+      post: z.object({
+        id: z.string(),
+        timestamp: z.number().int().positive(),
+      }),
+      blog: Blog,
+    })
+    .array(),
+  rebloggedRootId: z.string().optional(),
+  rebloggedRootUrl: z.string().url().optional(),
+  rebloggedRootName: z.string().optional(),
 });
 type NPFPost = z.infer<typeof NPFPost>;
 
@@ -221,12 +234,31 @@ export async function scrape(url: URL): Promise<SourceData> {
 
     throw error;
   });
+
+  if (post.trail.length > 1) {
+    throw new Error("Deeply nested posts are not supported");
+  }
+
+  let content: NPFContentBlock[];
+
+  if (post.rebloggedRootId) {
+    const [trail] = post.trail;
+
+    if (trail.post.id !== post.rebloggedRootId) {
+      throw new Error("Trail post id does not match reblogged root id");
+    }
+
+    content = trail.content;
+  } else {
+    content = post.content;
+  }
+
   let v1Post: V1Post;
 
   const images: SourceImageData[] = await Promise.all(
-    post.content
+    content
       .filter((block): block is NPFImageBlock => block.type === "image")
-      .map(async (block, index, imageArray) => {
+      .map(async (block, index) => {
         const {
           media: [media],
         } = block;
@@ -368,7 +400,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       }),
   );
 
-  let description: string = post.content
+  let description: string = content
     .filter((block): block is NPFTextBlock => block.type === "text")
     .map((block) => block.text)
     .join("\n");
@@ -383,10 +415,12 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   return {
     source: "Tumblr",
-    url: post.postUrl,
+    url: post.rebloggedRootUrl ?? post.postUrl,
     images,
-    artist: post.blogName,
-    date: formatDate(new Date(post.timestamp * 1_000)),
+    artist: post.rebloggedRootName ?? post.blogName,
+    date: formatDate(
+      new Date((post.trail[0]?.post.timestamp ?? post.timestamp) * 1_000),
+    ),
     title: null,
     description,
   };
