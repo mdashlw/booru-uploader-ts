@@ -3,7 +3,7 @@
     "esm": true
   },
   "compilerOptions": {
-    "target": "ES2023",
+    "target": "ES2022",
     "lib": ["ES2023"],
     "module": "Node16",
     "esModuleInterop": true,
