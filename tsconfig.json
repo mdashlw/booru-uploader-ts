@@ -6,6 +6,7 @@
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "Node16",
+    "outDir": "dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
