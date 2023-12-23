@@ -3,8 +3,8 @@
     "esm": true
   },
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "Node16",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
