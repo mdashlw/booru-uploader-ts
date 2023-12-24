@@ -1,8 +1,8 @@
 import undici from "undici";
-import z from "zod";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageType from "../utils/probe-image-type.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 const BoostyUser = z.object({
   id: z.number().int().positive(),
@@ -64,12 +64,17 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: await Promise.all(
       post.data
         .filter(({ type }) => type === "image")
-        .map(async ({ url, width, height }) => ({
-          url,
-          type: await probeImageType(url),
-          width,
-          height,
-        })),
+        .map(async ({ url, width, height }) => {
+          const result = await probeImageUrl(url);
+
+          if (result.width !== width || result.height !== height) {
+            throw new Error(
+              `Unexpected image dimensions: ${result.width}x${result.height} for ${url}`,
+            );
+          }
+
+          return result;
+        }),
     ),
     artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),

@@ -42,12 +42,10 @@ while (true) {
   }
 }
 
-const imageUrl = typeof image.url === "string" ? image.url : await image.url();
-
 await Promise.allSettled(
   boorus.map((booru) => {
     booru.postImage({
-      imageUrl: imageUrl,
+      blob: image.blob,
       tags: [
         ...[sources.primary, ...sources.alternate]
           .filter((source) => source.artist)

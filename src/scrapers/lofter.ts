@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
-import probeImageSize from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image.js";
 
 export function canHandle(url: URL): boolean {
   return (

@@ -1,7 +1,7 @@
 import util from "node:util";
 import selectImage from "./image-selector.js";
 import inputSources from "./source-input.js";
-import probeImageSize from "./utils/probe-image-size.js";
+import probeImageSize from "./utils/probe-image.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 

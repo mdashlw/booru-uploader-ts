@@ -3,12 +3,11 @@ import { Blob } from "node:buffer";
 import process from "node:process";
 import sharp from "sharp";
 import undici from "undici";
-import type { IncomingHttpHeaders } from "undici/types/header.js";
-import z from "zod";
-import getIntermediateImageUrl from "../intermediary.js";
+import { IncomingHttpHeaders } from "undici/types/header.js";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image-size.js";
+import { ProbeResultWithBlob, probeImageUrl } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
 
 const HEADERS = {
@@ -118,7 +117,11 @@ export async function scrape(url: URL): Promise<SourceData> {
   );
   const author = User.parse(initialState["@@entities"].user[deviation.author]);
 
-  let imageUrl: URL | undefined, type: string, width: number, height: number;
+  let imageUrl: URL | undefined,
+    type: string,
+    width: number,
+    height: number,
+    probeResult: ProbeResultWithBlob | undefined;
 
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
@@ -139,8 +142,6 @@ export async function scrape(url: URL): Promise<SourceData> {
   type = deviationExtended.originalFile.type;
   width = fullview.w;
   height = fullview.h;
-
-  let imageUrlFn: (() => Promise<string>) | undefined;
 
   if (
     fullview.w !== deviationExtended.originalFile.width ||
@@ -171,6 +172,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       );
       imageUrl = cardImageUrl;
       ({ type, width, height } = deviationExtended.originalFile);
+      probeResult = await probeImageUrl(imageUrl);
     } else if (deviation.isDownloadable) {
       console.log(`Deviation ${deviation.deviationId} is downloadable`);
 
@@ -178,15 +180,9 @@ export async function scrape(url: URL): Promise<SourceData> {
         throw new Error("Deviation is downloadable but no download object");
       }
 
-      imageUrl = undefined;
-      imageUrlFn = async () =>
-        await undici
-          .request(deviationExtended.download!.url, {
-            headers: HEADERS,
-            throwOnError: true,
-          })
-          .then((response) => response.headers["location"] as string);
+      imageUrl = new URL(deviationExtended.download.url);
       ({ type, width, height } = deviationExtended.download);
+      probeResult = await probeImageUrl(imageUrl, HEADERS);
     } else if (deviationId <= 790_677_560) {
       console.log(
         `Deviation ${deviation.deviationId} is old enough for intermediary`,
@@ -194,12 +190,13 @@ export async function scrape(url: URL): Promise<SourceData> {
       // https://github.com/danbooru/danbooru/blob/ddd2d2335fb09b30f2b5b06fbd4e7aa5c37b5b6a/app/logical/source/extractor/deviant_art.rb#L49
       imageUrl = new URL(deviation.media.baseUri);
       imageUrl.pathname = `/intermediary${imageUrl.pathname}`;
-      ({ type, width, height } = await probeImageSize(imageUrl));
+      probeResult = await probeImageUrl(imageUrl);
     }
   } else {
     console.log(
       `Deviation ${deviation.deviationId} fullview matches original dimensions`,
     );
+    probeResult = await probeImageUrl(imageUrl);
   }
 
   const isOriginalDimensions =
@@ -215,65 +212,69 @@ export async function scrape(url: URL): Promise<SourceData> {
         JSON.stringify({ originalFile: deviationExtended.originalFile }),
       );
 
-      imageUrl = undefined;
-      imageUrlFn = async () => {
-        const { width: imageWidth, height: imageHeight } =
-          deviationExtended.originalFile;
-        const chunkWidth = fullview.w;
-        const chunkHeight = fullview.h;
+      const { width: imageWidth, height: imageHeight } =
+        deviationExtended.originalFile;
+      const chunkWidth = fullview.w;
+      const chunkHeight = fullview.h;
 
-        const image = sharp({
-          create: {
-            width: imageWidth,
-            height: imageHeight,
-            channels: 4,
-            background: { r: 0, g: 0, b: 0, alpha: 0 },
-          },
-        });
+      const image = sharp({
+        create: {
+          width: imageWidth,
+          height: imageHeight,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
+      });
 
-        const chunkPromises = [];
+      const chunkPromises = [];
 
-        for (let x = 0; x < imageWidth; x += chunkWidth) {
-          for (let y = 0; y < imageHeight; y += chunkHeight) {
-            const chunkWidthActual = Math.min(chunkWidth, imageWidth - x);
-            const chunkHeightActual = Math.min(chunkHeight, imageHeight - y);
-            const chunkUrl = `${
-              deviation.media.baseUri
-            }/v1/crop/w_${chunkWidthActual},h_${chunkHeightActual},x_${x},y_${y}/image.png?token=${
-              deviation.media.token![fullview.r]
-            }`;
+      for (let x = 0; x < imageWidth; x += chunkWidth) {
+        for (let y = 0; y < imageHeight; y += chunkHeight) {
+          const chunkWidthActual = Math.min(chunkWidth, imageWidth - x);
+          const chunkHeightActual = Math.min(chunkHeight, imageHeight - y);
+          const chunkUrl = `${
+            deviation.media.baseUri
+          }/v1/crop/w_${chunkWidthActual},h_${chunkHeightActual},x_${x},y_${y}/image.png?token=${
+            deviation.media.token![fullview.r]
+          }`;
 
-            chunkPromises.push(
-              undici
-                .request(chunkUrl, { throwOnError: true })
-                .then(async (response) => {
-                  const chunk = {
-                    input: await readableToBuffer(response.body),
-                    left: x,
-                    top: y,
-                  };
-                  const metadata = await sharp(chunk.input).metadata();
+          chunkPromises.push(
+            undici
+              .request(chunkUrl, { throwOnError: true })
+              .then(async (response) => {
+                const chunk = {
+                  input: await readableToBuffer(response.body),
+                  left: x,
+                  top: y,
+                };
+                const metadata = await sharp(chunk.input).metadata();
 
-                  if (!metadata.density) {
-                    throw new Error(
-                      `Chunk [${x}, ${y}] (${chunkWidthActual}x${chunkHeightActual}) is bad`,
-                    );
-                  }
+                if (!metadata.density) {
+                  throw new Error(
+                    `Chunk [${x}, ${y}] (${chunkWidthActual}x${chunkHeightActual}) is bad`,
+                  );
+                }
 
-                  return chunk;
-                }),
-            );
-          }
+                return chunk;
+              }),
+          );
         }
+      }
 
-        image.composite(await Promise.all(chunkPromises));
+      image.composite(await Promise.all(chunkPromises));
 
-        const buffer = await image.png().toBuffer();
-        const blob = new Blob([buffer]);
+      const buffer = await image.png().toBuffer();
+      const blob = new Blob([buffer]);
 
-        return await getIntermediateImageUrl(blob);
+      probeResult = {
+        blob,
+        type: "png",
+        width: imageWidth,
+        height: imageHeight,
       };
-      ({ type, width, height } = deviationExtended.originalFile);
+
+      type = "png";
+      ({ width, height } = deviationExtended.originalFile);
 
       if (type === "jpeg" || type === "jpg") {
         console.log(
@@ -287,17 +288,26 @@ export async function scrape(url: URL): Promise<SourceData> {
     type = "jpg";
   }
 
+  if (!probeResult) {
+    probeResult = await probeImageUrl(imageUrl);
+  }
+
+  if (probeResult.type !== type) {
+    throw new Error(
+      `Probe type ${probeResult.type} does not match original type ${type}`,
+    );
+  }
+
+  if (probeResult.width !== width || probeResult.height !== height) {
+    throw new Error(
+      `Probe dimensions ${probeResult.width}x${probeResult.height} do not match original dimensions ${width}x${height}`,
+    );
+  }
+
   return {
     source: "DeviantArt",
     url: deviation.url,
-    images: [
-      {
-        url: imageUrlFn ?? imageUrl!.toString(),
-        type,
-        width,
-        height,
-      },
-    ],
+    images: [probeResult],
     artist: author.username,
     date: formatDate(deviation.publishedTime),
     title: deviation.title,

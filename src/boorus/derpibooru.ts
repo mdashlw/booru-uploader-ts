@@ -1,4 +1,6 @@
 import Booru from "../booru/index.js";
+import { Blob } from "node:buffer";
+import { FormData } from "undici";
 import { AutocompletedTag, Image } from "../booru/types.js";
 
 export default class Derpibooru extends Booru {
@@ -43,35 +45,36 @@ export default class Derpibooru extends Booru {
   }
 
   async postImage({
-    imageUrl,
+    blob,
     tags,
     sourceUrls = [],
     description,
   }: {
-    imageUrl: string;
+    blob: Blob;
     tags: string[];
     sourceUrls?: string[];
     description?: string;
   }): Promise<Image> {
+    const formData = new FormData();
+
+    formData.append("image[image]", blob);
+    formData.append("image[tag_input]", tags.join(", "));
+
+    for (const [index, url] of sourceUrls.entries()) {
+      formData.append(`image[sources][${index}][source]`, url);
+    }
+
+    if (description) {
+      formData.append("image[description]", description);
+    }
+
     return await this.fetch<{ image: Image }>({
       method: "POST",
       path: "/api/v1/json/images",
       query: {
         key: this.requireKey(),
       },
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        url: imageUrl,
-        image: {
-          tag_input: tags.join(", "),
-          sources: Object.fromEntries(
-            sourceUrls.map((url) => ({ source: url })).entries(),
-          ),
-          description,
-        },
-      }),
+      body: formData,
       retryOnServerError: false, // Derpibooru's Cloudflare returns 500 even on success
     }).then((data) => data.image);
   }

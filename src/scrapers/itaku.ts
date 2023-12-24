@@ -2,7 +2,7 @@ import undici from "undici";
 import z from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image-size.js";
+import probeImageSize from "../utils/probe-image.js";
 
 /*
  * Samples:

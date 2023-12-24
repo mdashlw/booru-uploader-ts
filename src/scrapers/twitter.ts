@@ -1,7 +1,8 @@
 import undici from "undici";
-import z from "zod";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 const APIAuthor = z.object({
   id: z.string(),
@@ -61,12 +62,24 @@ export async function scrape(url: URL): Promise<SourceData> {
   return {
     source: "Twitter",
     url: tweet.url,
-    images: photos.map((media) => ({
-      url: `${media.url}:orig`,
-      type: "jpg",
-      width: media.width,
-      height: media.height,
-    })),
+    images: await Promise.all(
+      photos.map(async (media) => {
+        const url = `${media.url}:orig`;
+        const result = await probeImageUrl(url);
+
+        if (result.type !== "jpg") {
+          throw new Error(`Unexpected image type: "${result.type}" for ${url}`);
+        }
+
+        if (result.width !== media.width || result.height !== media.height) {
+          throw new Error(
+            `Unexpected image dimensions: ${result.width}x${result.height} for ${url}`,
+          );
+        }
+
+        return result;
+      }),
+    ),
     artist: tweet.author.screen_name,
     date: formatDate(new Date(tweet.created_timestamp * 1_000)),
     title: null,

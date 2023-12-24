@@ -7,6 +7,7 @@ const contentTypeMap: Record<string, string> = {
   "image/webp": "webp",
 };
 
+// TODO Remove?
 export default async function probeImageType(
   url: string | URL,
   headers?: Record<string, string>,

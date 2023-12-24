@@ -1,8 +1,8 @@
 import undici from "undici";
-import z from "zod";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image-size.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 const Upload = z.object({
   id: z.number().int().positive(),
@@ -70,7 +70,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     return {
       source: "Commishes",
       url: `https://${url.host}${auctionExtended.url}`,
-      images: [await probeImageSize(auction.media.original)],
+      images: [await probeImageUrl(auction.media.original)],
       artist: auction.username,
       date: formatDate(auctionExtended.started),
       title: auction.title,
@@ -82,7 +82,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     return {
       source: "Commishes",
       url: `https://${url.host}/upload/show/${objectId}/`,
-      images: [await probeImageSize(upload.media.o)],
+      images: [await probeImageUrl(upload.media.o)],
       artist: upload.author.username,
       date: formatDate(upload.created),
       title: upload.title,

@@ -1,4 +1,5 @@
 import { Semaphore, SemaphoreInterface } from "async-mutex";
+import { Blob } from "node:buffer";
 import _ from "lodash";
 import timers from "node:timers/promises";
 import undici from "undici";
@@ -247,7 +248,7 @@ export default abstract class Booru {
   // }
 
   abstract postImage(options: {
-    imageUrl: string;
+    blob: Blob;
     tags: string[];
     sourceUrls?: string[];
     sourceUrl?: string;
