@@ -266,15 +266,13 @@ export async function scrape(url: URL): Promise<SourceData> {
       const buffer = await image.png().toBuffer();
       const blob = new Blob([buffer]);
 
+      ({ type, width, height } = deviationExtended.originalFile);
       probeResult = {
         blob,
-        type: "png",
-        width: imageWidth,
-        height: imageHeight,
+        type,
+        width,
+        height,
       };
-
-      type = "png";
-      ({ width, height } = deviationExtended.originalFile);
 
       if (type === "jpeg" || type === "jpg") {
         console.log(
