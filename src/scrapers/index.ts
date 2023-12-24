@@ -10,7 +10,7 @@ import * as FurAffinity from "./furaffinity.js";
 // import * as Pixiv from "./pixiv.js";
 // import * as Raw from "./raw.js";
 // import * as Tabun from "./tabun.js";
-// import * as Tumblr from "./tumblr.js";
+import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 // import * as Vk from "./vk.js";
 
@@ -26,7 +26,7 @@ export const scrapers: Scraper[] = [
   // Pixiv,
   // Raw,
   // Tabun,
-  // Tumblr,
+  Tumblr,
   Twitter,
   // Vk,
 ];

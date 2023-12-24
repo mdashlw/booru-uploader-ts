@@ -3,10 +3,13 @@ import timers from "node:timers/promises";
 import undici from "undici";
 import { unzip } from "unzipit";
 import { z } from "zod";
-import getIntermediateImageUrl from "../intermediary.js";
-import type { SourceData, SourceImageData } from "../scraper/types.js";
+import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageType from "../utils/probe-image-type.js";
+import {
+  ProbeResult,
+  probeImageBlob,
+  probeImageUrl,
+} from "../utils/probe-image.js";
 
 /*
  * Images can be:
@@ -262,16 +265,17 @@ export async function scrape(url: URL): Promise<SourceData> {
         const {
           media: [media],
         } = block;
-        let url: string | (() => Promise<string>);
-        let type: string | undefined;
-        let width: number, height: number;
+        let type: string | undefined,
+          width: number | undefined,
+          height: number | undefined,
+          probeResult: ProbeResult;
 
         media.url = media.url.replace(".pnj", ".png");
 
         if (media.hasOriginalDimensions) {
-          url = media.url;
           width = media.width;
           height = media.height;
+          probeResult = await probeImageUrl(media.url);
         } else {
           try {
             v1Post ??= await fetchV1Post(post.blogName, post.id);
@@ -320,8 +324,8 @@ export async function scrape(url: URL): Promise<SourceData> {
           } else {
             // TODO: try to use v2 api it has original dimensions for inline images
             // TODO: upd: it appears fetching v1 only fails for photo posts
-            width = media.width + Math.random();
-            height = media.height + Math.random();
+            width = undefined;
+            height = undefined;
           }
 
           // @ts-ignore
@@ -340,63 +344,67 @@ export async function scrape(url: URL): Promise<SourceData> {
           }
 
           if (media.mediaKey) {
-            url = await fetchNewImageUrl(
-              media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/"),
+            probeResult = await probeImageUrl(
+              await fetchNewImageUrl(
+                media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/"),
+              ),
             );
           } else {
-            url = async () => {
-              const reblogPostId = await createReblogPostAsDraft(
-                apiUrl,
-                csrfToken,
-                post,
+            const reblogPostId = await createReblogPostAsDraft(
+              apiUrl,
+              csrfToken,
+              post,
+            );
+
+            await requestBackup(apiUrl, csrfToken);
+            const backupDownloadUrl = await pollBackup(apiUrl, csrfToken);
+
+            await deletePost(apiUrl, csrfToken, reblogPostId);
+
+            const { entries } = await unzip(backupDownloadUrl);
+            const findEntry = (baseKey: string) =>
+              Object.entries(entries).find(([key]) =>
+                key.startsWith(baseKey),
+              )?.[1];
+
+            const entryIndex =
+              index - Number(Boolean(findEntry(`media/${reblogPostId}.`)));
+            const baseEntryKey =
+              entryIndex !== -1
+                ? `media/${reblogPostId}_${entryIndex}`
+                : `media/${reblogPostId}`;
+            const entry = findEntry(`${baseEntryKey}.`);
+
+            if (!entry) {
+              const error: any = new Error(
+                "Could not find entry in the backup archive",
               );
+              error.entries = entries;
+              error.entryIndex = entryIndex;
+              error.baseEntryKey = baseEntryKey;
+              throw error;
+            }
 
-              await requestBackup(apiUrl, csrfToken);
-              const backupDownloadUrl = await pollBackup(apiUrl, csrfToken);
+            const blob = await entry.blob();
 
-              await deletePost(apiUrl, csrfToken, reblogPostId);
-
-              const { entries } = await unzip(backupDownloadUrl);
-              const findEntry = (baseKey: string) =>
-                Object.entries(entries).find(([key]) =>
-                  key.startsWith(baseKey),
-                )?.[1];
-
-              const entryIndex =
-                index - Number(Boolean(findEntry(`media/${reblogPostId}.`)));
-              const baseEntryKey =
-                entryIndex !== -1
-                  ? `media/${reblogPostId}_${entryIndex}`
-                  : `media/${reblogPostId}`;
-              const entry = findEntry(`${baseEntryKey}.`);
-
-              if (!entry) {
-                const error: any = new Error(
-                  "Could not find entry in the backup archive",
-                );
-                error.entries = entries;
-                error.entryIndex = entryIndex;
-                error.baseEntryKey = baseEntryKey;
-                throw error;
-              }
-
-              const blob = await entry.blob();
-
-              return await getIntermediateImageUrl(blob);
-            };
+            probeResult = await probeImageBlob(blob);
           }
         }
 
-        if (typeof url === "string") {
-          type = await probeImageType(url);
+        if (type !== undefined && probeResult.type !== type) {
+          throw new Error(`Unexpected image type: ${probeResult.type}`);
         }
 
-        return {
-          url,
-          type,
-          width,
-          height,
-        };
+        if (
+          (width !== undefined && probeResult.width !== width) ||
+          (height !== undefined && probeResult.height !== height)
+        ) {
+          throw new Error(
+            `Unexpected image dimensions: ${probeResult.width}x${probeResult.height}`,
+          );
+        }
+
+        return probeResult;
       }),
   );
 

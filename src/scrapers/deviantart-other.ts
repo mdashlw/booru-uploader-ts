@@ -7,7 +7,7 @@ import { IncomingHttpHeaders } from "undici/types/header.js";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import { ProbeResultWithBlob, probeImageUrl } from "../utils/probe-image.js";
+import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
 
 const HEADERS = {
@@ -121,7 +121,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     type: string,
     width: number,
     height: number,
-    probeResult: ProbeResultWithBlob | undefined;
+    probeResult: ProbeResult | undefined;
 
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
