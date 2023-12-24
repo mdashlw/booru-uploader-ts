@@ -3,6 +3,7 @@ import process from "node:process";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 // Cookie for UTC time and NSFW.
 // Make sure time zone is set to Greenwich Mean Time and Daylight saving time correction is disabled.
@@ -36,18 +37,16 @@ export async function scrape(url: URL): Promise<SourceData> {
     .map(Number);
 
   const imageUrl = "https:" + $(".download > a").attr("href");
+  const probeResult = await probeImageUrl(imageUrl);
+
+  if (probeResult.width !== width || probeResult.height !== height) {
+    throw new Error(`Unexpected image dimensions: ${width}x${height}`);
+  }
 
   return {
     source: "FurAffinity",
     url: $("meta[property='og:url']").attr("content")!,
-    images: [
-      {
-        url: imageUrl,
-        type: imageUrl.substring(imageUrl.lastIndexOf(".") + 1),
-        width,
-        height,
-      },
-    ],
+    images: [probeResult],
     artist: $(".submission-id-sub-container > a > strong").text(),
     date: formatDate(
       new Date(

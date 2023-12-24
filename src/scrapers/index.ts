@@ -3,7 +3,7 @@ import { Scraper } from "../scraper/types.js";
 import * as Boosty from "./boosty.js";
 import * as Commishes from "./commishes-api.js";
 import * as DeviantArt from "./deviantart-other.js";
-// import * as FurAffinity from "./furaffinity.js";
+import * as FurAffinity from "./furaffinity.js";
 // import * as Itaku from "./itaku.js";
 // import * as Lofter from "./lofter.js";
 // import * as PassThrough from "./pass-through.js";
@@ -19,7 +19,7 @@ export const scrapers: Scraper[] = [
   Boosty,
   Commishes,
   DeviantArt,
-  // FurAffinity,
+  FurAffinity,
   // Itaku,
   // Lofter,
   // PassThrough,
