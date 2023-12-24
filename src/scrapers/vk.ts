@@ -157,7 +157,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     }
 
     let description = post.text;
-    if (comment) {
+    if (comment?.text) {
       if (description) {
         description += "\n\n";
       }
