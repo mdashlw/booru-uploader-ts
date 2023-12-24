@@ -3,7 +3,7 @@ import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 const API_VERSION = "5.199";
 const API_ACCESS_TOKEN = process.env.VK_ACCESS_TOKEN;
@@ -180,12 +180,18 @@ export async function scrape(url: URL): Promise<SourceData> {
               throw new Error("Extended photo not found");
             }
 
-            return {
-              url: photo.orig_photo.url,
-              type: "jpg",
-              width: photo.orig_photo.width,
-              height: photo.orig_photo.height,
-            };
+            const result = await probeImageUrl(photo.orig_photo.url);
+
+            if (
+              result.width !== photo.orig_photo.width ||
+              result.height !== photo.orig_photo.height
+            ) {
+              throw new Error(
+                `Unexpected image dimensions: ${result.width}x${result.height}`,
+              );
+            }
+
+            return result;
           }
 
           if (attachment.type === "doc") {
@@ -193,10 +199,7 @@ export async function scrape(url: URL): Promise<SourceData> {
               throw new Error(`Unsupported doc type: ${attachment.doc.type}`);
             }
 
-            return {
-              ...(await probeImageSize(attachment.doc.url)),
-              url: attachment.doc.url,
-            };
+            return await probeImageUrl(attachment.doc.url);
           }
 
           throw new Error("Unsupported attachment type");
@@ -213,17 +216,21 @@ export async function scrape(url: URL): Promise<SourceData> {
     const photoId = url.pathname.substring("/photo".length);
     const photo = await fetchExtendedPhotoWithOwner(photoId);
 
+    const result = await probeImageUrl(photo.orig_photo.url);
+
+    if (
+      result.width !== photo.orig_photo.width ||
+      result.height !== photo.orig_photo.height
+    ) {
+      throw new Error(
+        `Unexpected image dimensions: ${result.width}x${result.height}`,
+      );
+    }
+
     return {
       source: "VK",
       url: `https://vk.com/photo${photo.owner_id}_${photo.id}`,
-      images: [
-        {
-          url: photo.orig_photo.url,
-          type: "jpg",
-          width: photo.orig_photo.width,
-          height: photo.orig_photo.height,
-        },
-      ],
+      images: [result],
       artist: photo.owner.screen_name,
       date: formatDate(photo.date),
       title: null,
