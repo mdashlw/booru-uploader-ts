@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 const BoostyUser = z.object({
   id: z.number().int().positive(),
@@ -64,7 +64,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       post.data
         .filter(({ type }) => type === "image")
         .map(({ url, width, height }) =>
-          probeImageUrlAndValidate(url, undefined, width, height),
+          probeAndValidateImageUrl(url, undefined, width, height),
         ),
     ),
     artist: post.user.blogUrl,

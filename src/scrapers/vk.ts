@@ -2,7 +2,7 @@ import process from "node:process";
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 import { probeImageUrl } from "../utils/probe-image.js";
 
 const API_VERSION = "5.199";
@@ -180,7 +180,7 @@ export async function scrape(url: URL): Promise<SourceData> {
               throw new Error("Extended photo not found");
             }
 
-            return probeImageUrlAndValidate(
+            return probeAndValidateImageUrl(
               photo.orig_photo.url,
               undefined,
               photo.orig_photo.width,
@@ -214,7 +214,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       source: "VK",
       url: `https://vk.com/photo${photo.owner_id}_${photo.id}`,
       images: [
-        await probeImageUrlAndValidate(
+        await probeAndValidateImageUrl(
           photo.orig_photo.url,
           undefined,
           photo.orig_photo.width,

@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 const APIAuthor = z.object({
   id: z.string(),
@@ -63,7 +63,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: tweet.url,
     images: await Promise.all(
       photos.map((media) =>
-        probeImageUrlAndValidate(
+        probeAndValidateImageUrl(
           `${media.url}:orig`,
           "jpg",
           media.width,

@@ -8,7 +8,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export async function probeImageUrlAndValidate(
+export async function probeAndValidateImageUrl(
   url: string,
   type?: string,
   width?: number,

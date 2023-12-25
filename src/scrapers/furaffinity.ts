@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import process from "node:process";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
-import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 // Cookie for UTC time and NSFW.
 // Make sure time zone is set to Greenwich Mean Time and Daylight saving time correction is disabled.
@@ -41,7 +41,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "FurAffinity",
     url: $("meta[property='og:url']").attr("content")!,
     images: [
-      await probeImageUrlAndValidate(imageUrl, undefined, width, height),
+      await probeAndValidateImageUrl(imageUrl, undefined, width, height),
     ],
     artist: $(".submission-id-sub-container > a > strong").text(),
     date: formatDate(

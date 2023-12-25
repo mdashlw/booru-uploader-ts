@@ -1,6 +1,6 @@
 import { boorus } from "../boorus.js";
 import { SourceData } from "../scraper/types.js";
-import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 export function canHandle(url: URL): boolean {
   return (
@@ -37,7 +37,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: booru.name,
     url: new URL(`/images/${imageId}`, booru.baseUrl).toString(),
     images: [
-      await probeImageUrlAndValidate(
+      await probeAndValidateImageUrl(
         image.representations.full,
         image.format,
         image.width,
