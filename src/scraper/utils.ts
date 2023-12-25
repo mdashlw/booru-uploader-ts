@@ -16,15 +16,15 @@ export async function probeImageUrlAndValidate(
 ): Promise<ProbeResult> {
   const result = await probeImageUrl(url);
 
-  if (type && result.type !== type) {
+  if (type !== undefined && result.type !== type) {
     throw new Error(
       `Unexpected image type: "${result.type}" (expected "${type}") for ${url}`,
     );
   }
 
   if (
-    (width && result.width !== width) ||
-    (height && result.height !== height)
+    (width !== undefined && result.width !== width) ||
+    (height !== undefined && result.height !== height)
   ) {
     throw new Error(
       `Unexpected image size: ${result.width}x${result.height} (expected ${width}x${height}) for ${url}`,

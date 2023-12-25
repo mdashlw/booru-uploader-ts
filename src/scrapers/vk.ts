@@ -2,7 +2,7 @@ import process from "node:process";
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
+import { formatDate, probeImageUrlAndValidate } from "../scraper/utils.js";
 import { probeImageUrl } from "../utils/probe-image.js";
 
 const API_VERSION = "5.199";
@@ -170,7 +170,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         comment ? `?reply=${comment.id}` : ""
       }`,
       images: await Promise.all(
-        attachments?.map(async (attachment) => {
+        attachments?.map((attachment) => {
           if (attachment.type === "photo") {
             const photo = extendedPhotos?.find(
               ({ id }) => id === attachment.photo.id,
@@ -180,18 +180,12 @@ export async function scrape(url: URL): Promise<SourceData> {
               throw new Error("Extended photo not found");
             }
 
-            const result = await probeImageUrl(photo.orig_photo.url);
-
-            if (
-              result.width !== photo.orig_photo.width ||
-              result.height !== photo.orig_photo.height
-            ) {
-              throw new Error(
-                `Unexpected image dimensions: ${result.width}x${result.height}`,
-              );
-            }
-
-            return result;
+            return probeImageUrlAndValidate(
+              photo.orig_photo.url,
+              undefined,
+              photo.orig_photo.width,
+              photo.orig_photo.height,
+            );
           }
 
           if (attachment.type === "doc") {
@@ -199,7 +193,7 @@ export async function scrape(url: URL): Promise<SourceData> {
               throw new Error(`Unsupported doc type: ${attachment.doc.type}`);
             }
 
-            return await probeImageUrl(attachment.doc.url);
+            return probeImageUrl(attachment.doc.url);
           }
 
           throw new Error("Unsupported attachment type");
@@ -216,21 +210,17 @@ export async function scrape(url: URL): Promise<SourceData> {
     const photoId = url.pathname.substring("/photo".length);
     const photo = await fetchExtendedPhotoWithOwner(photoId);
 
-    const result = await probeImageUrl(photo.orig_photo.url);
-
-    if (
-      result.width !== photo.orig_photo.width ||
-      result.height !== photo.orig_photo.height
-    ) {
-      throw new Error(
-        `Unexpected image dimensions: ${result.width}x${result.height}`,
-      );
-    }
-
     return {
       source: "VK",
       url: `https://vk.com/photo${photo.owner_id}_${photo.id}`,
-      images: [result],
+      images: [
+        await probeImageUrlAndValidate(
+          photo.orig_photo.url,
+          undefined,
+          photo.orig_photo.width,
+          photo.orig_photo.height,
+        ),
+      ],
       artist: photo.owner.screen_name,
       date: formatDate(photo.date),
       title: null,
