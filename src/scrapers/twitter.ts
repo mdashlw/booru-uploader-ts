@@ -65,7 +65,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       photos.map((media) =>
         probeAndValidateImageUrl(
           `${media.url}:orig`,
-          "jpg",
+          undefined,
           media.width,
           media.height,
         ),
