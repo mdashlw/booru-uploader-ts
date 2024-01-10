@@ -108,13 +108,17 @@ export function canHandle(url: URL): boolean {
       url.hostname === "vk.ru" ||
       url.hostname === "www.vk.ru" ||
       url.hostname === "m.vk.ru") &&
-    (url.pathname.startsWith("/wall") || url.pathname.startsWith("/photo"))
+    (url.pathname.startsWith("/wall") ||
+      url.searchParams.get("w")?.startsWith("wall") ||
+      url.pathname.startsWith("/photo"))
   );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  if (url.pathname.startsWith("/wall")) {
-    const wallId = url.pathname.substring("/wall".length);
+  if (url.pathname.startsWith("/wall") || url.searchParams.has("w")) {
+    const wallId =
+      url.searchParams.get("w")?.substring("wall".length) ??
+      url.pathname.substring("/wall".length);
     const post = await fetchPostWithOwner(wallId);
     let comment: VkComment | undefined;
     let attachments: VkAttachment[] | undefined;
