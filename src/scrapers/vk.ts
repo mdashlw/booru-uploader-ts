@@ -199,7 +199,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           throw new Error("Unsupported attachment type");
         }) ?? [],
       ),
-      artist: post.owner.screen_name,
+      artist: getGroupCustomScreenName(post.owner),
       date: formatDate((comment ?? post).date),
       title: null,
       description,
@@ -221,7 +221,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           photo.orig_photo.height,
         ),
       ],
-      artist: photo.owner.screen_name,
+      artist: getGroupCustomScreenName(photo.owner),
       date: formatDate(photo.date),
       title: null,
       description: photo.text,
@@ -229,6 +229,14 @@ export async function scrape(url: URL): Promise<SourceData> {
   }
 
   throw new Error("Unsupported path");
+}
+
+function getGroupCustomScreenName(group: VkGroup): string | null {
+  if (group.screen_name === `club${group.id}`) {
+    return null;
+  }
+
+  return group.screen_name;
 }
 
 async function fetchPostWithOwner(
