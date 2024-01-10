@@ -3,7 +3,7 @@ import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
 
 const API_VERSION = "5.199";
 const API_ACCESS_TOKEN = process.env.VK_ACCESS_TOKEN;
@@ -59,10 +59,17 @@ const VkDocAttachment = z.object({
 });
 type VkDocAttachment = z.infer<typeof VkDocAttachment>;
 
+const VkAudioAttachment = z.object({
+  type: z.literal("audio"),
+  audio: z.any(),
+});
+type VkAudioAttachment = z.infer<typeof VkAudioAttachment>;
+
 const VkAttachment = z.discriminatedUnion("type", [
   VkPhotoAttachment,
   VkVideoAttachment,
   VkDocAttachment,
+  VkAudioAttachment,
 ]);
 type VkAttachment = z.infer<typeof VkAttachment>;
 
@@ -174,34 +181,40 @@ export async function scrape(url: URL): Promise<SourceData> {
         comment ? `?reply=${comment.id}` : ""
       }`,
       images: await Promise.all(
-        attachments?.map((attachment) => {
-          if (attachment.type === "photo") {
-            const photo = extendedPhotos?.find(
-              ({ id }) => id === attachment.photo.id,
-            );
+        attachments
+          ?.map((attachment) => {
+            if (attachment.type === "photo") {
+              const photo = extendedPhotos?.find(
+                ({ id }) => id === attachment.photo.id,
+              );
 
-            if (!photo) {
-              throw new Error("Extended photo not found");
+              if (!photo) {
+                throw new Error("Extended photo not found");
+              }
+
+              return probeAndValidateImageUrl(
+                photo.orig_photo.url,
+                undefined,
+                photo.orig_photo.width,
+                photo.orig_photo.height,
+              );
             }
 
-            return probeAndValidateImageUrl(
-              photo.orig_photo.url,
-              undefined,
-              photo.orig_photo.width,
-              photo.orig_photo.height,
-            );
-          }
+            if (attachment.type === "doc") {
+              if (attachment.doc.type !== 4) {
+                return null;
+              }
 
-          if (attachment.type === "doc") {
-            if (attachment.doc.type !== 4) {
-              throw new Error(`Unsupported doc type: ${attachment.doc.type}`);
+              return probeImageUrl(attachment.doc.url);
             }
 
-            return probeImageUrl(attachment.doc.url);
-          }
-
-          throw new Error("Unsupported attachment type");
-        }) ?? [],
+            return null;
+          })
+          .filter(
+            (
+              promise: Promise<ProbeResult> | null,
+            ): promise is Promise<ProbeResult> => promise !== null,
+          ) ?? [],
       ),
       artist: getGroupCustomScreenName(post.owner),
       date: formatDate((comment ?? post).date),
