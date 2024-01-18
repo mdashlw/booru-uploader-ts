@@ -1,3 +1,5 @@
+import Booru from "../booru/index.js";
+
 export interface Scraper {
   canHandle: (url: URL) => boolean;
   scrape: (url: URL) => Promise<SourceData>;
@@ -10,7 +12,7 @@ export interface SourceData {
   artist: string | null;
   date: string | null;
   title: string | null;
-  description: string | null;
+  description: string | null | ((booru: Booru) => string);
 }
 
 export interface SourceImageData {

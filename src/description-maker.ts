@@ -14,8 +14,11 @@ function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
 
   const formattedTitle =
     source.title && booru.markdown.bold(booru.markdown.escape(source.title));
-  const formattedDescription =
-    source.description && booru.markdown.escape(source.description);
+  const formattedDescription = source.description
+    ? typeof source.description === "string"
+      ? booru.markdown.escape(source.description)
+      : source.description(booru)
+    : null;
 
   if (formattedTitle || formattedDescription) {
     result +=

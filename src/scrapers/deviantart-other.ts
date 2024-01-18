@@ -1,4 +1,3 @@
-import * as cheerio from "cheerio";
 import { Blob } from "node:buffer";
 import process from "node:process";
 import sharp from "sharp";
@@ -9,6 +8,8 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
+import Booru from "../booru/index.js";
 
 const HEADERS = {
   accept:
@@ -366,55 +367,32 @@ async function extractInitialState(
 
 function extractDescription(
   deviationExtended: DeviationExtended,
-): string | null {
-  let description: string = "";
+): string | null | ((booru: Booru) => string) {
+  function appendTags(dest: string) {
+    if (deviationExtended.tags) {
+      if (dest) {
+        dest += "\n\n";
+      }
 
-  if (deviationExtended.descriptionText.excerpt) {
-    description = deviationExtended.descriptionText.excerpt;
-  } else if (deviationExtended.descriptionText.html.type !== "draft") {
-    description = cheerio
-      .load(
-        deviationExtended.descriptionText.html.markup
-          .replaceAll(
-            /<span\s*class="shadow.+?"\s*data-embed-type="deviation"\s*data-embed-id="\d+"\s*data-embed-format=".+?"\s*>\s*<span\s*class=".+?"\s*>\s*<a\s*class=".+?"\s*href="(.+?)"\s*title=".+?"\s*data-super-img=".+?"\s*data-super-width="\d+"\s*data-super-height="\d+"\s*data-super-transparent=".+?"\s*data-super-alt=".+?"\s*data-super-full-img=".+?"\s*data-super-full-width="\d+"\s*data-super-full-height="\d+"\s*data-sigil=".+?"\s*>\s*<i>\s*<\/i>\s*<img\s*width="\d+"\s*height="\d+"\s*alt=".+?"\s*src=".+?"\s*data-src=".+?"\s*srcset=".+?"\s*sizes=".+?"\s*>\s*<\/a>\s*<\/span>\s*<!--\s*\^TTT\s*-->\s*<!--\s*TTT\$\s*-->\s*<\/span>/g,
-            "$1",
-          )
-          .replaceAll(
-            /<a\s*target="_self"\s*href="(.+?)"\s*>\s*<img\s*class="avatar"\s*width="\d+"\s*height="\d+"\s*src=".+?"\s*alt=".+?"\s*title=".+?"\s*\/>\s*<\/a>/g,
-            "$1",
-          )
-          .replaceAll(
-            /<a\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*><a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?\1"\s*>.+?<\/a><\/a>/g,
-            "$1",
-          )
-          .replaceAll(
-            /<a\s*class="external"\s*href="https:\/\/www\.deviantart\.com\/users\/outgoing\?(.+?)"\s*>.+?<\/a>/g,
-            "$1",
-          )
-          .replaceAll(/<a\s*href="(.+?)"(?:\s*title=".+?")?\s*>.+?<\/a>/g, "$1")
-          .replaceAll("<div><br /></div>", "\n")
-          .replaceAll(/(?:<br \/>)?<\/div>/g, "</div>\n")
-          .replaceAll("</p>", "</p>\n")
-          .replaceAll("<br />", "\n"),
-      )
-      .text()
-      .replaceAll("\u00A0", " ")
-      // .replaceAll(" ", "\n")
-      .split("\n")
-      .map((line) => line.trim())
-      .join("\n")
-      .trim();
-  }
-
-  if (deviationExtended.tags) {
-    if (description) {
-      description += "\n\n";
+      dest += deviationExtended.tags.map((tag) => `#${tag.name}`).join(" ");
     }
 
-    description += deviationExtended.tags
-      .map((tag) => `#${tag.name}`)
-      .join(" ");
+    return dest;
   }
 
-  return description;
+  if (deviationExtended.descriptionText.excerpt) {
+    return appendTags(deviationExtended.descriptionText.excerpt);
+  }
+
+  if (deviationExtended.descriptionText.html.type !== "draft") {
+    return (booru) =>
+      appendTags(
+        convertHtmlToMarkdown(
+          deviationExtended.descriptionText.html.markup,
+          booru.name.toLowerCase() as any,
+        ),
+      );
+  }
+
+  return null;
 }
