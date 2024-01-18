@@ -398,6 +398,7 @@ function extractDescription(
           .replaceAll("<br />", "\n"),
       )
       .text()
+      .replaceAll("\u00A0", " ")
       // .replaceAll(" ", "\n")
       .split("\n")
       .map((line) => line.trim())
