@@ -1,26 +1,9 @@
 import TurndownService from "turndown";
+import { escapeMarkdown } from "./markdown.js";
 
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
 }
-
-const escapes: [RegExp, string][] = [
-  [/\\/g, "\\$&"],
-  [/\*/g, "\\$&"],
-  [/-/g, "\\$&"],
-  [/\+/g, "\\$&"],
-  [/=+/g, "\\$&"],
-  [/^#{1,6} /g, "\\$&"],
-  [/`/g, "\\$&"],
-  [/~/g, "\\$&"],
-  [/\^/g, "\\$&"],
-  [/%/g, "\\$&"],
-  [/\[/g, "\\$&"],
-  [/\]/g, "\\$&"],
-  [/^>/g, "\\$&"],
-  [/_/g, "\\$&"],
-  [/^(\d+)\. /g, "$1\\. "],
-];
 
 export function convertHtmlToMarkdown(
   html: string,
@@ -65,23 +48,7 @@ export function convertHtmlToMarkdown(
     },
   });
 
-  if (dialect === "derpibooru") {
-    turndownService.escape = (string) =>
-      escapes.reduce(
-        (accumulator, escape) => accumulator.replaceAll(escape[0], escape[1]),
-        string,
-      );
-  } else if (dialect === "manebooru") {
-    turndownService.escape = (string) =>
-      escapes
-        .reduce(
-          (accumulator, escape) =>
-            accumulator.replaceAll(escape[0], "ESCAPESTART$&ESCAPEEND"),
-          string,
-        )
-        .replaceAll("ESCAPESTART", "[==")
-        .replaceAll("ESCAPEEND", "==]");
-  }
+  turndownService.escape = (markdown) => escapeMarkdown(markdown, dialect);
 
   turndownService.addRule("custom_image", {
     filter: "img",
