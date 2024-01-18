@@ -117,9 +117,23 @@ const NPFMediaObject = z.object({
 });
 type NPFMediaObject = z.infer<typeof NPFMediaObject>;
 
+const NPFInlineLinkFormatting = z.object({
+  type: z.literal("link"),
+  start: z.number().int().nonnegative(),
+  end: z.number().int().nonnegative(),
+  url: z.string().url(),
+});
+type NPFInlineLinkFormatting = z.infer<typeof NPFInlineLinkFormatting>;
+
+const NPFInlineFormatting = z.discriminatedUnion("type", [
+  NPFInlineLinkFormatting,
+]);
+type NPFInlineFormatting = z.infer<typeof NPFInlineFormatting>;
+
 const NPFTextBlock = z.object({
   type: z.literal("text"),
   text: z.string(),
+  formatting: NPFInlineFormatting.array(),
 });
 type NPFTextBlock = z.infer<typeof NPFTextBlock>;
 
@@ -408,19 +422,6 @@ export async function scrape(url: URL): Promise<SourceData> {
       }),
   );
 
-  let description: string = content
-    .filter((block): block is NPFTextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
-
-  if (post.tags.length) {
-    if (description) {
-      description += "\n\n";
-    }
-
-    description += post.tags.map((tag) => `#${tag}`).join(" ");
-  }
-
   return {
     source: "Tumblr",
     url: post.rebloggedRootUrl ?? post.postUrl,
@@ -430,7 +431,38 @@ export async function scrape(url: URL): Promise<SourceData> {
       new Date((post.trail[0]?.post.timestamp ?? post.timestamp) * 1_000),
     ),
     title: null,
-    description,
+    description: (booru) => {
+      let description: string = content
+        .filter((block): block is NPFTextBlock => block.type === "text")
+        .map((block) => {
+          let text = block.text;
+
+          for (const formatting of block.formatting.reverse()) {
+            if (formatting.type === "link") {
+              text =
+                text.substring(0, formatting.start) +
+                booru.markdown.inlineLink(
+                  text.substring(formatting.start, formatting.end),
+                  formatting.url,
+                ) +
+                text.substring(formatting.end);
+            }
+          }
+
+          return text;
+        })
+        .join("\n");
+
+      if (post.tags.length) {
+        if (description) {
+          description += "\n\n";
+        }
+
+        description += post.tags.map((tag) => `#${tag}`).join(" ");
+      }
+
+      return description;
+    },
   };
 }
 
