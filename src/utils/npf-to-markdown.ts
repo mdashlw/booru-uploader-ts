@@ -43,6 +43,8 @@ export default function convertTumblrNpfToMarkdown(
           text += "\u200b";
         }
 
+        const chunk = block.text.substring(start, end);
+
         for (const formatting of formattings) {
           switch (formatting.type) {
             case "bold":
@@ -58,12 +60,20 @@ export default function convertTumblrNpfToMarkdown(
               text += markdown.smallStart;
               break;
             case "link":
+              if (formatting.url.includes("://t.umblr.com/redirect")) {
+                formatting.url = chunk;
+              }
+
+              if (formatting.url === chunk && !markdown.inlineAllLinks) {
+                continue;
+              }
+
               text += markdown.inlineLinkStart;
               break;
           }
         }
 
-        text += markdown.escape(block.text.substring(start, end));
+        text += markdown.escape(chunk);
 
         for (const formatting of formattings.reverse()) {
           switch (formatting.type) {
@@ -80,6 +90,10 @@ export default function convertTumblrNpfToMarkdown(
               text += markdown.smallEnd;
               break;
             case "link":
+              if (formatting.url === chunk && !markdown.inlineAllLinks) {
+                continue;
+              }
+
               text += markdown.inlineLinkEnd(formatting.url);
               break;
           }
