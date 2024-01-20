@@ -100,5 +100,5 @@ export default function convertTumblrNpfToMarkdown(
 
       return text;
     })
-    .join("");
+    .join("\n");
 }
