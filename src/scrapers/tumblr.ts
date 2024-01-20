@@ -1,7 +1,7 @@
 import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
-import { unzip } from "unzipit";
+import { ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
@@ -218,6 +218,13 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   let v1Post: V1Post;
 
+  let backupDataPromise:
+    | Promise<{
+        reblogPostId: string;
+        entries: { [key: string]: ZipEntry };
+      }>
+    | undefined;
+
   const images: SourceImageData[] = await Promise.all(
     content
       .filter((block): block is NpfImageBlock => block.type === "image")
@@ -310,18 +317,27 @@ export async function scrape(url: URL): Promise<SourceData> {
               ),
             );
           } else {
-            const reblogPostId = await createReblogPostAsDraft(
-              apiUrl,
-              csrfToken,
-              post,
-            );
+            if (!backupDataPromise) {
+              backupDataPromise = (async () => {
+                const reblogPostId = await createReblogPostAsDraft(
+                  apiUrl,
+                  csrfToken,
+                  post,
+                );
 
-            await requestBackup(apiUrl, csrfToken);
-            const backupDownloadUrl = await pollBackup(apiUrl, csrfToken);
+                await requestBackup(apiUrl, csrfToken);
+                const backupDownloadUrl = await pollBackup(apiUrl, csrfToken);
 
-            await deletePost(apiUrl, csrfToken, reblogPostId);
+                await deletePost(apiUrl, csrfToken, reblogPostId);
 
-            const { entries } = await unzip(backupDownloadUrl);
+                const { entries } = await unzip(backupDownloadUrl);
+
+                return { reblogPostId, entries };
+              })();
+            }
+
+            const { reblogPostId, entries } = await backupDataPromise;
+
             const findEntry = (baseKey: string) =>
               Object.entries(entries).find(([key]) =>
                 key.startsWith(baseKey),
