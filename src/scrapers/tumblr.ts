@@ -10,6 +10,8 @@ import {
   probeImageBlob,
   probeImageUrl,
 } from "../utils/probe-image.js";
+import { NpfContentBlock, NpfImageBlock } from "../utils/tumblr-npf-types.js";
+import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 
 /*
  * Images can be:
@@ -107,63 +109,7 @@ const Blog = z.object({
 });
 type Blog = z.infer<typeof Blog>;
 
-const NPFMediaObject = z.object({
-  url: z.string().url(),
-  type: z.string(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
-  hasOriginalDimensions: z.boolean().optional(),
-  mediaKey: z.string().optional(),
-});
-type NPFMediaObject = z.infer<typeof NPFMediaObject>;
-
-const NPFInlineLinkFormatting = z.object({
-  type: z.literal("link"),
-  start: z.number().int().nonnegative(),
-  end: z.number().int().nonnegative(),
-  url: z.string().url(),
-});
-type NPFInlineLinkFormatting = z.infer<typeof NPFInlineLinkFormatting>;
-
-const NPFInlineFormatting = z.discriminatedUnion("type", [
-  NPFInlineLinkFormatting,
-]);
-type NPFInlineFormatting = z.infer<typeof NPFInlineFormatting>;
-
-const NPFTextBlock = z.object({
-  type: z.literal("text"),
-  text: z.string(),
-  formatting: NPFInlineFormatting.array(),
-});
-type NPFTextBlock = z.infer<typeof NPFTextBlock>;
-
-const NPFLinkBlock = z.object({
-  type: z.literal("link"),
-  url: z.string().url(),
-});
-type NPFLinkBlock = z.infer<typeof NPFLinkBlock>;
-
-const NPFImageBlock = z.object({
-  type: z.literal("image"),
-  media: NPFMediaObject.array(),
-});
-type NPFImageBlock = z.infer<typeof NPFImageBlock>;
-
-const NPFVideoBlock = z.object({
-  type: z.literal("video"),
-  media: NPFMediaObject,
-});
-type NPFVideoBlock = z.infer<typeof NPFVideoBlock>;
-
-const NPFContentBlock = z.discriminatedUnion("type", [
-  NPFTextBlock,
-  NPFLinkBlock,
-  NPFImageBlock,
-  NPFVideoBlock,
-]);
-type NPFContentBlock = z.infer<typeof NPFContentBlock>;
-
-const NPFPost = z.object({
+const NpfPost = z.object({
   objectType: z.literal("post"),
   blogName: z.string(),
   blog: Blog,
@@ -172,10 +118,10 @@ const NPFPost = z.object({
   timestamp: z.number().int().positive(),
   reblogKey: z.string(),
   tags: z.string().array(),
-  content: NPFContentBlock.array(),
+  content: NpfContentBlock.array(),
   trail: z
     .object({
-      content: NPFContentBlock.array(),
+      content: NpfContentBlock.array(),
       post: z.object({
         id: z.string(),
         timestamp: z.number().int().positive(),
@@ -187,7 +133,7 @@ const NPFPost = z.object({
   rebloggedRootUrl: z.string().url().optional(),
   rebloggedRootName: z.string().optional(),
 });
-type NPFPost = z.infer<typeof NPFPost>;
+type NpfPost = z.infer<typeof NpfPost>;
 
 const lazyInit = <T, Args extends any[]>(fn: (...args: Args) => T) => {
   let prom: T | undefined = undefined;
@@ -256,7 +202,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     throw new Error("Deeply nested posts are not supported");
   }
 
-  let content: NPFContentBlock[];
+  let content: NpfContentBlock[];
 
   if (post.rebloggedRootId) {
     const [trail] = post.trail;
@@ -274,7 +220,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const images: SourceImageData[] = await Promise.all(
     content
-      .filter((block): block is NPFImageBlock => block.type === "image")
+      .filter((block): block is NpfImageBlock => block.type === "image")
       .map(async (block, index) => {
         const {
           media: [media],
@@ -432,26 +378,10 @@ export async function scrape(url: URL): Promise<SourceData> {
     ),
     title: null,
     description: (booru) => {
-      let description: string = content
-        .filter((block): block is NPFTextBlock => block.type === "text")
-        .map((block) => {
-          let text = block.text;
-
-          for (const formatting of block.formatting.reverse()) {
-            if (formatting.type === "link") {
-              text =
-                text.substring(0, formatting.start) +
-                booru.markdown.inlineLink(
-                  text.substring(formatting.start, formatting.end),
-                  formatting.url,
-                ) +
-                text.substring(formatting.end);
-            }
-          }
-
-          return text;
-        })
-        .join("\n");
+      let description: string = convertTumblrNpfToMarkdown(
+        post.content,
+        booru.markdown,
+      );
 
       if (post.tags.length) {
         if (description) {
@@ -471,7 +401,7 @@ async function extractInitialState(url: URL): Promise<{
   csrfToken: string;
   PeeprRoute: {
     initialTimeline: {
-      objects: NPFPost[];
+      objects: NpfPost[];
     };
   };
 }> {
@@ -544,7 +474,7 @@ async function extractInitialState(url: URL): Promise<{
       csrfToken: z.string(),
       PeeprRoute: z.object({
         initialTimeline: z.object({
-          objects: NPFPost.array().length(1),
+          objects: NpfPost.array().length(1),
         }),
       }),
     })
@@ -679,7 +609,7 @@ async function fetchTumblrAPI<T>(
 async function createReblogPostAsDraft(
   apiUrl: string,
   csrfToken: string,
-  post: NPFPost,
+  post: NpfPost,
 ): Promise<string> {
   const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
   const { id } = await fetchTumblrAPI<{ id: string }>(apiUrl, csrfToken, {
