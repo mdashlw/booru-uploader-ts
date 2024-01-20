@@ -389,7 +389,7 @@ function extractDescription(
       appendTags(
         convertHtmlToMarkdown(
           deviationExtended.descriptionText.html.markup,
-          booru.name.toLowerCase() as any,
+          booru.markdown,
         ),
       );
   }
