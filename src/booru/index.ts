@@ -4,7 +4,14 @@ import _ from "lodash";
 import timers from "node:timers/promises";
 import undici from "undici";
 import { IncomingHttpHeaders } from "undici/types/header.js";
-import { AutocompletedTag, Image, Tag, TagName, TagSlug } from "./types.js";
+import {
+  AutocompletedTag,
+  Image,
+  MarkdownDialect,
+  Tag,
+  TagName,
+  TagSlug,
+} from "./types.js";
 
 export function convertTagNameToSlug(name: TagName): TagSlug {
   return name
@@ -63,12 +70,7 @@ export default abstract class Booru {
     );
   }
 
-  abstract get markdown(): {
-    bold: (text: string) => string;
-    blockQuote: (text: string) => string;
-    inlineLink: (text: string, destination: string) => string;
-    escape: (text: string) => string;
-  };
+  abstract get markdown(): MarkdownDialect;
 
   requireKey(): string {
     if (!this.key) {

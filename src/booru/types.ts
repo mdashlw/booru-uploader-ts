@@ -41,3 +41,25 @@ export interface Tag {
 export interface DnpEntry {
   dnp_type: string;
 }
+
+export type MarkdownDialect = {
+  // V1
+  bold: (text: string) => string;
+  blockQuote: (text: string) => string;
+  inlineLink: (text: string, destination: string) => string;
+  escape: (text: string) => string;
+  // V2
+  boldStart: string;
+  boldEnd: string;
+  italicStart: string;
+  italicEnd: string;
+  strikethroughStart: string;
+  strikethroughEnd: string;
+  smallStart: string;
+  smallEnd: string;
+  inlineLinkStart: string;
+  inlineLinkEnd: (url: string) => string;
+  headingStart(n: number): string;
+  blockQuoteStart: string;
+  blockQuoteEnd: string;
+};

@@ -1,7 +1,7 @@
 import Booru from "../booru/index.js";
 import { Blob } from "node:buffer";
 import { FormData } from "undici";
-import { AutocompletedTag, Image } from "../booru/types.js";
+import { AutocompletedTag, Image, MarkdownDialect } from "../booru/types.js";
 
 export default class Derpibooru extends Booru {
   constructor(options?: { key?: string }) {
@@ -11,8 +11,9 @@ export default class Derpibooru extends Booru {
     });
   }
 
-  get markdown() {
+  get markdown(): MarkdownDialect {
     return {
+      // V1
       bold: (text: string): string => `**${text}**`,
       blockQuote: (text: string): string =>
         text
@@ -30,7 +31,24 @@ export default class Derpibooru extends Booru {
           .replaceAll("~", "\\~") // strikethrough
           .replaceAll("^", "\\^") // superscript
           .replaceAll("%", "\\%") // subscript
-          .replaceAll("#", "\\#"), // headers
+          .replaceAll("#", "\\#") // headings
+          .replaceAll("=", "\\=")
+          .replaceAll("[", "\\[")
+          .replaceAll("]", "\\]"),
+      // V2
+      boldStart: "**",
+      boldEnd: "**",
+      italicStart: "*",
+      italicEnd: "*",
+      strikethroughStart: "~~",
+      strikethroughEnd: "~~",
+      smallStart: "%",
+      smallEnd: "%",
+      inlineLinkStart: "[",
+      inlineLinkEnd: (url: string) => `](${url})`,
+      headingStart: (n: number): string => `${"#".repeat(n)} `,
+      blockQuoteStart: "> ",
+      blockQuoteEnd: "",
     };
   }
 

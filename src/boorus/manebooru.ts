@@ -1,7 +1,7 @@
 import Booru from "../booru/index.js";
 import { Blob } from "node:buffer";
 import { FormData } from "undici";
-import { AutocompletedTag, Image } from "../booru/types.js";
+import { AutocompletedTag, Image, MarkdownDialect } from "../booru/types.js";
 
 export default class Manebooru extends Booru {
   constructor(options?: { key?: string }) {
@@ -11,13 +11,28 @@ export default class Manebooru extends Booru {
     });
   }
 
-  get markdown() {
+  get markdown(): MarkdownDialect {
     return {
+      // V1
       bold: (text: string): string => `*${text}*`,
       blockQuote: (text: string): string => `[bq]${text}[/bq]`,
       inlineLink: (text: string, destination: string): string =>
         `"${text}":${destination}`,
       escape: (text: string): string => `[==${text}==]`,
+      // V2
+      boldStart: "*",
+      boldEnd: "*",
+      italicStart: "_",
+      italicEnd: "_",
+      strikethroughStart: "-",
+      strikethroughEnd: "-",
+      smallStart: "~",
+      smallEnd: "~",
+      inlineLinkStart: '"',
+      inlineLinkEnd: (url: string) => `":${url}`,
+      headingStart: (n: number): string => "",
+      blockQuoteStart: "[bq]",
+      blockQuoteEnd: "[/bq]",
     };
   }
 
