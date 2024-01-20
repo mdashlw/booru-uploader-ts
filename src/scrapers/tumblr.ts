@@ -379,7 +379,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     title: null,
     description: (booru) => {
       let description: string = convertTumblrNpfToMarkdown(
-        post.content,
+        content,
         booru.markdown,
       );
 
