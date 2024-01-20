@@ -13,16 +13,13 @@ export default class Derpibooru extends Booru {
 
   get markdown(): MarkdownDialect {
     return {
-      // V1
-      bold: (text: string): string => `**${text}**`,
-      blockQuote: (text: string): string =>
+      bold: (text) => `**${text}**`,
+      blockQuote: (text) =>
         text
           .split("\n")
           .map((line) => `> ${line}`)
           .join("\n"),
-      inlineLink: (text: string, destination: string): string =>
-        `[${text}](${destination})`,
-      escape: (text: string): string =>
+      escape: (text) =>
         text
           .replaceAll("*", "\\*") // bold/italics
           .replaceAll("_", "\\_") // underline
@@ -34,8 +31,10 @@ export default class Derpibooru extends Booru {
           .replaceAll("#", "\\#") // headings
           .replaceAll("=", "\\=")
           .replaceAll("[", "\\[")
-          .replaceAll("]", "\\]"),
-      // V2
+          .replaceAll("]", "\\]")
+          .replaceAll("-", "\\-")
+          .replaceAll(">", "\\>")
+          .replaceAll(/^(\d+)\. /g, "$1\\. "),
       boldStart: "**",
       boldEnd: "**",
       italicStart: "*",
@@ -46,10 +45,20 @@ export default class Derpibooru extends Booru {
       smallEnd: "%",
       inlineAllLinks: false,
       inlineLinkStart: "[",
-      inlineLinkEnd: (url: string) => `](${url})`,
-      headingStart: (n: number): string => `${"#".repeat(n)} `,
+      inlineLinkEnd: (url) => `](${url})`,
+      headingStart: (n) => `${"#".repeat(n)} `,
       blockQuoteStart: "> ",
       blockQuoteEnd: "",
+      inlineLink: (text, destination, title) => {
+        const titlePart = title ? ` "${title}"` : "";
+
+        return `[${text}](${destination}${titlePart})`;
+      },
+      inlineImage(description, destination, title) {
+        const titlePart = title ? ` "${title}"` : "";
+
+        return `![${description}](${destination}${titlePart})`;
+      },
     };
   }
 

@@ -43,12 +43,9 @@ export interface DnpEntry {
 }
 
 export type MarkdownDialect = {
-  // V1
   bold: (text: string) => string;
   blockQuote: (text: string) => string;
-  inlineLink: (text: string, destination: string) => string;
   escape: (text: string) => string;
-  // V2
   boldStart: string;
   boldEnd: string;
   italicStart: string;
@@ -63,4 +60,6 @@ export type MarkdownDialect = {
   headingStart(n: number): string;
   blockQuoteStart: string;
   blockQuoteEnd: string;
+  inlineLink: (text: string, destination: string, title: string) => string;
+  inlineImage(description: string, destination: string, title: string): string;
 };

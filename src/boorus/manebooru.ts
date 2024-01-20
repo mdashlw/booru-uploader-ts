@@ -13,13 +13,9 @@ export default class Manebooru extends Booru {
 
   get markdown(): MarkdownDialect {
     return {
-      // V1
-      bold: (text: string): string => `*${text}*`,
-      blockQuote: (text: string): string => `[bq]${text}[/bq]`,
-      inlineLink: (text: string, destination: string): string =>
-        `"${text}":${destination}`,
-      escape: (text: string): string => `[==${text}==]`,
-      // V2
+      bold: (text) => `*${text}*`,
+      blockQuote: (text) => `[bq]${text}[/bq]`,
+      escape: (text) => `[==${text}==]`,
       boldStart: "*",
       boldEnd: "*",
       italicStart: "_",
@@ -30,10 +26,14 @@ export default class Manebooru extends Booru {
       smallEnd: "~",
       inlineAllLinks: true,
       inlineLinkStart: '"',
-      inlineLinkEnd: (url: string) => `":${url}`,
-      headingStart: (n: number): string => "",
+      inlineLinkEnd: (url) => `":${url}`,
+      headingStart: () => "",
       blockQuoteStart: "[bq]",
       blockQuoteEnd: "[/bq]",
+      inlineLink: (text, destination) => `"${text}":${destination}`,
+      inlineImage(_description, destination) {
+        return `!${destination}!`;
+      },
     };
   }
 

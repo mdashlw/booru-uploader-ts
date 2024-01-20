@@ -1,27 +1,14 @@
 import TurndownService from "turndown";
-import { escapeMarkdown } from "./markdown.js";
+import { MarkdownDialect } from "../booru/types.js";
 
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
 }
 
-export function convertHtmlToMarkdown(
-  html: string,
-  dialect: "derpibooru" | "manebooru",
-) {
+export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
   const turndownService = new TurndownService({
-    emDelimiter: (
-      {
-        derpibooru: "*",
-        manebooru: "_",
-      } as const
-    )[dialect] as any,
-    strongDelimiter: (
-      {
-        derpibooru: "**",
-        manebooru: "*",
-      } as const
-    )[dialect] as any,
+    emDelimiter: markdown.italicStart as any,
+    strongDelimiter: markdown.boldStart as any,
     blankReplacement: function (content, node) {
       console.log(`[blankReplacement]`, {
         tagName: node._tagName,
@@ -48,7 +35,7 @@ export function convertHtmlToMarkdown(
     },
   });
 
-  turndownService.escape = (markdown) => escapeMarkdown(markdown, dialect);
+  turndownService.escape = (str) => markdown.escape(str);
 
   turndownService.addRule("custom_image", {
     filter: "img",
@@ -59,17 +46,11 @@ export function convertHtmlToMarkdown(
         return "";
       }
 
-      if (dialect === "derpibooru") {
-        const alt = cleanAttribute(node.getAttribute("alt"));
-        const title = cleanAttribute(node.getAttribute("title"));
-        const titlePart = title ? ` "${title}"` : "";
-
-        return src ? `![${alt}](${src}${titlePart})` : "";
-      } else if (dialect === "manebooru") {
-        return `!${src}!`;
-      } else {
-        throw new Error(`Unknown dialect: ${dialect}`);
-      }
+      return markdown.inlineImage(
+        cleanAttribute(node.getAttribute("alt")),
+        src,
+        cleanAttribute(node.getAttribute("title")),
+      );
     },
   });
 
@@ -99,30 +80,20 @@ export function convertHtmlToMarkdown(
         content.endsWith("…") &&
         href.substring(href.indexOf("//") + 2).startsWith(content.slice(0, -1))
       ) {
-        if (dialect === "manebooru") {
-          return `"${href}":${href}`;
+        if (markdown.inlineAllLinks) {
+          return markdown.inlineLink(href, href, "");
         } else {
           return href;
         }
       }
 
-      if (dialect === "derpibooru") {
-        let title = cleanAttribute(node.getAttribute("title"));
-
-        if (title) {
-          title = ` "${title}"`;
-        }
-
-        return `[${content}](${href}${title})`;
-      } else if (dialect === "manebooru") {
-        return `"${content}":${href}`;
-      } else {
-        throw new Error(`Unknown dialect: ${dialect}`);
-      }
+      return markdown.inlineLink(
+        content,
+        href,
+        cleanAttribute(node.getAttribute("title")),
+      );
     },
   });
 
-  const markdown = turndownService.turndown(html);
-
-  return markdown;
+  return turndownService.turndown(html);
 }
