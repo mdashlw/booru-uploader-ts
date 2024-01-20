@@ -57,6 +57,7 @@ export type MarkdownDialect = {
   strikethroughEnd: string;
   smallStart: string;
   smallEnd: string;
+  inlineAllLinks: boolean;
   inlineLinkStart: string;
   inlineLinkEnd: (url: string) => string;
   headingStart(n: number): string;

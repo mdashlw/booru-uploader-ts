@@ -44,6 +44,7 @@ export default class Derpibooru extends Booru {
       strikethroughEnd: "~~",
       smallStart: "%",
       smallEnd: "%",
+      inlineAllLinks: false,
       inlineLinkStart: "[",
       inlineLinkEnd: (url: string) => `](${url})`,
       headingStart: (n: number): string => `${"#".repeat(n)} `,

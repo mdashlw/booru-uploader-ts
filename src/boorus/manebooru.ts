@@ -28,6 +28,7 @@ export default class Manebooru extends Booru {
       strikethroughEnd: "-",
       smallStart: "~",
       smallEnd: "~",
+      inlineAllLinks: true,
       inlineLinkStart: '"',
       inlineLinkEnd: (url: string) => `":${url}`,
       headingStart: (n: number): string => "",
