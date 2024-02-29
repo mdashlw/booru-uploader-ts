@@ -37,6 +37,20 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const imageUrl = "https:" + $(".download > a").attr("href");
 
+  let description = $(".submission-description").text().trim();
+
+  const tags = $(".tags-row .tags")
+    .map((_, el) => $(el).text().trim())
+    .toArray();
+
+  if (tags.length) {
+    if (description) {
+      description += "\n\n";
+    }
+
+    description += tags.map((tag) => `#${tag}`).join(" ");
+  }
+
   return {
     source: "FurAffinity",
     url: $("meta[property='og:url']").attr("content")!,
@@ -51,6 +65,6 @@ export async function scrape(url: URL): Promise<SourceData> {
       ),
     ),
     title: $(".submission-title").text().trim(),
-    description: $(".submission-description").text().trim(),
+    description,
   };
 }
