@@ -1,4 +1,5 @@
 import { Scraper } from "../scraper/types.js";
+import * as Bluesky from "./bluesky.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
 import * as Commishes from "./commishes-api.js";
@@ -15,6 +16,7 @@ import * as Twitter from "./twitter.js";
 import * as Vk from "./vk.js";
 
 export const scrapers: Scraper[] = [
+  Bluesky,
   Booru,
   Boosty,
   Commishes,
