@@ -16,6 +16,14 @@ export async function probeAndValidateImageUrl(
 ): Promise<ProbeResult> {
   const result = await probeImageUrl(url);
 
+  if (type?.startsWith("image/")) {
+    type = type.substring("image/".length);
+  }
+
+  if (type === "jpeg") {
+    type = "jpg";
+  }
+
   if (type !== undefined && result.type !== type) {
     throw new Error(
       `Unexpected image type: "${result.type}" (expected "${type}") for ${url}`,
