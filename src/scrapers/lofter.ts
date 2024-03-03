@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
-import probeImageSize from "../utils/probe-image.js";
+import { probeAndValidateImageUrl } from "../scraper/utils.js";
 
 export function canHandle(url: URL): boolean {
   return (
@@ -22,14 +22,14 @@ export async function scrape(url: URL): Promise<SourceData> {
         body.matchAll(
           /bigimgwidth="(?<width>\d+)" bigimgheight="(?<height>\d+)" bigimgsrc="(?<url>.+?)\?/g,
         ),
-      ).map(async ({ groups }) => ({
-        url: groups!.url,
-        // use probeImageSize instead of fast probeImageType because
-        // Lofter always sends "image/jpeg;charset=UTF-8" content type
-        type: (await probeImageSize(groups!.url)).type,
-        width: Number(groups!.width),
-        height: Number(groups!.height),
-      })),
+      ).map(async ({ groups }) =>
+        probeAndValidateImageUrl(
+          groups!.url,
+          undefined,
+          Number(groups!.width),
+          Number(groups!.height),
+        ),
+      ),
     ),
     artist: /<a href="\/">(.+?)<\/a>\s*<\/h1>/.exec(body)![1],
     date: "",
