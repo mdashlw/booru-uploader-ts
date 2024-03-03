@@ -197,8 +197,9 @@ for await (const image of images(
     }
 
     const sameAspectRatio =
-      Math.trunc(Number((image.width / image.height).toFixed(3)) * 100) ===
-      Math.trunc(Number((imageData.width / imageData.height).toFixed(3)) * 100);
+      Math.abs(
+        image.width / image.height - imageData.width / imageData.height,
+      ) <= 0.009;
 
     if (image.width < imageData.width || image.height < imageData.height) {
       ok = false;
