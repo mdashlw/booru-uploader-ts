@@ -6,7 +6,7 @@ import * as Commishes from "./commishes-api.js";
 import * as DeviantArt from "./deviantart-other.js";
 import * as FurAffinity from "./furaffinity.js";
 // import * as Itaku from "./itaku.js";
-// import * as Lofter from "./lofter.js";
+import * as Lofter from "./lofter-api.js";
 // import * as PassThrough from "./pass-through.js";
 // import * as Pixiv from "./pixiv.js";
 // import * as Raw from "./raw.js";
@@ -23,7 +23,7 @@ export const scrapers: Scraper[] = [
   DeviantArt,
   FurAffinity,
   // Itaku,
-  // Lofter,
+  Lofter,
   // PassThrough,
   // Pixiv,
   // Raw,
