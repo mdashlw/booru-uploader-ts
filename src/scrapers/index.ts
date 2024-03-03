@@ -14,6 +14,7 @@ import * as Lofter from "./lofter-api.js";
 import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 import * as Vk from "./vk.js";
+import * as YchArt from "./ychart.js";
 
 export const scrapers: Scraper[] = [
   Bluesky,
@@ -31,4 +32,5 @@ export const scrapers: Scraper[] = [
   Tumblr,
   Twitter,
   Vk,
+  YchArt,
 ];
