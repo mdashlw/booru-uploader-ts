@@ -117,7 +117,8 @@ export function canHandle(url: URL): boolean {
       url.hostname === "m.vk.ru") &&
     (url.pathname.startsWith("/wall") ||
       url.searchParams.get("w")?.startsWith("wall") ||
-      url.pathname.startsWith("/photo"))
+      url.pathname.startsWith("/photo") ||
+      url.searchParams.get("z")?.startsWith("photo"))
   );
 }
 
@@ -223,8 +224,15 @@ export async function scrape(url: URL): Promise<SourceData> {
     };
   }
 
-  if (url.pathname.startsWith("/photo")) {
-    const photoId = url.pathname.substring("/photo".length);
+  if (url.pathname.startsWith("/photo") || url.searchParams.has("z")) {
+    let photoId =
+      url.searchParams.get("z")?.substring("photo".length) ??
+      url.pathname.substring("/photo".length);
+
+    if (photoId.includes("/")) {
+      photoId = photoId.substring(0, photoId.indexOf("/"));
+    }
+
     const photo = await fetchExtendedPhotoWithOwner(photoId);
 
     return {
