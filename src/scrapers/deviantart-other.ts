@@ -4,19 +4,21 @@ import sharp from "sharp";
 import undici from "undici";
 import { IncomingHttpHeaders } from "undici/types/header.js";
 import { z } from "zod";
+import Booru from "../booru/index.js";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
+import { lazyInit } from "../utils/lazy-init.js";
 import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import Booru from "../booru/index.js";
 
+const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
+const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
 const HEADERS = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "accept-language": "en-US,en;q=0.9",
   "cache-control": "no-cache",
-  cookie: process.env.DEVIANTART_COOKIE!,
   dnt: "1",
   pragma: "no-cache",
   "sec-ch-ua":
@@ -64,19 +66,12 @@ const Deviation = z.object({
 type Deviation = z.infer<typeof Deviation>;
 
 const DeviationExtended = z.object({
+  deviationUuid: z.string().uuid(),
   originalFile: z.object({
     type: z.string(),
-    width: z.number().int(),
-    height: z.number().int(),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
   }),
-  download: z
-    .object({
-      url: z.string().url(),
-      type: z.string(),
-      width: z.number().int(),
-      height: z.number().int(),
-    })
-    .optional(),
   tags: z
     .object({
       name: z.string(),
@@ -151,7 +146,6 @@ export async function scrape(url: URL): Promise<SourceData> {
     const { cardImage } = await extractInitialState(
       "https://www.deviantart.com/users/login",
       {
-        cookie: "",
         referer: url.toString(),
       },
     );
@@ -176,13 +170,21 @@ export async function scrape(url: URL): Promise<SourceData> {
       probeResult = await probeImageUrl(imageUrl);
     } else if (deviation.isDownloadable) {
       console.log(`Deviation ${deviation.deviationId} is downloadable`);
+      const download = await apiDownloadDeviation(
+        deviationExtended.deviationUuid,
+      );
 
-      if (!deviationExtended.download) {
-        throw new Error("Deviation is downloadable but no download object");
+      if (
+        download.width !== deviationExtended.originalFile.width ||
+        download.height !== deviationExtended.originalFile.height
+      ) {
+        throw new Error(
+          `Downloaded image has different dimensions than original`,
+        );
       }
 
-      imageUrl = new URL(deviationExtended.download.url);
-      ({ type, width, height } = deviationExtended.download);
+      imageUrl = new URL(download.src);
+      ({ type, width, height } = deviationExtended.originalFile);
       probeResult = await probeImageUrl(imageUrl, HEADERS);
     } else if (deviationId <= 790_677_560) {
       console.log(
@@ -327,27 +329,6 @@ async function extractInitialState(
       maxRedirections: 2,
       throwOnError: true,
     })
-    .then((response) => {
-      const setCookieHeader = response.headers["set-cookie"];
-
-      if (headers?.cookie === undefined && setCookieHeader) {
-        const setCookies = Array.isArray(setCookieHeader)
-          ? setCookieHeader
-          : [setCookieHeader];
-        const cookies = setCookies.flatMap((c) => c.split("; ")[0]);
-
-        HEADERS.cookie = Object.entries({
-          ...Object.fromEntries(
-            HEADERS.cookie.split("; ").map((kv) => kv.split("=")),
-          ),
-          ...Object.fromEntries(cookies.map((kv) => kv.split("="))),
-        })
-          .map(([k, v]) => `${k}=${v}`)
-          .join("; ");
-      }
-
-      return response;
-    })
     .catch((error) => {
       throw new Error(`Failed to fetch ${url}`, { cause: error });
     });
@@ -395,4 +376,65 @@ function extractDescription(
   }
 
   return null;
+}
+
+const accessToken = lazyInit(async () => {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error(
+      "Missing DEVIANTART_CLIENT_ID or DEVIANTART_CLIENT_SECRET env",
+    );
+  }
+
+  const { access_token } = await fetchAPI(
+    "oauth2/token",
+    {
+      grant_type: "client_credentials",
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+    },
+    z.object({
+      status: z.literal("success"),
+      access_token: z.string(),
+    }),
+    false,
+  );
+
+  return access_token;
+});
+
+function apiDownloadDeviation(deviationUuid: string) {
+  return fetchAPI(
+    `api/v1/oauth2/deviation/download/${deviationUuid}`,
+    { mature_content: "true" },
+    z.object({
+      src: z.string().url(),
+      filename: z.string(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+    }),
+  );
+}
+
+async function fetchAPI<T extends z.ZodTypeAny>(
+  method: string,
+  params: Record<string, string>,
+  body: T,
+  withAccessToken: boolean = true,
+): Promise<z.infer<T>> {
+  if (withAccessToken) {
+    params.access_token = await accessToken();
+  }
+
+  const response = await undici.request(
+    `https://www.deviantart.com/${method}?${new URLSearchParams(params).toString()}`,
+    {
+      headers: {
+        accept: "application/json",
+      },
+      throwOnError: true,
+    },
+  );
+  const json = await response.body.json();
+
+  return body.parse(json);
 }
