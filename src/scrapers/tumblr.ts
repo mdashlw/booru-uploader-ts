@@ -433,7 +433,8 @@ async function tryExtractInitialState(url: URL, reblogs?: URL[]) {
         }
 
         reblogs = (await getReblogs(postId)).map(
-          (post) => new URL(post.postUrl),
+          (post) =>
+            new URL(`https://www.tumblr.com/${post.blogName}/${post.id}`),
         );
       }
 
