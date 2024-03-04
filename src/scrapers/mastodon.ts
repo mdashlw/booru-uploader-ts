@@ -34,7 +34,10 @@ const Status = z.object({
 type Status = z.infer<typeof Status>;
 
 export function canHandle(url: URL): boolean {
-  return url.hostname.endsWith(".social") && /^\/@\w+\/\d+$/.test(url.pathname);
+  return (
+    ["socel.net", "equestria.social"].includes(url.hostname) &&
+    /^\/@\w+\/\d+$/.test(url.pathname)
+  );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
