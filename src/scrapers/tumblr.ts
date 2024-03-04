@@ -5,6 +5,7 @@ import { ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import { getReblogs } from "../tumblr-archives/api.js";
 import { lazyInit } from "../utils/lazy-init.js";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 import {
@@ -182,7 +183,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         objects: [post],
       },
     },
-  } = await extractInitialState(url).catch((error) => {
+  } = await tryExtractInitialState(url).catch((error) => {
     if (
       error.message === "Failed to fetch" &&
       error.cause instanceof undici.errors.ResponseStatusCodeError &&
@@ -406,6 +407,49 @@ export async function scrape(url: URL): Promise<SourceData> {
       return description;
     },
   };
+}
+
+async function tryExtractInitialState(url: URL, reblogs?: URL[]) {
+  try {
+    return await extractInitialState(url);
+  } catch (error: any) {
+    if (
+      error.message === "Failed to fetch" &&
+      error.cause instanceof undici.errors.ResponseStatusCodeError &&
+      error.cause.statusCode === 404
+    ) {
+      if (reblogs) {
+        console.error(
+          `Reblog post ${url} does not exist. Trying other reblogs.`,
+        );
+      } else {
+        console.error(`Post ${url} does not exist. Trying reblogs.`);
+
+        const postId = url.pathname.split("/").find((s) => /^\d+$/.test(s));
+
+        if (!postId) {
+          console.error(`Failed to find post id in url ${url}`);
+          throw error;
+        }
+
+        reblogs = (await getReblogs(postId)).map(
+          (post) => new URL(post.postUrl),
+        );
+      }
+
+      const [first, ...other] = reblogs;
+
+      if (!first) {
+        console.error("There are no reblogs. Throwing error.");
+        throw error;
+      }
+
+      console.log(`Will try reblog ${first}`);
+      return tryExtractInitialState(first, other);
+    }
+
+    throw error;
+  }
 }
 
 async function extractInitialState(url: URL): Promise<{
