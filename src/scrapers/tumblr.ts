@@ -575,7 +575,7 @@ async function fetchTumblrAPI<T>(
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
         "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "x-ad-blocker-enabled": "0",
         "x-csrf": csrfToken,
         "x-version": "redpop/3/0//redpop/",
@@ -675,7 +675,7 @@ async function pollBackup(apiUrl: string, csrfToken: string): Promise<string> {
     });
 
     if (status !== 3) {
-      await timers.setTimeout(1_000);
+      await timers.setTimeout(3_000);
       continue;
     }
 
