@@ -10,7 +10,7 @@ import * as Lofter from "./lofter-api.js";
 import * as Mastodon from "./mastodon.js";
 // import * as PassThrough from "./pass-through.js";
 // import * as Pixiv from "./pixiv.js";
-// import * as Raw from "./raw.js";
+import * as Raw from "./raw.js";
 // import * as Tabun from "./tabun.js";
 import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
@@ -29,7 +29,7 @@ export const scrapers: Scraper[] = [
   Mastodon,
   // PassThrough,
   // Pixiv,
-  // Raw,
+  Raw,
   // Tabun,
   Tumblr,
   Twitter,
