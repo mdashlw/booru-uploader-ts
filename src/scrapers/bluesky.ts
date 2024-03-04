@@ -19,10 +19,12 @@ const BskyPost = z.object({
     $type: z.literal("app.bsky.embed.images"),
     images: z
       .object({
-        aspectRatio: z.object({
-          width: z.number().int().positive(),
-          height: z.number().int().positive(),
-        }),
+        aspectRatio: z
+          .object({
+            width: z.number().int().positive(),
+            height: z.number().int().positive(),
+          })
+          .optional(),
         image: BskyBlob,
       })
       .array(),
@@ -77,8 +79,8 @@ export async function scrape(url: URL): Promise<SourceData> {
         probeAndValidateImageUrl(
           `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${did}&cid=${image.image.ref.$link}`,
           image.image.mimeType,
-          image.aspectRatio.width,
-          image.aspectRatio.height,
+          image.aspectRatio?.width,
+          image.aspectRatio?.height,
         ),
       ),
     ),
