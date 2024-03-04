@@ -7,6 +7,7 @@ import * as DeviantArt from "./deviantart-other.js";
 import * as FurAffinity from "./furaffinity.js";
 // import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter-api.js";
+import * as Mastodon from "./mastodon.js";
 // import * as PassThrough from "./pass-through.js";
 // import * as Pixiv from "./pixiv.js";
 // import * as Raw from "./raw.js";
@@ -25,6 +26,7 @@ export const scrapers: Scraper[] = [
   FurAffinity,
   // Itaku,
   Lofter,
+  Mastodon,
   // PassThrough,
   // Pixiv,
   // Raw,
