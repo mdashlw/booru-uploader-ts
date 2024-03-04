@@ -5,13 +5,14 @@ import { ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
+import { lazyInit } from "../utils/lazy-init.js";
+import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 import {
   ProbeResult,
   probeImageBlob,
   probeImageUrl,
 } from "../utils/probe-image.js";
 import { NpfContentBlock, NpfImageBlock } from "../utils/tumblr-npf-types.js";
-import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 
 /*
  * Images can be:
@@ -134,11 +135,6 @@ const NpfPost = z.object({
   rebloggedRootName: z.string().optional(),
 });
 type NpfPost = z.infer<typeof NpfPost>;
-
-const lazyInit = <T, Args extends any[]>(fn: (...args: Args) => T) => {
-  let prom: T | undefined = undefined;
-  return (...args: Args) => (prom = prom ?? fn(...args));
-};
 
 const getIntermediaryBlogName = lazyInit(
   async (apiUrl: string, csrfToken: string) => {
