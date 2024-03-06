@@ -415,7 +415,7 @@ function apiDownloadDeviation(deviationUuid: string) {
   );
 }
 
-async function fetchAPI<T extends z.ZodTypeAny>(
+export async function fetchAPI<T extends z.ZodTypeAny>(
   method: string,
   params: Record<string, string>,
   body: T,
