@@ -3,8 +3,8 @@ import Fastify from "fastify";
 import { dirname } from "path";
 import undici from "undici";
 import { fileURLToPath } from "url";
-import { getAllReblogs } from "../api.js";
-import { TumblrPost } from "../tumblr.js";
+import { TumblrPost } from "../api.js";
+import { getAllReblogs } from "../index.js";
 
 const reblogsCache = new Map<string, TumblrPost[]>();
 

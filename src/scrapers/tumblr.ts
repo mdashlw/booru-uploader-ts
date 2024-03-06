@@ -5,7 +5,7 @@ import { ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import { getReblogs } from "../tumblr-archives/api.js";
+import { getReblogs } from "../tumblr-archives/index.js";
 import { lazyInit } from "../utils/lazy-init.js";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 import {

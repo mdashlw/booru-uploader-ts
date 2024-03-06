@@ -1,45 +1,58 @@
-import { keyv } from "./internal.js";
-import { TumblrPost, fetchBlogPosts } from "./tumblr.js";
+import undici from "undici";
+import { z } from "zod";
+import retry from "async-retry";
 
-export async function archivePosts(blogName: string): Promise<void> {
-  for await (const posts of fetchBlogPosts(blogName)) {
-    for (const post of posts) {
-      if (!post.rebloggedRootId) {
-        continue;
-      }
+export const TumblrPost = z.object({
+  blogName: z.string(),
+  id: z.string(),
+  postUrl: z.string(),
+  rebloggedRootId: z.string().optional(),
+  rebloggedRootUrl: z.string().optional(),
+  rebloggedRootName: z.string().optional(),
+  rebloggedRootUuid: z.string().optional(),
+});
+export type TumblrPost = z.infer<typeof TumblrPost>;
 
-      const reblogs = await keyv.get(post.rebloggedRootId);
+const pool = new undici.Pool("https://api.tumblr.com");
 
-      if (!reblogs) {
-        await keyv.set(post.rebloggedRootId, { [post.id]: post });
-      } else if (!reblogs[post.id]) {
-        reblogs[post.id] = post;
-        await keyv.set(post.rebloggedRootId, reblogs);
-      }
-    }
-  }
-}
+export async function* fetchBlogPosts(
+  blogName: string,
+): AsyncGenerator<TumblrPost[], void, void> {
+  let nextHref: string | undefined =
+    `/v2/blog/${blogName}/posts?limit=100&npf=true&reblog_info=true`;
 
-export async function getReblogs(postId: string): Promise<TumblrPost[]> {
-  const posts = await keyv.get(postId);
+  do {
+    const json = await retry(() =>
+      pool
+        .request({
+          method: "GET",
+          path: `${nextHref}&should_bypass_safemode_forpost=true&should_bypass_safemode_forblog=true&should_bypass_tagfiltering=true&can_modify_safe_mode=true&should_bypass_safemode=true`,
+          headers: {
+            accept: "application/json;format=camelcase",
+            authorization:
+              "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
+          },
+          throwOnError: true,
+        })
+        .then((response) => response.body.json()),
+    );
+    const data = z
+      .object({
+        response: z.object({
+          links: z
+            .object({
+              next: z.object({
+                href: z.string(),
+              }),
+            })
+            .optional(),
+          posts: TumblrPost.array(),
+        }),
+      })
+      .parse(json);
 
-  if (!posts) {
-    return [];
-  }
+    nextHref = data.response.links?.next.href;
 
-  return Object.values(posts);
-}
-
-export async function getAllReblogs(blogName: string): Promise<TumblrPost[]> {
-  const posts: TumblrPost[] = [];
-
-  for await (const [, _reblogs] of keyv.iterator()) {
-    const [reblog]: TumblrPost[] = Object.values(_reblogs);
-
-    if (reblog.rebloggedRootName === blogName) {
-      posts.push(reblog);
-    }
-  }
-
-  return posts;
+    yield data.response.posts;
+  } while (nextHref);
 }

@@ -1,6 +1,6 @@
 import process from "node:process";
 import util from "node:util";
-import { archivePosts, getAllReblogs, getReblogs } from "./api.js";
+import { archivePosts, getAllReblogs, getReblogs } from "./index.js";
 
 const [, , command] = process.argv;
 
