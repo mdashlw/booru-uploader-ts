@@ -1,5 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
+import retry from "async-retry";
 
 export const TumblrPost = z.object({
   blogName: z.string(),
@@ -21,18 +22,20 @@ export async function* fetchBlogPosts(
     `/v2/blog/${blogName}/posts?limit=100&npf=true&reblog_info=true`;
 
   do {
-    const json = await pool
-      .request({
-        method: "GET",
-        path: `${nextHref}&should_bypass_safemode_forpost=true&should_bypass_safemode_forblog=true&should_bypass_tagfiltering=true&can_modify_safe_mode=true&should_bypass_safemode=true`,
-        headers: {
-          accept: "application/json;format=camelcase",
-          authorization:
-            "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
-        },
-        throwOnError: true,
-      })
-      .then((response) => response.body.json());
+    const json = await retry(() =>
+      pool
+        .request({
+          method: "GET",
+          path: `${nextHref}&should_bypass_safemode_forpost=true&should_bypass_safemode_forblog=true&should_bypass_tagfiltering=true&can_modify_safe_mode=true&should_bypass_safemode=true`,
+          headers: {
+            accept: "application/json;format=camelcase",
+            authorization:
+              "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
+          },
+          throwOnError: true,
+        })
+        .then((response) => response.body.json()),
+    );
     const data = z
       .object({
         response: z.object({
