@@ -147,7 +147,7 @@ for await (const image of images(
     );
 
     try {
-      sourceData = await scraper.scrape(sourceUrl);
+      sourceData = await scraper.scrape(sourceUrl, true);
     } catch (error: any) {
       const collectErrorMessages = (error: Error): string[] => [
         error.message,

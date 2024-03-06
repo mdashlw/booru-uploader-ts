@@ -7,7 +7,9 @@ export interface MultipleSources {
   alternate: SourceData[];
 }
 
-export default async function inputSources(): Promise<MultipleSources> {
+export default async function inputSources(
+  metadataOnly?: boolean,
+): Promise<MultipleSources> {
   const validateSourceUrlInput = (value: string): string | boolean => {
     try {
       new URL(value);
@@ -41,10 +43,10 @@ export default async function inputSources(): Promise<MultipleSources> {
   }
 
   const [primarySource, alternateSources] = await Promise.all([
-    scrape(primarySourceUrl),
+    scrape(primarySourceUrl, metadataOnly),
     Promise.all(
       alternateSourceUrls.map((alternateSourceUrl) =>
-        scrape(alternateSourceUrl),
+        scrape(alternateSourceUrl, metadataOnly),
       ),
     ),
   ]);

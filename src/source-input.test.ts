@@ -3,6 +3,6 @@ import inputSources from "./source-input.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 
-const sources = await inputSources();
+const sources = await inputSources(true);
 
 console.log(sources);

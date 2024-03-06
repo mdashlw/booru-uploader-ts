@@ -2,7 +2,7 @@ import Booru from "../booru/index.js";
 
 export interface Scraper {
   canHandle: (url: URL) => boolean;
-  scrape: (url: URL) => Promise<SourceData>;
+  scrape: (url: URL, metadataOnly?: boolean) => Promise<SourceData>;
 }
 
 export interface SourceData {

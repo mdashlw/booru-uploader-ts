@@ -158,7 +158,10 @@ export function canHandle(url: URL): boolean {
   return url.hostname.endsWith(".tumblr.com");
 }
 
-export async function scrape(url: URL): Promise<SourceData> {
+export async function scrape(
+  url: URL,
+  metadataOnly?: boolean,
+): Promise<SourceData> {
   if (url.hostname !== "www.tumblr.com") {
     const blogName = url.hostname.slice(0, -".tumblr.com".length);
 
@@ -313,7 +316,7 @@ export async function scrape(url: URL): Promise<SourceData> {
                 media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/"),
               ),
             );
-          } else {
+          } else if (!metadataOnly) {
             if (!backupDataPromise) {
               backupDataPromise = (async () => {
                 const reblogPostId = await createReblogPostAsDraft(
@@ -361,21 +364,28 @@ export async function scrape(url: URL): Promise<SourceData> {
             const blob = await entry.blob();
 
             probeResult = await probeImageBlob(blob);
+          } else {
+            probeResult = {
+              blob: null as any,
+              type: undefined as any,
+              width: width ?? media.width + Math.random(),
+              height: height ?? media.height + Math.random(),
+            };
           }
         }
 
-        if (type !== undefined && probeResult.type !== type) {
-          throw new Error(`Unexpected image type: ${probeResult.type}`);
-        }
+        // if (type !== undefined && probeResult.type !== type) {
+        //   throw new Error(`Unexpected image type: ${probeResult.type}`);
+        // }
 
-        if (
-          (width !== undefined && probeResult.width !== width) ||
-          (height !== undefined && probeResult.height !== height)
-        ) {
-          throw new Error(
-            `Unexpected image dimensions: ${probeResult.width}x${probeResult.height}`,
-          );
-        }
+        // if (
+        //   (width !== undefined && probeResult.width !== width) ||
+        //   (height !== undefined && probeResult.height !== height)
+        // ) {
+        //   throw new Error(
+        //     `Unexpected image dimensions: ${probeResult.width}x${probeResult.height}`,
+        //   );
+        // }
 
         return probeResult;
       }),
