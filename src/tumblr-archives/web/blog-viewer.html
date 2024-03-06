@@ -28,13 +28,6 @@
     li:last-child {
       flex-grow: 10;
     }
-
-    input {
-      /* line-height: 1.5;
-      font-size: 24px;
-      padding: 6px 12px;
-      border-radius: 4px; */
-    }
   </style>
 </head>
 
@@ -80,6 +73,8 @@
         for (const image of images) {
           const li = document.createElement("li");
           const a = document.createElement("a");
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
           a.href = image.href;
           const img = document.createElement("img");
           img.src = image.src;
