@@ -1,6 +1,6 @@
 import process from "node:process";
 import util from "node:util";
-import { archivePosts, getReblogs } from "./api.js";
+import { archivePosts, getAllReblogs, getReblogs } from "./api.js";
 
 const [, , command] = process.argv;
 
@@ -8,6 +8,7 @@ if (!command) {
   console.error("Usage:");
   console.error("- cli.ts archive --blog <blog name>");
   console.error("- cli.ts reblogs --post <post id>");
+  console.error("- cli.ts view --blog <blog name>");
   process.exit(1);
 }
 
@@ -50,6 +51,32 @@ if (command === "archive") {
   }
 
   const reblogs = await getReblogs(postId);
+
+  if (reblogs) {
+    for (const reblog of reblogs) {
+      console.log(
+        `Post ${reblog.rebloggedRootId} by ${reblog.rebloggedRootName} at ${reblog.rebloggedRootUrl} reblogged by ${reblog.blogName} at ${reblog.postUrl}`,
+      );
+    }
+  } else {
+    console.log("No reblogs");
+  }
+} else if (command === "view") {
+  const { values: args } = util.parseArgs({
+    args: process.argv.slice(3),
+    options: {
+      blog: {
+        type: "string",
+      },
+    },
+  });
+
+  if (!args.blog) {
+    console.error("Invalid usage: missing --blog <blog name>");
+    process.exit(1);
+  }
+
+  const reblogs = await getAllReblogs(args.blog);
 
   if (reblogs) {
     for (const reblog of reblogs) {

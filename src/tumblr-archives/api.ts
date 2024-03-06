@@ -29,3 +29,17 @@ export async function getReblogs(postId: string): Promise<TumblrPost[]> {
 
   return Object.values(posts);
 }
+
+export async function getAllReblogs(blogName: string): Promise<TumblrPost[]> {
+  const posts: TumblrPost[] = [];
+
+  for await (const [, _reblogs] of keyv.iterator()) {
+    const [reblog]: TumblrPost[] = Object.values(_reblogs);
+
+    if (reblog.rebloggedRootName === blogName) {
+      posts.push(reblog);
+    }
+  }
+
+  return posts;
+}
