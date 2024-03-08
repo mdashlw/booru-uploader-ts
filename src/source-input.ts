@@ -46,7 +46,7 @@ export default async function inputSources(
     scrape(primarySourceUrl, metadataOnly),
     Promise.all(
       alternateSourceUrls.map((alternateSourceUrl) =>
-        scrape(alternateSourceUrl, metadataOnly),
+        scrape(alternateSourceUrl, true),
       ),
     ),
   ]);

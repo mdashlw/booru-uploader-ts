@@ -107,33 +107,34 @@ const V1Post = z.discriminatedUnion("type", [
 type V1Post = z.infer<typeof V1Post>;
 
 const Blog = z.object({
-  uuid: z.string(),
+  name: z.string(),
+  uuid: z.string().startsWith("t:"),
 });
 type Blog = z.infer<typeof Blog>;
+
+const ReblogTrail = z.object({
+  content: NpfContentBlock.array(),
+  post: z.object({
+    id: z.coerce.number().positive(),
+    timestamp: z.number().int().positive(),
+  }),
+  blog: Blog,
+});
+type ReblogTrail = z.infer<typeof ReblogTrail>;
 
 const NpfPost = z.object({
   objectType: z.literal("post"),
   blogName: z.string(),
   blog: Blog,
-  id: z.string(),
+  id: z.coerce.number().positive(),
   postUrl: z.string().url(),
   timestamp: z.number().int().positive(),
   reblogKey: z.string(),
   tags: z.string().array(),
   content: NpfContentBlock.array(),
-  trail: z
-    .object({
-      content: NpfContentBlock.array(),
-      post: z.object({
-        id: z.string(),
-        timestamp: z.number().int().positive(),
-      }),
-      blog: Blog,
-    })
-    .array(),
-  rebloggedRootId: z.string().optional(),
+  trail: ReblogTrail.array().max(1),
+  rebloggedRootId: z.coerce.number().positive().optional(),
   rebloggedRootUrl: z.string().url().optional(),
-  rebloggedRootName: z.string().optional(),
 });
 type NpfPost = z.infer<typeof NpfPost>;
 
@@ -141,14 +142,19 @@ const getIntermediaryBlogName = lazyInit(
   async (apiUrl: string, csrfToken: string) => {
     const {
       user: { blogs },
-    } = await fetchTumblrAPI<{
-      user: {
-        blogs: { name: string }[];
-      };
-    }>(apiUrl, csrfToken, {
-      path: "user/info",
-    });
-    const blog = blogs.at(-1)!;
+    } = await fetchTumblrAPI(
+      apiUrl,
+      csrfToken,
+      {
+        path: "user/info",
+      },
+      z.object({
+        user: z.object({
+          blogs: Blog.array().nonempty(),
+        }),
+      }),
+    );
+    const blog = blogs[0];
 
     return blog.name;
   },
@@ -198,14 +204,14 @@ export async function scrape(
     throw error;
   });
 
-  if (post.trail.length > 1) {
-    throw new Error("Deeply nested posts are not supported");
-  }
+  const trail = post.trail[0] as ReblogTrail | undefined;
 
   let content: NpfContentBlock[];
 
   if (post.rebloggedRootId) {
-    const [trail] = post.trail;
+    if (!trail) {
+      throw new Error("Post is a reblog but no trail present");
+    }
 
     if (trail.post.id !== post.rebloggedRootId) {
       throw new Error("Trail post id does not match reblogged root id");
@@ -220,7 +226,7 @@ export async function scrape(
 
   let backupDataPromise:
     | Promise<{
-        reblogPostId: string;
+        reblogPostId: number;
         entries: { [key: string]: ZipEntry };
       }>
     | undefined;
@@ -391,14 +397,23 @@ export async function scrape(
       }),
   );
 
+  let canonicalPostUrl = post.postUrl;
+  if (post.rebloggedRootUrl) {
+    if (
+      post.rebloggedRootUrl.startsWith("https://www.tumblr.com/blog/private_")
+    ) {
+      canonicalPostUrl = `https://${trail!.blog.name}.tumblr.com/post/${post.rebloggedRootId}`;
+    } else {
+      canonicalPostUrl = post.rebloggedRootUrl;
+    }
+  }
+
   return {
     source: "Tumblr",
-    url: post.rebloggedRootUrl ?? post.postUrl,
+    url: canonicalPostUrl,
     images,
-    artist: post.rebloggedRootName ?? post.blogName,
-    date: formatDate(
-      new Date((post.trail[0]?.post.timestamp ?? post.timestamp) * 1_000),
-    ),
+    artist: (trail ?? post).blog.name,
+    date: formatDate(new Date((trail?.post ?? post).timestamp * 1_000)),
     title: null,
     description: (booru) => {
       let description: string = convertTumblrNpfToMarkdown(
@@ -548,7 +563,7 @@ async function extractInitialState(url: URL): Promise<{
     .parse(data);
 }
 
-async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
+async function fetchV1Post(blogName: string, postId: number): Promise<V1Post> {
   const response = await undici
     .request(`https://${blogName}.tumblr.com/api/read/json?id=${postId}`, {
       throwOnError: true,
@@ -600,12 +615,13 @@ async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
     .parse(data).posts[0];
 }
 
-async function fetchTumblrAPI<T>(
+async function fetchTumblrAPI<T extends z.ZodTypeAny>(
   apiUrl: string,
   csrfToken: string,
   options: Omit<undici.Dispatcher.RequestOptions, "origin" | "method"> &
     Partial<Pick<undici.Dispatcher.RequestOptions, "method">>,
-): Promise<T> {
+  body: T,
+): Promise<z.infer<T>> {
   const { path, ...otherOptions } = options;
   const response = await undici
     .request(`${apiUrl}/v2/${options.path}`, {
@@ -645,20 +661,23 @@ async function fetchTumblrAPI<T>(
       error.options = options;
       throw error;
     });
-  const data = (await response.body.json().catch((error) => {
+  const json = await response.body.json().catch((error) => {
     error = new Error("Failed to read response body", { cause: error });
     error.apiUrl = apiUrl;
     error.csrfToken = csrfToken;
     error.options = options;
     error.response = response;
     throw error;
-  })) as {
-    meta: {
-      status: number;
-      msg: string;
-    };
-    response: T;
-  };
+  });
+  const data = z
+    .object({
+      meta: z.object({
+        status: z.number(),
+        msg: z.string(),
+      }),
+      response: body,
+    })
+    .parse(json);
 
   if (data.meta.status < 200 || data.meta.status >= 300) {
     const error: any = new Error(data.meta.msg);
@@ -677,40 +696,58 @@ async function createReblogPostAsDraft(
   apiUrl: string,
   csrfToken: string,
   post: NpfPost,
-): Promise<string> {
+): Promise<number> {
   const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
-  const { id } = await fetchTumblrAPI<{ id: string }>(apiUrl, csrfToken, {
-    method: "POST",
-    path: `blog/${intermediaryBlogName}/posts`,
-    body: JSON.stringify({
-      state: "draft",
-      parent_tumblelog_uuid: post.blog.uuid,
-      parent_post_id: post.id,
-      reblog_key: post.reblogKey,
+  const { id } = await fetchTumblrAPI(
+    apiUrl,
+    csrfToken,
+    {
+      method: "POST",
+      path: `blog/${intermediaryBlogName}/posts`,
+      body: JSON.stringify({
+        state: "draft",
+        parent_tumblelog_uuid: post.blog.uuid,
+        parent_post_id: post.id,
+        reblog_key: post.reblogKey,
+      }),
+    },
+    z.object({
+      id: z.coerce.number().positive(),
+      state: z.literal("draft"),
     }),
-  });
+  );
 
   return id;
 }
 
-async function deletePost(apiUrl: string, csrfToken: string, postId: string) {
+async function deletePost(apiUrl: string, csrfToken: string, postId: number) {
   const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
 
-  await fetchTumblrAPI(apiUrl, csrfToken, {
-    method: "POST",
-    path: `blog/${intermediaryBlogName}/post/delete?id=${postId}`,
-  });
+  await fetchTumblrAPI(
+    apiUrl,
+    csrfToken,
+    {
+      method: "POST",
+      path: `blog/${intermediaryBlogName}/post/delete?id=${postId}`,
+    },
+    z.object({
+      id: z.number().positive(),
+    }),
+  );
 }
 
 async function requestBackup(apiUrl: string, csrfToken: string) {
   const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
-  const { status } = await fetchTumblrAPI<{ status: string }>(
+  const { status } = await fetchTumblrAPI(
     apiUrl,
     csrfToken,
     {
       method: "POST",
       path: `blog/${intermediaryBlogName}/backup`,
     },
+    z.object({
+      status: z.string(),
+    }),
   );
 
   if (status !== "pending") {
@@ -722,12 +759,17 @@ async function pollBackup(apiUrl: string, csrfToken: string): Promise<string> {
   const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
 
   while (true) {
-    const { status, downloadLink } = await fetchTumblrAPI<{
-      status: number;
-      downloadLink?: string;
-    }>(apiUrl, csrfToken, {
-      path: `blog/${intermediaryBlogName}/backup`,
-    });
+    const { status, downloadLink } = await fetchTumblrAPI(
+      apiUrl,
+      csrfToken,
+      {
+        path: `blog/${intermediaryBlogName}/backup`,
+      },
+      z.object({
+        status: z.number(),
+        downloadLink: z.string().optional(),
+      }),
+    );
 
     if (status !== 3) {
       await timers.setTimeout(3_000);
