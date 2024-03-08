@@ -463,12 +463,15 @@ async function fetchNpfPostTryReblogs(
       throw error;
     }
 
+    console.log(`Post ${postId} not found on ${blogName}. Trying reblogs...`);
+
     const reblogs = await getReblogs(postId);
 
     for (const reblog of reblogs) {
       const post = await fetchNpfPostTryReblogs(reblog.blogName, reblog.id);
 
       if (post) {
+        console.log(`Found reblog: ${reblog.postUrl}`);
         return post;
       }
     }
