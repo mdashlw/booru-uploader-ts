@@ -81,6 +81,7 @@ type V1RegularPost = z.infer<typeof V1RegularPost>;
 
 const V1PhotoPost = z.object({
   type: z.literal("photo"),
+  "photo-caption": z.string(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   photos: z
@@ -108,101 +109,119 @@ type V1Post = z.infer<typeof V1Post>;
 
 const Blog = z.object({
   name: z.string(),
+  url: z.string().url(),
   uuid: z.string().startsWith("t:"),
 });
 type Blog = z.infer<typeof Blog>;
 
-const ReblogTrail = z.object({
-  content: NpfContentBlock.array(),
-  post: z.object({
-    id: z.coerce.number().positive(),
-    timestamp: z.number().int().positive(),
+const ReblogTrail = z.union([
+  z.object({
+    content: NpfContentBlock.array(),
+    post: z.object({
+      id: z.string(),
+      timestamp: z.number().int().positive(),
+    }),
+    blog: Blog,
   }),
-  blog: Blog,
-});
+  z.object({
+    content: NpfContentBlock.array(),
+    brokenBlog: z.object({
+      name: z.string(),
+    }),
+    post: z.object({}),
+  }),
+]);
 type ReblogTrail = z.infer<typeof ReblogTrail>;
 
 const NpfPost = z.object({
   objectType: z.literal("post"),
   blogName: z.string(),
   blog: Blog,
-  id: z.coerce.number().positive(),
+  idString: z.string(),
   postUrl: z.string().url(),
   timestamp: z.number().int().positive(),
   reblogKey: z.string(),
   tags: z.string().array(),
   content: NpfContentBlock.array(),
-  trail: ReblogTrail.array().max(1),
-  rebloggedRootId: z.coerce.number().positive().optional(),
+  trail: ReblogTrail.array(),
+  rebloggedRootId: z.string().optional(),
   rebloggedRootUrl: z.string().url().optional(),
 });
 type NpfPost = z.infer<typeof NpfPost>;
 
-const getIntermediaryBlogName = lazyInit(
-  async (apiUrl: string, csrfToken: string) => {
-    const {
-      user: { blogs },
-    } = await fetchTumblrAPI(
-      apiUrl,
-      csrfToken,
-      {
-        path: "user/info",
-      },
-      z.object({
-        user: z.object({
-          blogs: Blog.array().nonempty(),
-        }),
+const getCsrfToken = lazyInit(() => fetchCsrfToken());
+const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
+  const {
+    user: { blogs },
+  } = await fetchTumblrAPI(
+    csrfToken,
+    {
+      path: "user/info",
+    },
+    z.object({
+      user: z.object({
+        blogs: Blog.array().nonempty(),
       }),
-    );
-    const blog = blogs[0];
+    }),
+  );
+  const blog = blogs[0];
 
-    return blog.name;
-  },
-);
+  return blog.name;
+});
 
 export function canHandle(url: URL): boolean {
-  return url.hostname.endsWith(".tumblr.com");
+  return url.hostname.endsWith(".tumblr.com") || url.hostname === "tumblr.com";
+}
+
+async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
+  let blogName: string, postId: string;
+
+  if (url.hostname === "www.tumblr.com" || url.hostname === "tumblr.com") {
+    if (url.pathname.startsWith("/blog/view/")) {
+      [, , , blogName, postId] = url.pathname.split("/");
+    } else {
+      [, blogName, postId] = url.pathname.split("/");
+    }
+  } else if (url.hostname === "at.tumblr.com") {
+    [, blogName, postId] = url.pathname.split("/");
+
+    if (!/^\d+$/.test(postId)) {
+      const location = await undici
+        .request(url, { maxRedirections: 1 })
+        .then((response) => response.headers.location);
+
+      if (typeof location !== "string") {
+        throw new Error(`Invalid location header: ${location}`);
+      }
+
+      return extractBlogNameAndPostId(new URL(location));
+    }
+  } else {
+    blogName = url.hostname.slice(0, -".tumblr.com".length);
+
+    if (
+      !url.pathname.startsWith("/post/") &&
+      !url.pathname.startsWith("/image/")
+    ) {
+      throw new Error(`Invalid path: ${url.pathname}`);
+    }
+
+    [, , postId] = url.pathname.split("/");
+  }
+
+  return [blogName, postId];
 }
 
 export async function scrape(
   url: URL,
   metadataOnly?: boolean,
 ): Promise<SourceData> {
-  if (url.hostname !== "www.tumblr.com") {
-    const blogName = url.hostname.slice(0, -".tumblr.com".length);
+  const [blogName, postId] = await extractBlogNameAndPostId(url);
+  const post = await fetchNpfPostTryReblogs(blogName, postId);
 
-    const match = /^\/(?:post|image)\/(.+)/.exec(url.pathname);
-
-    if (!match) {
-      const error: any = new Error("Could not match post path");
-      error.url = url;
-      throw error;
-    }
-
-    const [, postPath] = match;
-
-    url = new URL(`https://www.tumblr.com/${blogName}/${postPath}`);
+  if (!post) {
+    throw new Error("Post not found");
   }
-
-  const {
-    apiUrl,
-    csrfToken,
-    PeeprRoute: {
-      initialTimeline: {
-        objects: [post],
-      },
-    },
-  } = await tryExtractInitialState(url).catch((error) => {
-    if (
-      error.message === "Failed to fetch" &&
-      error.cause instanceof undici.errors.ResponseStatusCodeError &&
-      error.cause.statusCode === 404
-    ) {
-      throw new Error("Post does not exist");
-    }
-
-    throw error;
-  });
 
   const trail = post.trail[0] as ReblogTrail | undefined;
 
@@ -213,11 +232,17 @@ export async function scrape(
       throw new Error("Post is a reblog but no trail present");
     }
 
+    if ("brokenBlog" in trail) {
+      throw new Error("Trail is broken");
+    }
+
     if (trail.post.id !== post.rebloggedRootId) {
       throw new Error("Trail post id does not match reblogged root id");
     }
 
     content = trail.content;
+  } else if (trail) {
+    throw new Error("Post is not a reblog but a trail present");
   } else {
     content = post.content;
   }
@@ -226,7 +251,7 @@ export async function scrape(
 
   let backupDataPromise:
     | Promise<{
-        reblogPostId: number;
+        reblogPostId: string;
         entries: { [key: string]: ZipEntry };
       }>
     | undefined;
@@ -251,7 +276,7 @@ export async function scrape(
           probeResult = await probeImageUrl(media.url);
         } else {
           try {
-            v1Post ??= await fetchV1Post(post.blogName, post.id);
+            v1Post ??= await fetchV1Post(post.blogName, post.idString);
           } catch (error: any) {
             if (
               error.message === "Cannot access nsfw posts" ||
@@ -295,25 +320,8 @@ export async function scrape(
               throw new Error(`Unsupported post type: ${v1Post.type}`);
             }
           } else {
-            // TODO: try to use v2 api it has original dimensions for inline images
-            // TODO: upd: it appears fetching v1 only fails for photo posts
-            width = undefined;
-            height = undefined;
-          }
-
-          // @ts-ignore
-          if (post.isNsfw) {
-            console.log(
-              // @ts-ignore
-              `Post ${post.postUrl} isNsfw=${post.isNsfw} classification=${
-                // @ts-ignore
-                post.classification
-                // @ts-ignore
-              } type=${post.type} originalType=${
-                // @ts-ignore
-                post.originalType
-              } v1_failed=${v1Post ? "no" : "yes"}`,
-            );
+            width = media.width + Math.random();
+            height = media.height + Math.random();
           }
 
           if (media.mediaKey) {
@@ -325,16 +333,17 @@ export async function scrape(
           } else if (!metadataOnly) {
             if (!backupDataPromise) {
               backupDataPromise = (async () => {
+                const csrfToken = await getCsrfToken();
+
                 const reblogPostId = await createReblogPostAsDraft(
-                  apiUrl,
                   csrfToken,
                   post,
                 );
 
-                await requestBackup(apiUrl, csrfToken);
-                const backupDownloadUrl = await pollBackup(apiUrl, csrfToken);
+                await requestBackup(csrfToken);
+                const backupDownloadUrl = await pollBackup(csrfToken);
 
-                await deletePost(apiUrl, csrfToken, reblogPostId);
+                await deletePost(csrfToken, reblogPostId);
 
                 const { entries } = await unzip(backupDownloadUrl);
 
@@ -374,8 +383,8 @@ export async function scrape(
             probeResult = {
               blob: null as any,
               type: undefined as any,
-              width: width ?? media.width + Math.random(),
-              height: height ?? media.height + Math.random(),
+              width,
+              height,
             };
           }
         }
@@ -397,22 +406,27 @@ export async function scrape(
       }),
   );
 
-  let canonicalPostUrl = post.postUrl;
+  let canonicalUrl = post.postUrl;
   if (post.rebloggedRootUrl) {
     if (
       post.rebloggedRootUrl.startsWith("https://www.tumblr.com/blog/private_")
     ) {
-      canonicalPostUrl = `https://${trail!.blog.name}.tumblr.com/post/${post.rebloggedRootId}`;
+      canonicalUrl = `https://${trail!.blog.name}.tumblr.com/post/${post.rebloggedRootId}`;
     } else {
-      canonicalPostUrl = post.rebloggedRootUrl;
+      canonicalUrl = post.rebloggedRootUrl;
     }
+  }
+
+  let artistName = (trail ?? post).blog.name;
+  if (/-deactivated\d{8}$/) {
+    artistName = artistName.substring(0, artistName.lastIndexOf("-"));
   }
 
   return {
     source: "Tumblr",
-    url: canonicalPostUrl,
+    url: canonicalUrl,
     images,
-    artist: (trail ?? post).blog.name,
+    artist: artistName,
     date: formatDate(new Date((trail?.post ?? post).timestamp * 1_000)),
     title: null,
     description: (booru) => {
@@ -434,91 +448,50 @@ export async function scrape(
   };
 }
 
-async function tryExtractInitialState(url: URL, reblogs?: URL[]) {
+async function fetchNpfPostTryReblogs(
+  blogName: string,
+  postId: string,
+): Promise<NpfPost | undefined> {
   try {
-    return await extractInitialState(url);
+    return await fetchNpfPost(blogName, postId);
   } catch (error: any) {
     if (
-      error.message === "Failed to fetch" &&
-      error.cause instanceof undici.errors.ResponseStatusCodeError &&
-      error.cause.statusCode === 404
+      error.message !== "Failed to fetch" ||
+      error.cause.code !== "UND_ERR_RESPONSE_STATUS_CODE" ||
+      error.cause.statusCode !== 404
     ) {
-      if (reblogs) {
-        console.error(
-          `Reblog post ${url} does not exist. Trying other reblogs.`,
-        );
-      } else {
-        console.error(`Post ${url} does not exist. Trying reblogs.`);
-
-        const postId = url.pathname.split("/").find((s) => /^\d+$/.test(s));
-
-        if (!postId) {
-          console.error(`Failed to find post id in url ${url}`);
-          throw error;
-        }
-
-        reblogs = (await getReblogs(postId)).map(
-          (post) =>
-            new URL(`https://www.tumblr.com/${post.blogName}/${post.id}`),
-        );
-      }
-
-      const [first, ...other] = reblogs;
-
-      if (!first) {
-        console.error("There are no reblogs. Throwing error.");
-        throw error;
-      }
-
-      console.log(`Will try reblog ${first}`);
-      return tryExtractInitialState(first, other);
+      throw error;
     }
 
-    throw error;
+    const reblogs = await getReblogs(postId);
+
+    for (const reblog of reblogs) {
+      const post = await fetchNpfPostTryReblogs(reblog.blogName, reblog.id);
+
+      if (post) {
+        return post;
+      }
+    }
   }
 }
 
-async function extractInitialState(url: URL): Promise<{
-  apiUrl: string;
-  csrfToken: string;
-  PeeprRoute: {
-    initialTimeline: {
-      objects: NpfPost[];
-    };
-  };
-}> {
+async function fetchCsrfToken(): Promise<string> {
   const response = await undici
-    .request(url, {
+    .request("https://www.tumblr.com/settings/account", {
       headers: {
         accept: "text/html",
-        "accept-language": "en-us",
-        "cache-control": "no-cache",
         cookie: COOKIE,
-        dnt: "1",
-        pragma: "no-cache",
-        "sec-ch-ua":
-          '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
-        "sec-fetch-user": "?1",
-        "upgrade-insecure-requests": "1",
         "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
       },
-      maxRedirections: 1,
       throwOnError: true,
     })
     .catch((error) => {
       error = new Error("Failed to fetch", { cause: error });
-      error.url = url;
       throw error;
     });
   const body = await response.body.text().catch((error) => {
     error = new Error("Failed to read response body", { cause: error });
-    error.url = url;
     error.response = response;
     throw error;
   });
@@ -538,32 +511,19 @@ async function extractInitialState(url: URL): Promise<{
     }
   }
 
-  const match = /window\['___INITIAL_STATE___'] = (.+);/.exec(body);
+  const match = /"csrfToken":"(.+?)"/.exec(body);
 
   if (!match) {
-    const error: any = new Error("Could not find initial state");
-    error.url = url;
+    const error: any = new Error("Could not find csrf token");
     error.response = response;
     error.body = body;
     throw error;
   }
 
-  const data = eval(`(${match[1]})`);
-
-  return z
-    .object({
-      apiUrl: z.string().url(),
-      csrfToken: z.string(),
-      PeeprRoute: z.object({
-        initialTimeline: z.object({
-          objects: NpfPost.array().length(1),
-        }),
-      }),
-    })
-    .parse(data);
+  return match[1];
 }
 
-async function fetchV1Post(blogName: string, postId: number): Promise<V1Post> {
+async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
   const response = await undici
     .request(`https://${blogName}.tumblr.com/api/read/json?id=${postId}`, {
       throwOnError: true,
@@ -616,55 +576,35 @@ async function fetchV1Post(blogName: string, postId: number): Promise<V1Post> {
 }
 
 async function fetchTumblrAPI<T extends z.ZodTypeAny>(
-  apiUrl: string,
-  csrfToken: string,
+  csrfToken: string | undefined,
   options: Omit<undici.Dispatcher.RequestOptions, "origin" | "method"> &
     Partial<Pick<undici.Dispatcher.RequestOptions, "method">>,
   body: T,
 ): Promise<z.infer<T>> {
   const { path, ...otherOptions } = options;
   const response = await undici
-    .request(`${apiUrl}/v2/${options.path}`, {
+    .request(`https://www.tumblr.com/api/v2/${options.path}`, {
       ...otherOptions,
       headers: {
         accept: "application/json;format=camelcase",
-        "accept-language": "en-us",
         authorization:
           "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
-        "cache-control": "no-cache",
         "content-type": "application/json; charset=utf8",
-        cookie: COOKIE,
-        dnt: "1",
+        cookie: csrfToken ? COOKIE : undefined,
         origin: "https://www.tumblr.com",
-        pragma: "no-cache",
         referer: "https://www.tumblr.com/",
-        "sec-ch-ua":
-          '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "x-ad-blocker-enabled": "0",
         "x-csrf": csrfToken,
-        "x-version": "redpop/3/0//redpop/",
         ...options.headers,
       },
       throwOnError: true,
     })
     .catch((error) => {
       error = new Error("Failed to fetch", { cause: error });
-      error.apiUrl = apiUrl;
-      error.csrfToken = csrfToken;
       error.options = options;
       throw error;
     });
   const json = await response.body.json().catch((error) => {
     error = new Error("Failed to read response body", { cause: error });
-    error.apiUrl = apiUrl;
-    error.csrfToken = csrfToken;
     error.options = options;
     error.response = response;
     throw error;
@@ -681,8 +621,6 @@ async function fetchTumblrAPI<T extends z.ZodTypeAny>(
 
   if (data.meta.status < 200 || data.meta.status >= 300) {
     const error: any = new Error(data.meta.msg);
-    error.apiUrl = apiUrl;
-    error.csrfToken = csrfToken;
     error.options = options;
     error.response = response;
     error.data = data;
@@ -692,14 +630,35 @@ async function fetchTumblrAPI<T extends z.ZodTypeAny>(
   return data.response;
 }
 
+async function fetchNpfPost(blogId: string, postId: string): Promise<NpfPost> {
+  const {
+    timeline: {
+      elements: [post],
+    },
+  } = await fetchTumblrAPI(
+    undefined,
+    {
+      path: `blog/${blogId}/posts/${postId}/permalink`,
+      query: {
+        reblog_info: "true",
+      },
+    },
+    z.object({
+      timeline: z.object({
+        elements: NpfPost.array().length(1),
+      }),
+    }),
+  );
+
+  return post;
+}
+
 async function createReblogPostAsDraft(
-  apiUrl: string,
   csrfToken: string,
   post: NpfPost,
-): Promise<number> {
-  const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
+): Promise<string> {
+  const intermediaryBlogName = await getIntermediaryBlogName(csrfToken);
   const { id } = await fetchTumblrAPI(
-    apiUrl,
     csrfToken,
     {
       method: "POST",
@@ -707,12 +666,12 @@ async function createReblogPostAsDraft(
       body: JSON.stringify({
         state: "draft",
         parent_tumblelog_uuid: post.blog.uuid,
-        parent_post_id: post.id,
+        parent_post_id: post.idString,
         reblog_key: post.reblogKey,
       }),
     },
     z.object({
-      id: z.coerce.number().positive(),
+      id: z.string(),
       state: z.literal("draft"),
     }),
   );
@@ -720,11 +679,10 @@ async function createReblogPostAsDraft(
   return id;
 }
 
-async function deletePost(apiUrl: string, csrfToken: string, postId: number) {
-  const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
+async function deletePost(csrfToken: string, postId: string) {
+  const intermediaryBlogName = await getIntermediaryBlogName(csrfToken);
 
   await fetchTumblrAPI(
-    apiUrl,
     csrfToken,
     {
       method: "POST",
@@ -736,10 +694,9 @@ async function deletePost(apiUrl: string, csrfToken: string, postId: number) {
   );
 }
 
-async function requestBackup(apiUrl: string, csrfToken: string) {
-  const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
+async function requestBackup(csrfToken: string) {
+  const intermediaryBlogName = await getIntermediaryBlogName(csrfToken);
   const { status } = await fetchTumblrAPI(
-    apiUrl,
     csrfToken,
     {
       method: "POST",
@@ -755,12 +712,11 @@ async function requestBackup(apiUrl: string, csrfToken: string) {
   }
 }
 
-async function pollBackup(apiUrl: string, csrfToken: string): Promise<string> {
-  const intermediaryBlogName = await getIntermediaryBlogName(apiUrl, csrfToken);
+async function pollBackup(csrfToken: string): Promise<string> {
+  const intermediaryBlogName = await getIntermediaryBlogName(csrfToken);
 
   while (true) {
     const { status, downloadLink } = await fetchTumblrAPI(
-      apiUrl,
       csrfToken,
       {
         path: `blog/${intermediaryBlogName}/backup`,
