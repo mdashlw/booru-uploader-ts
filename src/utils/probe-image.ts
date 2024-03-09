@@ -21,6 +21,12 @@ export async function probeImageBlob(blob: Blob): Promise<ProbeResult> {
     throw new Error(`Failed to probe image - ${JSON.stringify(result)}`);
   }
 
+  if ((result.orientation ?? 0) >= 5) {
+    const { width, height } = result;
+    result.width = height;
+    result.height = width;
+  }
+
   return {
     blob,
     type: result.type,
