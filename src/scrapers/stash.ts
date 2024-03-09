@@ -38,7 +38,12 @@ const StashItem = z.object({
 type StashItem = z.infer<typeof StashItem>;
 
 export function canHandle(url: URL): boolean {
-  return url.hostname === "sta.sh";
+  return (
+    url.hostname === "sta.sh" ||
+    url.hostname === "www.sta.sh" ||
+    (url.hostname === "www.deviantart.com" &&
+      url.pathname.startsWith("/stash/"))
+  );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
@@ -63,7 +68,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   return {
     source: "Sta.sh",
-    url: `https://sta.sh/${itemId}`,
+    url: `https://www.deviantart.com/stash/${itemId}`,
     images: [
       await probeAndValidateImageUrl(
         file.src,

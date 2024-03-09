@@ -93,7 +93,8 @@ type DeviationExtended = z.infer<typeof DeviationExtended>;
 export function canHandle(url: URL): boolean {
   return (
     url.hostname.endsWith(".deviantart.com") &&
-    url.pathname.substring(1).includes("/")
+    url.pathname.substring(1).includes("/") &&
+    !url.pathname.startsWith("/stash/")
   );
 }
 
