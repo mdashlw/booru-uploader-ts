@@ -77,7 +77,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         item.submission.resolution.height,
       ),
     ],
-    artist: /_by_(.+)_d/.exec(item.files[0].src)![1],
+    artist: /_by_(.+)_d/.exec(item.files[0].src)?.[1] ?? null,
     date: formatDate(item.creation_time),
     title: item.title,
     description: (booru) =>
