@@ -19,6 +19,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       cookie: COOKIE,
     },
     throwOnError: true,
+    maxRedirections: 1,
   });
 
   if ("set-cookie" in response.headers) {
