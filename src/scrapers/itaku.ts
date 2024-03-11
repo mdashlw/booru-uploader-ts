@@ -1,8 +1,8 @@
 import undici from "undici";
-import z from "zod";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 /*
  * Samples:
@@ -33,20 +33,10 @@ export async function scrape(url: URL): Promise<SourceData> {
   const imageId = Number(url.pathname.substring("/images/".length));
   const image = await fetchImage(imageId);
 
-  const imageUrl = image.image;
-  const { type, width, height } = await probeImageSize(imageUrl);
-
   return {
     source: "Itaku",
     url: `https://itaku.ee/images/${image.id}`,
-    images: [
-      {
-        url: imageUrl,
-        type,
-        width,
-        height,
-      },
-    ],
+    images: [await probeImageUrl(image.image)],
     artist: image.owner_username,
     date: formatDate(image.date_added),
     title: image.title,
