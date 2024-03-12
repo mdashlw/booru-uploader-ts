@@ -40,11 +40,19 @@ export default function convertTumblrNpfToMarkdown(
           (f) => f.start <= start && f.end >= end,
         );
 
+        const chunk = block.text.substring(start, end);
+
+        if (!chunk.trim()) {
+          formattings.length = 0;
+        }
+
         if (formattings.length) {
           text += "\u200b";
         }
 
-        const chunk = block.text.substring(start, end);
+        formattings.sort(
+          (a, b) => Number(b.type === "link") - Number(a.type === "link"),
+        );
 
         for (const formatting of formattings) {
           switch (formatting.type) {
@@ -62,7 +70,9 @@ export default function convertTumblrNpfToMarkdown(
               break;
             case "link":
               if (formatting.url.includes("://t.umblr.com/redirect")) {
-                formatting.url = chunk;
+                // formatting.url = chunk;
+
+                formatting.url = new URL(formatting.url).searchParams.get("z")!;
               }
 
               if (formatting.url === chunk && !markdown.inlineAllLinks) {
