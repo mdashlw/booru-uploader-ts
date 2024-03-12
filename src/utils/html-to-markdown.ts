@@ -35,7 +35,13 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
     },
   });
 
-  turndownService.escape = (str) => markdown.escape(str);
+  turndownService.escape = (str) =>
+    str.trim()
+      ? str.replace(
+          /^(\s*)(.+?)(\s*)$/,
+          (_, l, s, t) => l + markdown.escape(s) + t,
+        )
+      : str;
 
   turndownService.addRule("custom_image", {
     filter: "img",
