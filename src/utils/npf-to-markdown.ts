@@ -1,4 +1,5 @@
 import { MarkdownDialect } from "../booru/types.js";
+import { escapeMarkdownWithWhitespace } from "./markdown.js";
 import { NpfContentBlock, NpfTextBlock } from "./tumblr-npf-types.js";
 
 export default function convertTumblrNpfToMarkdown(
@@ -73,7 +74,7 @@ export default function convertTumblrNpfToMarkdown(
           }
         }
 
-        text += markdown.escape(chunk);
+        text += escapeMarkdownWithWhitespace(chunk, markdown);
 
         for (const formatting of formattings.reverse()) {
           switch (formatting.type) {

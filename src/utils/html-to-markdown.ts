@@ -1,5 +1,6 @@
 import TurndownService from "turndown";
 import { MarkdownDialect } from "../booru/types.js";
+import { escapeMarkdownWithWhitespace } from "./markdown.js";
 
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
@@ -35,13 +36,7 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
     },
   });
 
-  turndownService.escape = (str) =>
-    str.trim()
-      ? str.replace(
-          /^(\s*)(.+?)(\s*)$/,
-          (_, l, s, t) => l + markdown.escape(s) + t,
-        )
-      : str;
+  turndownService.escape = (str) => escapeMarkdownWithWhitespace(str, markdown);
 
   turndownService.addRule("custom_image", {
     filter: "img",
