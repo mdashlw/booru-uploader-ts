@@ -38,6 +38,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const imageUrl = "https:" + $(".download > a").attr("href");
 
+  $(".submission-footer").remove();
   let description = $(".submission-description").text().trim();
 
   const tags = $(".tags-row .tags")
