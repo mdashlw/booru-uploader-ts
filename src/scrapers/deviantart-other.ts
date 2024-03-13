@@ -386,7 +386,7 @@ const accessToken = lazyInit(async () => {
     );
   }
 
-  const { access_token } = await fetchAPI(
+  const { access_token, expires_in } = await fetchAPI(
     "oauth2/token",
     {
       grant_type: "client_credentials",
@@ -396,11 +396,15 @@ const accessToken = lazyInit(async () => {
     z.object({
       status: z.literal("success"),
       access_token: z.string(),
+      expires_in: z.number().int().positive(),
     }),
     false,
   );
 
-  return access_token;
+  return {
+    value: access_token,
+    ttlSeconds: expires_in,
+  };
 });
 
 function apiDownloadDeviation(deviationUuid: string) {
