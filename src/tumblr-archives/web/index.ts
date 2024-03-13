@@ -1,9 +1,8 @@
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { dirname } from "path";
-import undici from "undici";
 import { fileURLToPath } from "url";
-import { TumblrPost } from "../api.js";
+import { TumblrPost, fetchBlogPost } from "../api.js";
 import { getAllReblogs } from "../index.js";
 
 const reblogsCache = new Map<string, TumblrPost[]>();
@@ -33,39 +32,15 @@ fastify.get("/blog-images", async (request, reply) => {
   const images = (
     await Promise.all(
       reblogs.map(async (reblog) => {
-        const body = await undici
-          .request(`https://www.tumblr.com/${reblog.blogName}/${reblog.id}`, {
-            headers: {
-              accept: "text/html",
-              "accept-language": "en-us",
-              "cache-control": "no-cache",
-              dnt: "1",
-              pragma: "no-cache",
-              "sec-ch-ua":
-                '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
-              "sec-ch-ua-mobile": "?0",
-              "sec-ch-ua-platform": '"Windows"',
-              "sec-fetch-dest": "document",
-              "sec-fetch-mode": "navigate",
-              "sec-fetch-site": "none",
-              "sec-fetch-user": "?1",
-              "upgrade-insecure-requests": "1",
-              "user-agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-            },
-            maxRedirections: 1,
-          })
-          .then((response) => response.body.text());
-        const match = /window\['___INITIAL_STATE___'] = (.+);/.exec(body);
+        const post = await fetchBlogPost(reblog.blogName, reblog.id);
+        const trail = post.trail[0];
 
-        if (!match) {
+        if (!trail) {
+          console.log(post);
           return [];
         }
 
-        const data = eval(`(${match[1]})`);
-        const post = data.PeeprRoute.initialTimeline.objects[0];
-
-        return post.trail[0].content
+        return trail.content
           .filter((block) => block.type === "image")
           .map((image) => ({
             // href: reblog.postUrl,
