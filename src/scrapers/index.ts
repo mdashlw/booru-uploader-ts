@@ -30,11 +30,11 @@ export const scrapers: Scraper[] = [
   Mastodon,
   // PassThrough,
   // Pixiv,
+  YchArt,
   Raw,
   Stash,
   // Tabun,
   Tumblr,
   Twitter,
   Vk,
-  YchArt,
 ];
