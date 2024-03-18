@@ -1,4 +1,9 @@
-import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
+import { Blob } from "node:buffer";
+import {
+  ProbeResult,
+  probeImageBlob,
+  probeImageUrl,
+} from "../utils/probe-image.js";
 
 export function formatDate(date: Date): string {
   return date.toLocaleString("en-US", {
@@ -8,14 +13,30 @@ export function formatDate(date: Date): string {
   });
 }
 
+export async function probeAndValidateImageBlob(
+  blob: Blob,
+  type?: string,
+  width?: number,
+  height?: number,
+): Promise<ProbeResult> {
+  return validateProbeResult(await probeImageBlob(blob), type, width, height);
+}
+
 export async function probeAndValidateImageUrl(
   url: string,
   type?: string,
   width?: number,
   height?: number,
 ): Promise<ProbeResult> {
-  const result = await probeImageUrl(url);
+  return validateProbeResult(await probeImageUrl(url), type, width, height);
+}
 
+function validateProbeResult(
+  result: ProbeResult,
+  type?: string,
+  width?: number,
+  height?: number,
+): ProbeResult {
   if (type?.startsWith("image/")) {
     type = type.substring("image/".length);
   }
@@ -26,7 +47,7 @@ export async function probeAndValidateImageUrl(
 
   if (type !== undefined && result.type !== type) {
     throw new Error(
-      `Unexpected image type: "${result.type}" (expected "${type}") for ${url}`,
+      `Unexpected image type: "${result.type}" (expected "${type}")`,
     );
   }
 
@@ -35,7 +56,7 @@ export async function probeAndValidateImageUrl(
     (height !== undefined && result.height !== height)
   ) {
     throw new Error(
-      `Unexpected image size: ${result.width}x${result.height} (expected ${width}x${height}) for ${url}`,
+      `Unexpected image size: ${result.width}x${result.height} (expected ${width}x${height})`,
     );
   }
 

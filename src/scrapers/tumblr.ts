@@ -4,15 +4,15 @@ import undici from "undici";
 import { ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import { SourceData, SourceImageData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
+import {
+  formatDate,
+  probeAndValidateImageBlob,
+  probeAndValidateImageUrl,
+} from "../scraper/utils.js";
 import { getReblogs } from "../tumblr-archives/index.js";
 import { lazyInit } from "../utils/lazy-init.js";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
-import {
-  ProbeResult,
-  probeImageBlob,
-  probeImageUrl,
-} from "../utils/probe-image.js";
+import { ProbeResult } from "../utils/probe-image.js";
 import { NpfContentBlock, NpfImageBlock } from "../utils/tumblr-npf-types.js";
 
 /*
@@ -82,10 +82,12 @@ type V1RegularPost = z.infer<typeof V1RegularPost>;
 const V1PhotoPost = z.object({
   type: z.literal("photo"),
   "photo-caption": z.string(),
+  "photo-url-1280": z.string().url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   photos: z
     .object({
+      "photo-url-1280": z.string().url(),
       width: z.number().int().positive(),
       height: z.number().int().positive(),
     })
@@ -263,17 +265,31 @@ export async function scrape(
         const {
           media: [media],
         } = block;
-        let type: string | undefined,
-          width: number | undefined,
-          height: number | undefined,
-          probeResult: ProbeResult;
 
         media.url = media.url.replace(".pnj", ".png");
 
+        let { type } = media;
+
+        if (type === "image/png") {
+          type = "png";
+        } else if (type === "image/jpeg") {
+          type = "jpg";
+        } else {
+          throw new Error(`Unexpected media type: ${type}`);
+        }
+
+        let width: number | undefined,
+          height: number | undefined,
+          probeResult: ProbeResult | undefined;
+
         if (media.hasOriginalDimensions) {
-          width = media.width;
-          height = media.height;
-          probeResult = await probeImageUrl(media.url);
+          ({ width, height } = media);
+          probeResult = await probeAndValidateImageUrl(
+            media.url,
+            undefined,
+            width,
+            height,
+          );
         } else {
           try {
             v1Post ??= await fetchV1Post(post.blogName, post.idString);
@@ -310,97 +326,95 @@ export async function scrape(
               width = Number(match[1]);
               height = Number(match[2]);
             } else if (v1Post.type === "photo") {
-              if (v1Post.photos.length) {
-                ({ width, height } = v1Post.photos[index]);
-              } else {
-                ({ width, height } = v1Post);
-              }
+              const photo = v1Post.photos.length
+                ? v1Post.photos[index]
+                : v1Post;
+
+              ({ width, height } = photo);
             } else {
               // @ts-ignore
               throw new Error(`Unsupported post type: ${v1Post.type}`);
             }
           } else {
+            console.log("v1 failed for", post.postUrl);
             width = media.width + Math.random();
             height = media.height + Math.random();
           }
 
           if (media.mediaKey) {
-            probeResult = await probeImageUrl(
+            probeResult = await probeAndValidateImageUrl(
               await fetchNewImageUrl(
                 media.url.replace(/\/s\d+x\d+\//, "/s99999x99999/"),
               ),
+              undefined,
+              Number.isInteger(width) ? width : undefined,
+              Number.isInteger(height) ? height : undefined,
             );
-          } else if (!metadataOnly) {
-            if (!backupDataPromise) {
-              backupDataPromise = (async () => {
-                const csrfToken = await getCsrfToken();
-
-                const reblogPostId = await createReblogPostAsDraft(
-                  csrfToken,
-                  post,
-                );
-
-                await requestBackup(csrfToken);
-                const backupDownloadUrl = await pollBackup(csrfToken);
-
-                await deletePost(csrfToken, reblogPostId);
-
-                const { entries } = await unzip(backupDownloadUrl);
-
-                return { reblogPostId, entries };
-              })();
-            }
-
-            const { reblogPostId, entries } = await backupDataPromise;
-
-            const findEntry = (baseKey: string) =>
-              Object.entries(entries).find(([key]) =>
-                key.startsWith(baseKey),
-              )?.[1];
-
-            const entryIndex =
-              index - Number(Boolean(findEntry(`media/${reblogPostId}.`)));
-            const baseEntryKey =
-              entryIndex !== -1
-                ? `media/${reblogPostId}_${entryIndex}`
-                : `media/${reblogPostId}`;
-            const entry = findEntry(`${baseEntryKey}.`);
-
-            if (!entry) {
-              const error: any = new Error(
-                "Could not find entry in the backup archive",
-              );
-              error.entries = entries;
-              error.entryIndex = entryIndex;
-              error.baseEntryKey = baseEntryKey;
-              throw error;
-            }
-
-            const blob = await entry.blob();
-
-            probeResult = await probeImageBlob(blob);
-          } else {
-            probeResult = {
-              blob: null as any,
-              type: undefined as any,
-              width,
-              height,
-            };
           }
         }
 
-        // if (type !== undefined && probeResult.type !== type) {
-        //   throw new Error(`Unexpected image type: ${probeResult.type}`);
-        // }
+        if (metadataOnly) {
+          probeResult = {
+            blob: null as any,
+            type,
+            width,
+            height,
+          };
+        } else if (!probeResult || probeResult.type === "jpg") {
+          if (!backupDataPromise) {
+            backupDataPromise = (async () => {
+              const csrfToken = await getCsrfToken();
 
-        // if (
-        //   (width !== undefined && probeResult.width !== width) ||
-        //   (height !== undefined && probeResult.height !== height)
-        // ) {
-        //   throw new Error(
-        //     `Unexpected image dimensions: ${probeResult.width}x${probeResult.height}`,
-        //   );
-        // }
+              const reblogPostId = await createReblogPostAsDraft(
+                csrfToken,
+                post,
+              );
+
+              await requestBackup(csrfToken);
+              const backupDownloadUrl = await pollBackup(csrfToken);
+
+              await deletePost(csrfToken, reblogPostId);
+
+              const { entries } = await unzip(backupDownloadUrl);
+
+              return { reblogPostId, entries };
+            })();
+          }
+
+          const { reblogPostId, entries } = await backupDataPromise;
+
+          const findEntry = (baseKey: string) =>
+            Object.entries(entries).find(([key]) =>
+              key.startsWith(baseKey),
+            )?.[1];
+
+          const entryIndex =
+            index - Number(Boolean(findEntry(`media/${reblogPostId}.`)));
+          const baseEntryKey =
+            entryIndex !== -1
+              ? `media/${reblogPostId}_${entryIndex}`
+              : `media/${reblogPostId}`;
+          const entry = findEntry(`${baseEntryKey}.`);
+
+          if (!entry) {
+            const error: any = new Error(
+              "Could not find entry in the backup archive",
+            );
+            error.entries = entries;
+            error.entryIndex = entryIndex;
+            error.baseEntryKey = baseEntryKey;
+            throw error;
+          }
+
+          const blob = await entry.blob();
+
+          probeResult = await probeAndValidateImageBlob(
+            blob,
+            type,
+            Number.isInteger(width) ? width : undefined,
+            Number.isInteger(height) ? height : undefined,
+          );
+        }
 
         return probeResult;
       }),
