@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { fetchBlogPosts } from "./api.js";
 import { client } from "./internal.js";
 
@@ -44,11 +45,12 @@ export async function getReblogs(
 
 export async function getAllReblogs(
   blogName: string,
-): Promise<ArchivedTumblrPost[]> {
+): Promise<ArchivedTumblrPost[][]> {
   const { rows } = await client.execute({
-    sql: "SELECT * FROM reblogs WHERE rootBlogName = ? GROUP BY rootPostId ORDER BY rootPostId DESC",
+    sql: "SELECT * FROM reblogs WHERE rootBlogName = ? ORDER BY rootPostId DESC",
     args: [blogName],
   });
+  const posts = rows as unknown as ArchivedTumblrPost[];
 
-  return rows as unknown as ArchivedTumblrPost[];
+  return Object.values(_.groupBy(posts, "rootPostId"));
 }

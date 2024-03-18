@@ -21,7 +21,7 @@ async function fetchAPI<T extends z.ZodTypeAny>(
   body: T,
 ): Promise<z.infer<T>> {
   const json = await retry(
-    () =>
+    (bail) =>
       pool
         .request({
           method: "GET",
@@ -35,7 +35,17 @@ async function fetchAPI<T extends z.ZodTypeAny>(
           },
           throwOnError: true,
         })
-        .then((response) => response.body.json()),
+        .then((response) => response.body.json())
+        .catch((error) => {
+          if (
+            error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
+            error.statusCode === 404
+          ) {
+            bail(error);
+          } else {
+            throw error;
+          }
+        }),
     {
       onRetry(error, attempt) {
         console.error("Failed to fetch Tumblr API", {
