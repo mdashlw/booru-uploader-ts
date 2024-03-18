@@ -70,6 +70,10 @@
           break;
         }
 
+        const { images: booruImages } = await fetch(
+          `https://derpibooru.org/api/v1/json/search/images?q=${images.map((i) => `source_url:*${i.postId}*`).join(" || ")}&filter_id=56027&per_page=50`,
+        ).then((response) => response.json());
+
         for (const image of images) {
           const li = document.createElement("li");
           const a = document.createElement("a");
@@ -81,6 +85,25 @@
           li.appendChild(a);
           a.appendChild(img);
           ul.appendChild(li);
+
+          const booruImage = booruImages.find((i) =>
+            i.source_urls.some(su => su.includes(image.postId)),
+          );
+
+          if (booruImage) {
+            const div = document.createElement("div");
+
+            div.style.position = "absolute";
+            div.style.color = "white";
+            div.style.fontSize = "1.8rem";
+            div.style.marginLeft = "10px";
+            div.style.textShadow =
+              "0.07em 0 black, 0 0.07em black, -0.07em 0 black, 0 -0.07em black";
+
+            div.innerText = `Derpibooru: #${booruImage.id}`
+
+            li.insertAdjacentElement("afterbegin", div);
+          }
         }
 
         offset += 10;
