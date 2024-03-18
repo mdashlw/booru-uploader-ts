@@ -81,13 +81,10 @@ type V1RegularPost = z.infer<typeof V1RegularPost>;
 
 const V1PhotoPost = z.object({
   type: z.literal("photo"),
-  "photo-caption": z.string(),
-  "photo-url-1280": z.string().url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   photos: z
     .object({
-      "photo-url-1280": z.string().url(),
       width: z.number().int().positive(),
       height: z.number().int().positive(),
     })
