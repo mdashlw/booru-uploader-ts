@@ -33,9 +33,11 @@ if (command === "archive") {
 
   for (const blogName of args.blogs) {
     try {
+      console.log(`Starting to archive blog ${blogName}`);
       await archivePosts(blogName);
+      console.log(`Finished archiving blog ${blogName}`);
     } catch (error) {
-      console.error(error);
+      console.error(`Failed to archive blog ${blogName}`, error);
     }
   }
 } else if (command === "reblogs") {
