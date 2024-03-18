@@ -55,7 +55,7 @@ if (command === "archive") {
   if (reblogs) {
     for (const reblog of reblogs) {
       console.log(
-        `Post ${reblog.rebloggedRootId} by ${reblog.rebloggedRootName} at ${reblog.rebloggedRootUrl} reblogged by ${reblog.blogName} at ${reblog.postUrl}`,
+        `Post ${reblog.rootPostId} by ${reblog.rootBlogName} reblogged at https://www.tumblr.com/${reblog.reblogBlogName}/${reblog.reblogPostId}`,
       );
     }
   } else {
@@ -81,7 +81,7 @@ if (command === "archive") {
   if (reblogs) {
     for (const reblog of reblogs) {
       console.log(
-        `Post ${reblog.rebloggedRootId} by ${reblog.rebloggedRootName} at ${reblog.rebloggedRootUrl} reblogged by ${reblog.blogName} at ${reblog.postUrl}`,
+        `Post ${reblog.rootPostId} by ${reblog.rootBlogName} reblogged at https://www.tumblr.com/${reblog.reblogBlogName}/${reblog.reblogPostId}`,
       );
     }
   } else {

@@ -2,10 +2,10 @@ import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { TumblrPost, fetchBlogPost } from "../api.js";
-import { getAllReblogs } from "../index.js";
+import { fetchBlogPost } from "../api.js";
+import { ArchivedTumblrPost, getAllReblogs } from "../index.js";
 
-const reblogsCache = new Map<string, TumblrPost[]>();
+const reblogsCache = new Map<string, ArchivedTumblrPost[]>();
 
 const fastify = Fastify({
   logger: true,
@@ -32,7 +32,10 @@ fastify.get("/blog-images", async (request, reply) => {
   const images = (
     await Promise.all(
       reblogs.map(async (reblog) => {
-        const post = await fetchBlogPost(reblog.blogName, reblog.id);
+        const post = await fetchBlogPost(
+          reblog.reblogBlogUuid,
+          reblog.reblogPostId,
+        );
         const trail = post.trail[0];
 
         if (!trail) {
@@ -44,7 +47,8 @@ fastify.get("/blog-images", async (request, reply) => {
           .filter((block) => block.type === "image")
           .map((image) => ({
             // href: reblog.postUrl,
-            href: reblog.rebloggedRootUrl,
+            postId: post.rebloggedRootId,
+            href: post.rebloggedRootUrl,
             src: image.media[0].url,
           }));
       }),

@@ -1,45 +1,54 @@
-import { TumblrPost, fetchBlogPosts } from "./api.js";
-import { keyv } from "./internal.js";
+import { fetchBlogPosts } from "./api.js";
+import { client } from "./internal.js";
+
+export type ArchivedTumblrPost = {
+  rootPostId: string;
+  rootBlogUuid: string;
+  rootBlogName: string;
+  reblogPostId: string;
+  reblogBlogUuid: string;
+  reblogBlogName: string;
+};
 
 export async function archivePosts(blogName: string): Promise<void> {
   for await (const posts of fetchBlogPosts(blogName)) {
-    for (const post of posts) {
-      if (!post.rebloggedRootId) {
-        continue;
-      }
-
-      const reblogs = await keyv.get(post.rebloggedRootId);
-
-      if (!reblogs) {
-        await keyv.set(post.rebloggedRootId, { [post.id]: post });
-      } else if (!reblogs[post.id]) {
-        reblogs[post.id] = post;
-        await keyv.set(post.rebloggedRootId, reblogs);
-      }
-    }
+    await client.batch(
+      posts
+        .filter((post) => post.rebloggedRootId)
+        .map((post) => ({
+          sql: "INSERT OR IGNORE INTO reblogs VALUES (?, ?, ?, ?, ?, ?)",
+          args: [
+            post.rebloggedRootId!,
+            post.rebloggedRootUuid!,
+            post.rebloggedRootName!,
+            post.id,
+            post.blog.uuid,
+            post.blogName,
+          ],
+        })),
+      "write",
+    );
   }
 }
 
-export async function getReblogs(postId: string): Promise<TumblrPost[]> {
-  const posts = await keyv.get(postId);
+export async function getReblogs(
+  postId: string,
+): Promise<ArchivedTumblrPost[]> {
+  const { rows } = await client.execute({
+    sql: "SELECT * FROM reblogs WHERE rootPostId = ?",
+    args: [postId],
+  });
 
-  if (!posts) {
-    return [];
-  }
-
-  return Object.values(posts);
+  return rows as unknown as ArchivedTumblrPost[];
 }
 
-export async function getAllReblogs(blogName: string): Promise<TumblrPost[]> {
-  const posts: TumblrPost[] = [];
+export async function getAllReblogs(
+  blogName: string,
+): Promise<ArchivedTumblrPost[]> {
+  const { rows } = await client.execute({
+    sql: "SELECT * FROM reblogs WHERE rootBlogName = ? GROUP BY rootPostId ORDER BY rootPostId DESC",
+    args: [blogName],
+  });
 
-  for await (const [, _reblogs] of keyv.iterator()) {
-    const [reblog]: TumblrPost[] = Object.values(_reblogs);
-
-    if (reblog.rebloggedRootName === blogName) {
-      posts.push(reblog);
-    }
-  }
-
-  return posts;
+  return rows as unknown as ArchivedTumblrPost[];
 }

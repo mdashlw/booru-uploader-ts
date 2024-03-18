@@ -449,11 +449,11 @@ export async function scrape(
 }
 
 async function fetchNpfPostTryReblogs(
-  blogName: string,
+  blogId: string,
   postId: string,
 ): Promise<NpfPost | undefined> {
   try {
-    return await fetchNpfPost(blogName, postId);
+    return await fetchNpfPost(blogId, postId);
   } catch (error: any) {
     if (
       error.message !== "Failed to fetch" ||
@@ -463,15 +463,20 @@ async function fetchNpfPostTryReblogs(
       throw error;
     }
 
-    console.log(`Post ${postId} not found on ${blogName}. Trying reblogs...`);
+    console.log(`Post ${postId} not found on ${blogId}. Trying reblogs...`);
 
     const reblogs = await getReblogs(postId);
 
     for (const reblog of reblogs) {
-      const post = await fetchNpfPostTryReblogs(reblog.blogName, reblog.id);
+      const post = await fetchNpfPostTryReblogs(
+        reblog.reblogBlogUuid,
+        reblog.reblogPostId,
+      );
 
       if (post) {
-        console.log(`Found reblog: ${reblog.postUrl}`);
+        console.log(
+          `Found reblog: https://www.tumblr.com/${reblog.reblogBlogName}/${reblog.reblogPostId}`,
+        );
         return post;
       }
     }
