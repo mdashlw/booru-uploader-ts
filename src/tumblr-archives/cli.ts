@@ -2,6 +2,8 @@ import process from "node:process";
 import util from "node:util";
 import { archivePosts, getReblogs } from "./index.js";
 
+util.inspect.defaultOptions.depth = null;
+
 const [, , command] = process.argv;
 
 if (!command) {
