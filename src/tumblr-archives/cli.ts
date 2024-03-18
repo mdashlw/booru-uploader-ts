@@ -6,7 +6,9 @@ const [, , command] = process.argv;
 
 if (!command) {
   console.error("Usage:");
-  console.error("- cli.ts archive --blog <blog name>");
+  console.error(
+    "- cli.ts archive --blogs <blog name> [--blogs <blog name>]...",
+  );
   console.error("- cli.ts reblogs --post <post id>");
   console.error("- cli.ts view --blog <blog name>");
   process.exit(1);
@@ -16,18 +18,25 @@ if (command === "archive") {
   const { values: args } = util.parseArgs({
     args: process.argv.slice(3),
     options: {
-      blog: {
+      blogs: {
         type: "string",
+        multiple: true,
       },
     },
   });
 
-  if (!args.blog) {
-    console.error("Invalid usage: missing --blog <blog name>");
+  if (!args.blogs?.length) {
+    console.error("Invalid usage: missing at least one --blogs <blog name>");
     process.exit(1);
   }
 
-  await archivePosts(args.blog);
+  for (const blogName of args.blogs) {
+    try {
+      await archivePosts(blogName);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 } else if (command === "reblogs") {
   const { values: args } = util.parseArgs({
     args: process.argv.slice(3),
