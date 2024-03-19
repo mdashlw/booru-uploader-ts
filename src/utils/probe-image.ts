@@ -1,3 +1,4 @@
+import { disposition } from "@hapi/content";
 import { imageSize } from "image-size";
 import { Blob, Buffer } from "node:buffer";
 import undici from "undici";
@@ -5,6 +6,7 @@ import { IncomingHttpHeaders } from "undici/types/header.js";
 
 export type ProbeResult = {
   blob: Blob;
+  filename: string | undefined;
   type: string;
   width: number;
   height: number;
@@ -29,6 +31,7 @@ export async function probeImageBlob(blob: Blob): Promise<ProbeResult> {
 
   return {
     blob,
+    filename: undefined,
     type: result.type,
     width: result.width,
     height: result.height,
@@ -47,8 +50,19 @@ export async function probeImageUrl(
   const blob = await response.body.blob();
   const result = await probeImageBlob(blob);
 
-  return {
-    ...result,
-    blob,
-  };
+  const contentDisposition = response.headers["content-disposition"];
+
+  if (contentDisposition !== undefined) {
+    if (typeof contentDisposition !== "string") {
+      throw new Error(
+        `Invalid content-disposition header: ${contentDisposition}`,
+      );
+    }
+
+    result.filename = disposition(contentDisposition).filename;
+  } else {
+    result.filename = new URL(url).pathname.split("/").pop();
+  }
+
+  return result;
 }

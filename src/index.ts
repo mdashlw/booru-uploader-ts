@@ -46,6 +46,7 @@ await Promise.allSettled(
   boorus.map((booru) => {
     booru.postImage({
       blob: image.blob,
+      filename: image.filename,
       tags: [
         ...[sources.primary, ...sources.alternate]
           .filter((source) => source.artist)

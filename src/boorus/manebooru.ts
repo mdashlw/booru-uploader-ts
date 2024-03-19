@@ -1,6 +1,6 @@
-import Booru from "../booru/index.js";
 import { Blob } from "node:buffer";
 import { FormData } from "undici";
+import Booru from "../booru/index.js";
 import { AutocompletedTag, Image, MarkdownDialect } from "../booru/types.js";
 
 export default class Manebooru extends Booru {
@@ -49,18 +49,20 @@ export default class Manebooru extends Booru {
 
   async postImage({
     blob,
+    filename,
     tags,
     sourceUrl,
     description,
   }: {
     blob: Blob;
+    filename: string | undefined;
     tags: string[];
     sourceUrl?: string;
     description?: string;
   }): Promise<Image> {
     const formData = new FormData();
 
-    formData.append("image[image]", blob);
+    formData.append("image[image]", blob, filename);
     formData.append("image[tag_input]", tags.join(", "));
 
     if (sourceUrl) {

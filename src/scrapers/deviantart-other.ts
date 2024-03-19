@@ -276,6 +276,7 @@ export async function scrape(
       ({ type, width, height } = deviationExtended.originalFile);
       probeResult = {
         blob,
+        filename: "chunked.png",
         type,
         width,
         height,

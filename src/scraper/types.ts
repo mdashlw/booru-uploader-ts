@@ -17,6 +17,7 @@ export interface SourceData {
 
 export interface SourceImageData {
   blob: Blob;
+  filename: string | undefined;
   type: string;
   width: number;
   height: number;
