@@ -67,14 +67,19 @@ export type NpfImageBlock = z.infer<typeof NpfImageBlock>;
 
 export const NpfVideoBlock = z.object({
   type: z.literal("video"),
-  media: NpfMediaObject,
 });
 export type NpfVideoBlock = z.infer<typeof NpfVideoBlock>;
+
+export const NpfAudioBlock = z.object({
+  type: z.literal("audio"),
+});
+export type NpfAudioBlock = z.infer<typeof NpfAudioBlock>;
 
 export const NpfContentBlock = z.discriminatedUnion("type", [
   NpfTextBlock,
   NpfLinkBlock,
   NpfImageBlock,
   NpfVideoBlock,
+  NpfAudioBlock,
 ]);
 export type NpfContentBlock = z.infer<typeof NpfContentBlock>;
