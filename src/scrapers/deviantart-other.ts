@@ -98,7 +98,10 @@ export function canHandle(url: URL): boolean {
   );
 }
 
-export async function scrape(url: URL): Promise<SourceData> {
+export async function scrape(
+  url: URL,
+  metadataOnly?: boolean,
+): Promise<SourceData> {
   const initialState = await extractInitialState(url).catch((error) => {
     throw new Error(`Failed to extract initial state for ${url}`, {
       cause: error,
@@ -207,7 +210,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     width === deviationExtended.originalFile.width &&
     height === deviationExtended.originalFile.height;
 
-  if (!isOriginalDimensions) {
+  if (!isOriginalDimensions && !metadataOnly) {
     console.log("Not original dimensions");
 
     if (fullview.c && fullview.r !== -1) {
@@ -294,17 +297,17 @@ export async function scrape(url: URL): Promise<SourceData> {
     probeResult = await probeImageUrl(imageUrl);
   }
 
-  if (probeResult.type !== type) {
-    throw new Error(
-      `Probe type ${probeResult.type} does not match original type ${type}`,
-    );
-  }
+  // if (probeResult.type !== type) {
+  //   throw new Error(
+  //     `Probe type ${probeResult.type} does not match original type ${type}`,
+  //   );
+  // }
 
-  if (probeResult.width !== width || probeResult.height !== height) {
-    throw new Error(
-      `Probe dimensions ${probeResult.width}x${probeResult.height} do not match original dimensions ${width}x${height}`,
-    );
-  }
+  // if (probeResult.width !== width || probeResult.height !== height) {
+  //   throw new Error(
+  //     `Probe dimensions ${probeResult.width}x${probeResult.height} do not match original dimensions ${width}x${height}`,
+  //   );
+  // }
 
   return {
     source: "DeviantArt",
