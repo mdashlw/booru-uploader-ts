@@ -29,6 +29,10 @@ fastify.get("/blog-images", async (request, reply) => {
 
   const listOfReblogs = reblogsCache.get(blog)!.slice(offset, offset + 10);
 
+  if (!listOfReblogs.length) {
+    return reply.send({ stop: true });
+  }
+
   const images = (
     await Promise.all(
       listOfReblogs.map(async (reblogs) => {

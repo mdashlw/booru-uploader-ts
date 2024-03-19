@@ -66,7 +66,7 @@
           `/blog-images?blog=${blogInput.value}&offset=${offset}`,
         ).then((response) => response.json());
 
-        if (!images.length) {
+        if (images.stop) {
           break;
         }
 
