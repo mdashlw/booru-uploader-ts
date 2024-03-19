@@ -1,4 +1,4 @@
-import { disposition } from "@hapi/content";
+import { parse as parseContentDisposition } from "@tinyhttp/content-disposition";
 import { imageSize } from "image-size";
 import { Blob, Buffer } from "node:buffer";
 import undici from "undici";
@@ -59,7 +59,8 @@ export async function probeImageUrl(
       );
     }
 
-    result.filename = disposition(contentDisposition).filename;
+    result.filename = parseContentDisposition(contentDisposition).parameters
+      .filename as string | undefined;
   } else {
     result.filename = new URL(url).pathname.split("/").pop();
   }

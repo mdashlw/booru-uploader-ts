@@ -353,7 +353,7 @@ export async function scrape(
         if (metadataOnly) {
           probeResult = {
             blob: null as any,
-            filename: undefined,
+            filename: probeResult?.filename,
             type,
             width,
             height,
