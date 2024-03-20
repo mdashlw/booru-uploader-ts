@@ -14,6 +14,7 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
+  url.protocol = "https:";
   const response = await undici.request(url, {
     headers: {
       cookie: COOKIE,
