@@ -23,7 +23,7 @@ export async function probeAndValidateImageBlob(
 }
 
 export async function probeAndValidateImageUrl(
-  url: string,
+  url: string | URL,
   type?: string,
   width?: number,
   height?: number,

@@ -6,10 +6,10 @@ import { IncomingHttpHeaders } from "undici/types/header.js";
 import { z } from "zod";
 import Booru from "../booru/index.js";
 import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 import { lazyInit } from "../utils/lazy-init.js";
-import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
+import { ProbeResult } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
 
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
@@ -51,6 +51,7 @@ const Deviation = z.object({
   author: z.number().int().positive(),
   media: z.object({
     baseUri: z.string().url(),
+    prettyName: z.string(),
     token: z.string().array().optional(),
     types: z
       .object({
@@ -117,208 +118,236 @@ export async function scrape(
   );
   const author = User.parse(initialState["@@entities"].user[deviation.author]);
 
-  let imageUrl: URL | undefined,
-    type: string,
-    width: number,
-    height: number,
-    probeResult: ProbeResult | undefined;
-
-  const fullview = deviation.media.types.find((t) => t.t === "fullview");
-
-  if (!fullview) {
-    const error: any = new Error("Fullview media type not found");
-    error.deviation = deviation;
-    throw error;
-  }
-
-  imageUrl = new URL(deviation.media.baseUri);
-  imageUrl.pathname = fullview.c
-    ? `${imageUrl.pathname}/v1/fill/w_${fullview.w},h_${fullview.h}/fullview.png`
-    : imageUrl.pathname;
-  if (fullview.r !== -1) {
-    imageUrl.searchParams.set("token", deviation.media.token![fullview.r]);
-  }
-
-  type = deviationExtended.originalFile.type;
-  width = fullview.w;
-  height = fullview.h;
-
-  if (
-    fullview.w !== deviationExtended.originalFile.width ||
-    fullview.h !== deviationExtended.originalFile.height
-  ) {
-    const { cardImage } = await extractInitialState(
-      "https://www.deviantart.com/users/login",
-      {
-        referer: url.toString(),
-      },
-    );
-    const cardImageUrl = new URL(cardImage);
-
-    if (
-      cardImageUrl.searchParams.has("token") &&
-      cardImageUrl.searchParams.get("token") !==
-        imageUrl.searchParams.get("token")
-    ) {
-      console.log(
-        `Deviation ${deviation.deviationId} card image has different token downloadable=${deviation.isDownloadable}`,
-        JSON.parse(
-          Buffer.from(
-            cardImageUrl.searchParams.get("token")!.split(".")[1],
-            "base64",
-          ).toString("utf8"),
-        ),
-      );
-      imageUrl = cardImageUrl;
-      ({ type, width, height } = deviationExtended.originalFile);
-      probeResult = await probeImageUrl(imageUrl);
-    } else if (deviation.isDownloadable) {
-      console.log(`Deviation ${deviation.deviationId} is downloadable`);
-      const download = await apiDownloadDeviation(
-        deviationExtended.deviationUuid,
-      );
-
-      if (
-        download.width !== deviationExtended.originalFile.width ||
-        download.height !== deviationExtended.originalFile.height
-      ) {
-        throw new Error(
-          `Downloaded image has different dimensions than original`,
-        );
-      }
-
-      imageUrl = new URL(download.src);
-      ({ type, width, height } = deviationExtended.originalFile);
-      probeResult = await probeImageUrl(imageUrl, HEADERS);
-    } else if (deviationId <= 790_677_560) {
-      console.log(
-        `Deviation ${deviation.deviationId} is old enough for intermediary`,
-      );
-      // https://github.com/danbooru/danbooru/blob/ddd2d2335fb09b30f2b5b06fbd4e7aa5c37b5b6a/app/logical/source/extractor/deviant_art.rb#L49
-      imageUrl = new URL(deviation.media.baseUri);
-      imageUrl.pathname = `/intermediary${imageUrl.pathname}`;
-      probeResult = await probeImageUrl(imageUrl);
-    }
-  } else {
-    console.log(
-      `Deviation ${deviation.deviationId} fullview matches original dimensions`,
-    );
-    probeResult = await probeImageUrl(imageUrl);
-  }
-
-  const isOriginalDimensions =
-    width === deviationExtended.originalFile.width &&
-    height === deviationExtended.originalFile.height;
-
-  if (!isOriginalDimensions && !metadataOnly) {
-    console.log("Not original dimensions");
-
-    if (fullview.c && fullview.r !== -1) {
-      console.log(
-        "Combining chunks",
-        JSON.stringify({ originalFile: deviationExtended.originalFile }),
-      );
-
-      const { width: imageWidth, height: imageHeight } =
-        deviationExtended.originalFile;
-      const chunkWidth = fullview.w;
-      const chunkHeight = fullview.h;
-
-      const image = sharp({
-        create: {
-          width: imageWidth,
-          height: imageHeight,
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
-        },
-      });
-
-      const chunkPromises = [];
-
-      for (let x = 0; x < imageWidth; x += chunkWidth) {
-        for (let y = 0; y < imageHeight; y += chunkHeight) {
-          const chunkWidthActual = Math.min(chunkWidth, imageWidth - x);
-          const chunkHeightActual = Math.min(chunkHeight, imageHeight - y);
-          const chunkUrl = `${
-            deviation.media.baseUri
-          }/v1/crop/w_${chunkWidthActual},h_${chunkHeightActual},x_${x},y_${y}/image.png?token=${
-            deviation.media.token![fullview.r]
-          }`;
-
-          chunkPromises.push(
-            undici
-              .request(chunkUrl, { throwOnError: true })
-              .then(async (response) => {
-                const chunk = {
-                  input: await readableToBuffer(response.body),
-                  left: x,
-                  top: y,
-                };
-                const metadata = await sharp(chunk.input).metadata();
-
-                if (!metadata.density) {
-                  throw new Error(
-                    `Chunk [${x}, ${y}] (${chunkWidthActual}x${chunkHeightActual}) is bad`,
-                  );
-                }
-
-                return chunk;
-              }),
-          );
-        }
-      }
-
-      image.composite(await Promise.all(chunkPromises));
-
-      const buffer = await image.png().toBuffer();
-      const blob = new Blob([buffer]);
-
-      ({ type, width, height } = deviationExtended.originalFile);
-      probeResult = {
-        blob,
-        filename: "chunked.png",
-        type,
-        width,
-        height,
-      };
-
-      if (type === "jpeg" || type === "jpg") {
-        console.log(
-          "Warning: original file is jpg but resulting file will be png",
-        );
-      }
-    }
-  }
-
-  if (type === "jpeg") {
-    type = "jpg";
-  }
-
-  if (!probeResult) {
-    probeResult = await probeImageUrl(imageUrl);
-  }
-
-  // if (probeResult.type !== type) {
-  //   throw new Error(
-  //     `Probe type ${probeResult.type} does not match original type ${type}`,
-  //   );
-  // }
-
-  // if (probeResult.width !== width || probeResult.height !== height) {
-  //   throw new Error(
-  //     `Probe dimensions ${probeResult.width}x${probeResult.height} do not match original dimensions ${width}x${height}`,
-  //   );
-  // }
-
   return {
     source: "DeviantArt",
     url: deviation.url,
-    images: [probeResult],
+    images: await extractProbeResult(deviation, deviationExtended).then(
+      (probeResult) => [probeResult],
+      (error) => {
+        if (metadataOnly) {
+          console.error(`Failed to extract probe result: ${error.message}`);
+          return [];
+        }
+
+        throw new Error(`Failed to extract probe result: ${error.message}`);
+      },
+    ),
     artist: author.username,
     date: formatDate(deviation.publishedTime),
     title: deviation.title,
     description: extractDescription(deviationExtended),
   };
+}
+
+async function extractProbeResult(
+  deviation: Deviation,
+  deviationExtended: DeviationExtended,
+): Promise<ProbeResult> {
+  const fullview = deviation.media.types.find((t) => t.t === "fullview");
+
+  if (!fullview) {
+    const error: any = new Error("Could not find fullview media file");
+    error.deviation = deviation;
+    throw error;
+  }
+
+  const chunkify = async () => {
+    if (!fullview.c) {
+      throw new Error(
+        "Cannot chunkify this deviation: fullview media file has no command string",
+      );
+    }
+
+    if (deviationExtended.originalFile.type !== "png") {
+      throw new Error(
+        "Cannot chunkify this deviation: original file type is not png",
+      );
+    }
+
+    const { width: imageWidth, height: imageHeight } =
+      deviationExtended.originalFile;
+    const chunkWidth = fullview.w;
+    const chunkHeight = fullview.h;
+
+    const image = sharp({
+      create: {
+        width: imageWidth,
+        height: imageHeight,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    });
+
+    const chunkPromises = [];
+
+    for (let x = 0; x < imageWidth; x += chunkWidth) {
+      for (let y = 0; y < imageHeight; y += chunkHeight) {
+        const chunkWidthActual = Math.min(chunkWidth, imageWidth - x);
+        const chunkHeightActual = Math.min(chunkHeight, imageHeight - y);
+
+        const chunkUrl = new URL(deviation.media.baseUri);
+
+        chunkUrl.pathname += `/v1/crop/w_${chunkWidthActual},h_${chunkHeightActual},x_${x},y_${y}/chunk.png`;
+
+        if (fullview.r >= 0 && deviation.media.token) {
+          chunkUrl.searchParams.set("token", deviation.media.token[fullview.r]);
+        }
+
+        chunkPromises.push(
+          undici
+            .request(chunkUrl, { throwOnError: true })
+            .then(async (response) => {
+              const chunk = {
+                input: await readableToBuffer(response.body),
+                left: x,
+                top: y,
+              };
+              const metadata = await sharp(chunk.input).metadata();
+
+              if (!metadata.density) {
+                throw new Error("BAD_CHUNK");
+              }
+
+              return chunk;
+            }),
+        );
+      }
+    }
+
+    let chunks: {
+      input: Buffer;
+      left: number;
+      top: number;
+    }[];
+
+    try {
+      chunks = await Promise.all(chunkPromises);
+    } catch (error: any) {
+      if (error.message === "BAD_CHUNK") {
+        throw new Error(
+          "Could not chunkify this deviation: encountered a bad chunk",
+        );
+      }
+
+      throw error;
+    }
+
+    const buffer = await image.composite(chunks).png().toBuffer();
+    const blob = new Blob([buffer]);
+
+    console.log(`[deviantart] [debug] successfully chunkified`);
+
+    return {
+      blob,
+      filename: "chunked.png",
+      type: "png",
+      width: imageWidth,
+      height: imageHeight,
+    };
+  };
+
+  console.log(
+    `[deviantart] [debug] original file: ${JSON.stringify(deviationExtended.originalFile)}`,
+  );
+  console.log(`[deviantart] [debug] fullview: ${JSON.stringify(fullview)}`);
+
+  if (
+    fullview.w === deviationExtended.originalFile.width &&
+    fullview.h === deviationExtended.originalFile.height
+  ) {
+    const url = new URL(deviation.media.baseUri);
+
+    if (fullview.c) {
+      url.pathname += fullview.c;
+    }
+
+    if (fullview.r >= 0 && deviation.media.token) {
+      url.searchParams.set("token", deviation.media.token[fullview.r]);
+    }
+
+    console.log(`[deviantart] [debug] fullview url: ${url}`);
+
+    return await probeAndValidateImageUrl(
+      url,
+      deviationExtended.originalFile.type,
+      deviationExtended.originalFile.width,
+      deviationExtended.originalFile.height,
+    );
+  }
+
+  if (deviation.isDownloadable) {
+    const download = await apiDownloadDeviation(
+      deviationExtended.deviationUuid,
+    );
+
+    if (
+      download.width !== deviationExtended.originalFile.width ||
+      download.height !== deviationExtended.originalFile.height
+    ) {
+      throw new Error("Download has different dimensions than original file");
+    }
+
+    console.log(`[deviantart] [debug] download url: ${download.src}`);
+
+    return await probeAndValidateImageUrl(
+      download.src,
+      deviationExtended.originalFile.type,
+      deviationExtended.originalFile.width,
+      deviationExtended.originalFile.height,
+    );
+  }
+
+  const { cardImage } = await extractInitialState(
+    "https://www.deviantart.com/users/login",
+    { referer: deviation.url.toString() },
+  );
+  const cardImageUrl = new URL(cardImage);
+  if (cardImageUrl.searchParams.has("token")) {
+    const token = JSON.parse(
+      Buffer.from(
+        cardImageUrl.searchParams.get("token")!.split(".")[1],
+        "base64",
+      ).toString("utf8"),
+    );
+
+    console.log(
+      `[deviantart] [debug] login card image token: ${JSON.stringify(token)}`,
+    );
+
+    if (token.aud?.includes("urn:service:file.download")) {
+      console.log(`[deviantart] [debug] login card image url: ${cardImageUrl}`);
+
+      return await probeAndValidateImageUrl(
+        cardImageUrl,
+        deviationExtended.originalFile.type,
+        deviationExtended.originalFile.width,
+        deviationExtended.originalFile.height,
+      );
+    }
+  }
+
+  // https://github.com/danbooru/danbooru/blob/a2ab035555bf4bfb67e5cd196134058928af4bf1/app/logical/source/url/deviant_art.rb#L220C57-L220C69
+  if (deviation.deviationId <= 790_677_560) {
+    const url = new URL(deviation.media.baseUri);
+    url.pathname = `/intermediary${url.pathname}`;
+
+    console.log(`[deviantart] [debug] intermediary url: ${url}`);
+
+    return await probeAndValidateImageUrl(
+      url,
+      deviationExtended.originalFile.type,
+      deviationExtended.originalFile.width,
+      deviationExtended.originalFile.height,
+    ).catch((error) => {
+      if (error.message.startsWith("Unexpected image ")) {
+        return chunkify();
+      }
+
+      throw error;
+    });
+  }
+
+  return await chunkify();
 }
 
 async function extractInitialState(
