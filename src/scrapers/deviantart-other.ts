@@ -258,7 +258,10 @@ async function extractProbeResult(
     const url = new URL(deviation.media.baseUri);
 
     if (fullview.c) {
-      url.pathname += fullview.c;
+      url.pathname += fullview.c.replace(
+        "<prettyName>",
+        deviation.media.prettyName,
+      );
     }
 
     if (fullview.r >= 0 && deviation.media.token) {
