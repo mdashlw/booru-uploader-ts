@@ -1,8 +1,7 @@
 import undici from "undici";
-import z from "zod";
-import getIntermediateImageUrl from "../intermediary.js";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 /*
  * Samples:
@@ -99,19 +98,13 @@ export async function scrape(url: URL): Promise<SourceData> {
   return {
     source: "pixiv",
     url: illust.meta.canonical,
-    images: illustPages.map((page) => ({
-      url: async () => {
-        const response = await undici.request(page.url, {
-          headers: { referer: "https://www.pixiv.net/" },
-          throwOnError: true,
-        });
-        const blob = await response.body.blob();
-        return await getIntermediateImageUrl(blob);
-      },
-      type: page.url.substring(page.url.lastIndexOf(".") + 1),
-      width: page.width,
-      height: page.height,
-    })),
+    images: await Promise.all(
+      illustPages.map((page) =>
+        probeAndValidateImageUrl(page.url, undefined, page.width, page.height, {
+          referer: "https://www.pixiv.net/",
+        }),
+      ),
+    ),
     artist: illust.author_details.user_name,
     date: formatDate(illust.upload_timestamp),
     title: illust.title,
@@ -124,7 +117,7 @@ async function fetchAjax<T extends z.ZodTypeAny>(
   body: T,
 ): Promise<z.infer<T>> {
   const response = await undici
-    .request(`https://www.pixiv.net/touch/ajax/${path}`, { throwOnError: true })
+    .request(`https://www.pixiv.net/touch/ajax/${path}`)
     .catch((error) => {
       error = new Error("Failed to fetch", { cause: error });
       error.path = path;

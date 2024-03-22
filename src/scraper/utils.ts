@@ -1,4 +1,5 @@
 import { Blob } from "node:buffer";
+import { IncomingHttpHeaders } from "undici/types/header.js";
 import {
   ProbeResult,
   probeImageBlob,
@@ -27,8 +28,14 @@ export async function probeAndValidateImageUrl(
   type?: string,
   width?: number,
   height?: number,
+  headers?: IncomingHttpHeaders,
 ): Promise<ProbeResult> {
-  return validateProbeResult(await probeImageUrl(url), type, width, height);
+  return validateProbeResult(
+    await probeImageUrl(url, headers),
+    type,
+    width,
+    height,
+  );
 }
 
 function validateProbeResult(

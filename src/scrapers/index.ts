@@ -9,7 +9,7 @@ import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter-api.js";
 import * as Mastodon from "./mastodon.js";
 // import * as PassThrough from "./pass-through.js";
-// import * as Pixiv from "./pixiv.js";
+import * as Pixiv from "./pixiv.js";
 import * as Raw from "./raw.js";
 import * as Stash from "./stash.js";
 // import * as Tabun from "./tabun.js";
@@ -29,7 +29,7 @@ export const scrapers: Scraper[] = [
   Lofter,
   Mastodon,
   // PassThrough,
-  // Pixiv,
+  Pixiv,
   YchArt,
   Raw,
   Stash,
