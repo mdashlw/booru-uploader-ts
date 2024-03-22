@@ -35,7 +35,7 @@ type Status = z.infer<typeof Status>;
 
 export function canHandle(url: URL): boolean {
   return (
-    ["socel.net", "equestria.social"].includes(url.hostname) &&
+    ["socel.net", "equestria.social", "pone.social"].includes(url.hostname) &&
     /^\/@\w+\/\d+$/.test(url.pathname)
   );
 }
