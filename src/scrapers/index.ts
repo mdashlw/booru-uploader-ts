@@ -5,6 +5,7 @@ import * as Boosty from "./boosty.js";
 import * as Commishes from "./commishes-api.js";
 import * as DeviantArt from "./deviantart-other.js";
 import * as FurAffinity from "./furaffinity.js";
+import * as Inkbunny from "./inkbunny.js";
 import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter-api.js";
 import * as Mastodon from "./mastodon.js";
@@ -25,6 +26,7 @@ export const scrapers: Scraper[] = [
   Commishes,
   DeviantArt,
   FurAffinity,
+  Inkbunny,
   Itaku,
   Lofter,
   Mastodon,
