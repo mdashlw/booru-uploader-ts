@@ -8,7 +8,11 @@ import { ArchivedTumblrPost, getAllReblogs } from "../index.js";
 const reblogsCache = new Map<string, ArchivedTumblrPost[][]>();
 
 const fastify = Fastify({
-  logger: true,
+  logger: {
+    transport: {
+      target: "pino-pretty",
+    },
+  }
 });
 
 fastify.register(fastifyStatic, {
