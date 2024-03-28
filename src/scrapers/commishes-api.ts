@@ -145,9 +145,9 @@ async function fetchAuctionExtended(
 ): Promise<AuctionExtended> {
   const response = await undici
     .request(
-      `https://ych.commishes.com/user/history/${username}.json?until=${
+      `https://ych.commishes.com/user/history/${username}.json?rating=100&until=${
         auctionId + 1
-      }&rating=100`,
+      }`,
       {
         throwOnError: true,
       },
