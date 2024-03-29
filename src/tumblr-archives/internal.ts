@@ -1,6 +1,4 @@
 import { createClient } from "@libsql/client";
-// @ts-ignore
-import * as isomorphicFetch from "@libsql/isomorphic-fetch";
 import retry from "async-retry";
 import process from "node:process";
 
@@ -18,8 +16,8 @@ export const client = createClient({
   url: process.env.TUMBLR_ARCHIVES_LIBSQL_URL,
   authToken: process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN,
   intMode: "string",
-  fetch: (request: isomorphicFetch.Request) =>
-    retry(() => isomorphicFetch.fetch(request), {
+  fetch: (request) =>
+    retry(() => fetch(request), {
       retries: 3,
       onRetry(error, attempt) {
         console.error(`libsql client fetch error (attempt ${attempt})`, error);
