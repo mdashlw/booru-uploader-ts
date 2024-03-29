@@ -12,7 +12,7 @@ const fastify = Fastify({
     transport: {
       target: "pino-pretty",
     },
-  }
+  },
 });
 
 fastify.register(fastifyStatic, {
