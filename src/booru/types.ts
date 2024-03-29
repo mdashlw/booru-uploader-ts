@@ -17,6 +17,7 @@ export interface Image {
   view_url: string;
   source_url: string | null;
   source_urls?: string[];
+  orig_sha512_hash: string;
 }
 
 export interface AutocompletedTag {

@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import chalkTemplate from "chalk-template";
+import crypto from "node:crypto";
 import process from "node:process";
 import readline from "node:readline/promises";
 import util from "node:util";
@@ -174,26 +175,51 @@ for await (const image of images(
       // continue;
     }
 
-    let imageData: SourceImageData;
+    let imageData: SourceImageData | undefined;
+    let hashMatch = false;
 
     if (sourceData.images.length === 1) {
       imageData = sourceData.images[0];
     } else {
-      imageData = sourceData.images
-        .map(
-          (data) =>
-            [
-              data,
-              Math.abs(image.width / image.height - data.width / data.height),
-            ] as const,
-        )
-        .sort(([, a], [, b]) => a - b)[0][0];
+      for (const sourceImage of sourceData.images) {
+        if (!sourceImage.blob) {
+          continue;
+        }
 
-      console.log(
-        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright ${
-          sourceData.images.length
-        } images - picked ${sourceData.images.indexOf(imageData)}}`,
-      );
+        if (
+          crypto
+            .createHash("sha512")
+            .update(Buffer.from(await sourceImage.blob.arrayBuffer()))
+            .digest("hex") === image.orig_sha512_hash
+        ) {
+          imageData = sourceImage;
+          hashMatch = true;
+        }
+      }
+
+      if (imageData) {
+        console.log(
+          chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright ${
+            sourceData.images.length
+          } images - picked ${sourceData.images.indexOf(imageData)} (hash match)}`,
+        );
+      } else {
+        imageData = sourceData.images
+          .map(
+            (data) =>
+              [
+                data,
+                Math.abs(image.width / image.height - data.width / data.height),
+              ] as const,
+          )
+          .sort(([, a], [, b]) => a - b)[0][0];
+
+        console.log(
+          chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright ${
+            sourceData.images.length
+          } images - picked ${sourceData.images.indexOf(imageData)} (closest aspect ratio)}`,
+        );
+      }
     }
 
     const sameAspectRatio =
@@ -225,6 +251,24 @@ for await (const image of images(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${imageData.type} (${sourceData.source}) vs ${image.format} (${booru.name})}`,
       );
     }
+
+    // if (
+    //   ok &&
+    //   image.width === imageData.width &&
+    //   image.height === imageData.height &&
+    //   image.format === imageData.type &&
+    //   !hashMatch &&
+    //   imageData.blob &&
+    //   crypto
+    //     .createHash("sha512")
+    //     .update(Buffer.from(await imageData.blob.arrayBuffer()))
+    //     .digest("hex") !== image.orig_sha512_hash
+    // ) {
+    //   ok = false;
+    //   console.log(
+    //     chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright hash mismatch: ${imageData.width}x${imageData.height} ${imageData.type} (${sourceData.source}) vs ${image.width}x${image.height} ${image.format} (${booru.name})}`,
+    //   );
+    // }
   }
 
   if (ok) {
