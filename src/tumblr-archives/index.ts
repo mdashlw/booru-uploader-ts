@@ -131,14 +131,16 @@ export async function archivePosts(blogName: string): Promise<void> {
         }
 
         return [
-          ...handleContent(post.content).map((args) => args.concat(post.id)),
+          ...handleContent(post.content).map((args) =>
+            args.concat(post.id, post.blog.uuid),
+          ),
           ...(post.rebloggedRootId && post.trail.length
             ? handleContent(post.trail[0].content).map((args) =>
-                args.concat(post.rebloggedRootId!),
+                args.concat(post.rebloggedRootId!, post.rebloggedRootUuid!),
               )
             : []),
         ].map((args) => ({
-          sql: "INSERT OR IGNORE INTO media VALUES (?, ?, ?, ?, ?, ?)",
+          sql: "INSERT OR IGNORE INTO media VALUES (?, ?, ?, ?, ?, ?, ?)",
           args,
         }));
       }),

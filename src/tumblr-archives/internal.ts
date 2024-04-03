@@ -48,6 +48,7 @@ await client.execute(
     key_c TEXT COLLATE NOCASE, \
     url TEXT NOT NULL UNIQUE, \
     postId INTEGER NOT NULL, \
+    blogUuid TEXT NOT NULL, \
     UNIQUE (key_a, key_b)\
   ) WITHOUT ROWID, STRICT",
 );
