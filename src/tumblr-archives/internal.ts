@@ -16,7 +16,7 @@ export const client = createClient({
   url: process.env.TUMBLR_ARCHIVES_LIBSQL_URL,
   authToken: process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN,
   intMode: "string",
-  fetch: (request) =>
+  fetch: (request: any) =>
     retry(() => fetch(request), {
       retries: 3,
       onRetry(error, attempt) {
@@ -38,4 +38,25 @@ await client.execute(
 );
 await client.execute(
   "CREATE INDEX IF NOT EXISTS reblogs_rootBlogName_index ON reblogs(rootBlogName)",
+);
+
+await client.execute(
+  "CREATE TABLE IF NOT EXISTS media (\
+    key TEXT PRIMARY KEY NOT NULL COLLATE NOCASE, \
+    key_a TEXT COLLATE NOCASE, \
+    key_b TEXT NOT NULL COLLATE NOCASE, \
+    key_c TEXT COLLATE NOCASE, \
+    url TEXT NOT NULL UNIQUE, \
+    postId INTEGER NOT NULL, \
+    UNIQUE (key_a, key_b)\
+  ) WITHOUT ROWID, STRICT",
+);
+await client.execute(
+  "CREATE INDEX IF NOT EXISTS idx_media_key_a ON media(key_a COLLATE NOCASE)",
+);
+await client.execute(
+  "CREATE INDEX IF NOT EXISTS idx_media_key_b ON media(key_b COLLATE NOCASE)",
+);
+await client.execute(
+  "CREATE INDEX IF NOT EXISTS idx_media_key_c ON media(key_c COLLATE NOCASE)",
 );

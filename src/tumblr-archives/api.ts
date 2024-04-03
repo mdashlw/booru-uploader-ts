@@ -1,6 +1,7 @@
 import retry from "async-retry";
 import undici from "undici";
 import { z } from "zod";
+import { NpfContentBlock } from "../utils/tumblr-npf-types.js";
 
 export const TumblrPost = z.object({
   blogName: z.string(),
@@ -11,6 +12,12 @@ export const TumblrPost = z.object({
   rebloggedRootId: z.string().optional(),
   rebloggedRootName: z.string().optional(),
   rebloggedRootUuid: z.string().startsWith("t:").optional(),
+  content: NpfContentBlock.array(),
+  trail: z
+    .object({
+      content: NpfContentBlock.array(),
+    })
+    .array(),
 });
 export type TumblrPost = z.infer<typeof TumblrPost>;
 
