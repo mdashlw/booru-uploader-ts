@@ -2,7 +2,7 @@ import { archivePosts } from "./index.js";
 import { client } from "./internal.js";
 
 const { rows } = await client.execute(
-  "SELECT DISTINCT reblogBlogUuid FROM reblogs LIMIT 1",
+  "SELECT DISTINCT reblogBlogUuid FROM reblogs",
 );
 
 console.log(rows);
