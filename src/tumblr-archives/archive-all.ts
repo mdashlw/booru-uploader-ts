@@ -5,7 +5,12 @@ const { rows } = await client.execute(
   "SELECT DISTINCT reblogBlogUuid FROM reblogs",
 );
 
-console.log(rows);
+console.log(`${rows.length} unique blogs`);
+for (const { reblogBlogUuid } of rows) {
+  console.log(`- ${reblogBlogUuid}`);
+}
+
+console.log("-".repeat(100));
 
 for (const row of rows) {
   const blogName = row.reblogBlogUuid as string;
