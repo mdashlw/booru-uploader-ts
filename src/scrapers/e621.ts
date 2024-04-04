@@ -47,7 +47,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         .request(post.file.url, { throwOnError: true })
         .then((response) => response.body.blob()),
       filename: `${post.file.md5}.${post.file.ext}`,
-      type: "webm",
+      type: post.file.ext,
       width: post.file.width,
       height: post.file.height,
     };
