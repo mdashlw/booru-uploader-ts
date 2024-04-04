@@ -81,7 +81,10 @@ export async function archivePosts(blogName: string): Promise<void> {
           const parts = key.split(":");
 
           if (parts.length > 2) {
-            throw new Error(`Invalid media key (too many parts): ${key}`);
+            const key_b = parts.pop()!;
+            const key_a = parts.join(":");
+
+            return [key, key_a, key_b, null, mediaObject.url];
           }
 
           let key_a: string | null = parts[0];
