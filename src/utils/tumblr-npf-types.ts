@@ -55,7 +55,6 @@ export type NpfTextBlock = z.infer<typeof NpfTextBlock>;
 
 export const NpfLinkBlock = z.object({
   type: z.literal("link"),
-  url: z.string().url(),
 });
 export type NpfLinkBlock = z.infer<typeof NpfLinkBlock>;
 
