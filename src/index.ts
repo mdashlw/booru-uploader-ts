@@ -49,8 +49,9 @@ await Promise.allSettled(
       filename: image.filename,
       tags: [
         ...[sources.primary, ...sources.alternate]
-          .filter((source) => source.artist)
-          .map((source) => `artist:${source.artist}`),
+          .flatMap((source) => source.artist)
+          .filter(Boolean)
+          .map((artist) => `artist:${artist}`),
         ...tags.getList(booru)!.names,
       ],
       sourceUrl: sources.primary.url,
