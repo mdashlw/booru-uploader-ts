@@ -61,6 +61,8 @@ export async function archivePosts(blogName: string): Promise<void> {
                 segment = segment.substring("tumblr_inline_".length);
               } else if (segment.startsWith("tumblr_messaging_")) {
                 segment = segment.substring("tumblr_messaging_".length);
+              } else if (segment.startsWith("tumblr_reply_")) {
+                segment = segment.substring("tumblr_reply_".length);
               } else if (segment.startsWith("tumblr_")) {
                 segment = segment.substring("tumblr_".length);
               }
@@ -102,7 +104,7 @@ export async function archivePosts(blogName: string): Promise<void> {
             key_c = key_c.substring(10).replace(/\d+$/, "");
 
             if (!key_c.startsWith("1")) {
-              console.error("invalid key c:", {
+              console.error("invalid key c (will be null):", {
                 key: key,
                 url: mediaObject.url,
                 key_a,
