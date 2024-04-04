@@ -1,6 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
+import { SourceData, SourceImageData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
 const fakeArtistTags = ["sound_warning", "third-party_edit"];
@@ -11,6 +11,8 @@ const E621Post = z.object({
   file: z.object({
     width: z.number().int().positive(),
     height: z.number().int().positive(),
+    ext: z.string(),
+    md5: z.string(),
     url: z.string().url(),
   }),
   tags: z.object({
@@ -37,17 +39,31 @@ export async function scrape(url: URL): Promise<SourceData> {
     (artist) => !fakeArtistTags.includes(artist),
   );
 
+  let file: SourceImageData;
+
+  if (post.file.ext === "webm") {
+    file = {
+      blob: await undici
+        .request(post.file.url, { throwOnError: true })
+        .then((response) => response.body.blob()),
+      filename: `${post.file.md5}.${post.file.ext}`,
+      type: "webm",
+      width: post.file.width,
+      height: post.file.height,
+    };
+  } else {
+    file = await probeAndValidateImageUrl(
+      post.file.url,
+      undefined,
+      post.file.width,
+      post.file.height,
+    );
+  }
+
   return {
     source: "E621",
     url: `https://e621.net/posts/${postId}`,
-    images: [
-      await probeAndValidateImageUrl(
-        post.file.url,
-        undefined,
-        post.file.width,
-        post.file.height,
-      ),
-    ],
+    images: [file],
     artist: artists,
     date: formatDate(post.created_at),
     title: null,
