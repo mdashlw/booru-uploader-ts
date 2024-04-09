@@ -104,9 +104,9 @@ export async function archivePosts(blogName: string): Promise<void> {
               key_c = key_b;
             }
 
-            key_c = key_c.substring(10).replace(/\d+$/, "");
+            key_c = key_c.substring(10, 17);
 
-            if (!key_c.startsWith("1")) {
+            if (key_c.length !== 7 || !key_c.startsWith("1")) {
               console.error("invalid key c (will be null):", {
                 key: key,
                 url: mediaObject.url,
@@ -115,6 +115,8 @@ export async function archivePosts(blogName: string): Promise<void> {
                 key_c,
               });
               key_c = null;
+            } else {
+              key_c = key_c.substring(1);
             }
           }
 
