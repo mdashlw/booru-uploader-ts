@@ -47,7 +47,7 @@ function keyToKeyC(key: string) {
 for (let offset = 0; ; offset += limit) {
   console.log(`limit=${limit} offset=${offset}`);
   const { rows } = await client.execute(
-    `select key, key_c from media where key_c like '1%' limit ${limit} offset ${offset}`,
+    `select key, key_c from media order by key limit ${limit} offset ${offset}`,
   );
 
   if (!rows.length) {
