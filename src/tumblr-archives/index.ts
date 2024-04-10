@@ -18,7 +18,13 @@ export type ArchivedTumblrPost = {
 };
 
 export async function archivePosts(blogName: string): Promise<void> {
-  for await (const posts of fetchBlogPosts(blogName)) {
+  let totalPostsSoFar = 0;
+
+  for await (const { totalPosts, posts } of fetchBlogPosts(blogName)) {
+    totalPostsSoFar += posts.length;
+    console.log(
+      `[archivePosts blogName=${blogName}] progress: ${totalPostsSoFar} / ${totalPosts}`,
+    );
     await client.batch(
       posts
         .filter((post) => post.rebloggedRootId)

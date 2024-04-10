@@ -82,7 +82,7 @@ async function fetchAPI<T extends z.ZodTypeAny>(
 
 export async function* fetchBlogPosts(
   blogName: string,
-): AsyncGenerator<TumblrPost[], void, void> {
+): AsyncGenerator<{ totalPosts: number; posts: TumblrPost[] }, void, void> {
   let nextHref: string | undefined =
     `/v2/blog/${blogName}/posts?limit=100&npf=true&reblog_info=true&fields[blogs]=uuid`;
 
@@ -98,13 +98,17 @@ export async function* fetchBlogPosts(
           })
           .optional(),
         posts: TumblrPost.array(),
+        totalPosts: z.number().int().nonnegative(),
       }),
     );
 
     // cast required because typescript moment
     nextHref = data.links?.next.href as string | undefined;
 
-    yield data.posts;
+    yield {
+      totalPosts: data.totalPosts,
+      posts: data.posts,
+    };
   } while (nextHref);
 }
 
