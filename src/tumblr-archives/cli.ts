@@ -1,3 +1,4 @@
+import Bluebird from "bluebird";
 import fs from "node:fs";
 import process from "node:process";
 import util from "node:util";
@@ -27,6 +28,9 @@ if (command === "archive") {
       blogsFromFile: {
         type: "string",
       },
+      concurrency: {
+        type: "string",
+      },
     },
   });
 
@@ -41,15 +45,26 @@ if (command === "archive") {
         .filter(Boolean)
     : (args.blogs as string[]);
 
-  for (const blogName of blogs) {
-    try {
-      console.log(`Starting to archive blog ${blogName}`);
-      await archivePosts(blogName);
-      console.log(`Finished archiving blog ${blogName}`);
-    } catch (error) {
-      console.error(`Failed to archive blog ${blogName}`, error);
-    }
+  const concurrency = args.concurrency ? Number(args.concurrency) : 1;
+
+  if (Number.isNaN(concurrency)) {
+    console.error("Invalid concurrency");
+    process.exit(1);
   }
+
+  await Bluebird.map(
+    blogs,
+    async (blogName) => {
+      try {
+        console.log(`Starting to archive blog ${blogName}`);
+        await archivePosts(blogName);
+        console.log(`Finished archiving blog ${blogName}`);
+      } catch (error) {
+        console.error(`Failed to archive blog ${blogName}`, error);
+      }
+    },
+    { concurrency },
+  );
 } else if (command === "reblogs") {
   const { values: args } = util.parseArgs({
     args: process.argv.slice(3),
