@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import process from "node:process";
 import util from "node:util";
 import { archivePosts, getReblogs } from "./index.js";
@@ -23,15 +24,24 @@ if (command === "archive") {
         type: "string",
         multiple: true,
       },
+      blogsFromFile: {
+        type: "string",
+      },
     },
   });
 
-  if (!args.blogs?.length) {
+  if (!args.blogs?.length && !args.blogsFromFile) {
     console.error("Invalid usage: missing at least one --blogs <blog name>");
     process.exit(1);
   }
 
-  for (const blogName of args.blogs) {
+  const blogs = args.blogsFromFile
+    ? (await fs.promises.readFile(args.blogsFromFile, "utf8"))
+        .split("\n")
+        .filter(Boolean)
+    : (args.blogs as string[]);
+
+  for (const blogName of blogs) {
     try {
       console.log(`Starting to archive blog ${blogName}`);
       await archivePosts(blogName);
