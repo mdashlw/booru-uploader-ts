@@ -29,7 +29,7 @@ export async function archivePosts(blogName: string): Promise<void> {
       posts
         .filter((post) => post.rebloggedRootId)
         .map((post) => ({
-          sql: "INSERT OR IGNORE INTO reblogs VALUES (?, ?, ?, ?, ?, ?)",
+          sql: "INSERT INTO reblogs VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (rootPostId, reblogPostId) DO NOTHING",
           args: [
             post.rebloggedRootId!,
             post.rebloggedRootUuid!,
@@ -153,7 +153,7 @@ export async function archivePosts(blogName: string): Promise<void> {
               )
             : []),
         ].map((args) => ({
-          sql: "INSERT OR IGNORE INTO media VALUES (?, ?, ?, ?, ?, ?, ?)",
+          sql: "INSERT INTO media VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (key) DO NOTHING",
           args,
         }));
       }),
