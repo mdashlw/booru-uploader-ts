@@ -177,7 +177,7 @@ export async function getAllReblogs(
   blogName: string,
 ): Promise<ArchivedTumblrPost[][]> {
   const { rows } = await client.execute({
-    sql: "SELECT * FROM reblogs WHERE rootBlogName = ? ORDER BY rootPostId DESC",
+    sql: "SELECT * FROM reblogs WHERE rootBlogName = ?1 OR rootBlogUuid = ?1 ORDER BY rootPostId DESC",
     args: [blogName],
   });
   const posts = rows as unknown as ArchivedTumblrPost[];
