@@ -39,6 +39,9 @@ await client.execute(
 await client.execute(
   "CREATE INDEX IF NOT EXISTS reblogs_rootBlogName_index ON reblogs(rootBlogName)",
 );
+await client.execute(
+  "CREATE INDEX IF NOT EXISTS reblogs_rootBlogUuid_index ON reblogs(rootBlogUuid)",
+);
 
 await client.execute(
   "CREATE TABLE IF NOT EXISTS media (\
