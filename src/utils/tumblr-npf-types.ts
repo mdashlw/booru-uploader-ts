@@ -22,7 +22,7 @@ export const NpfInlineTextFormatting = z.intersection(
     }),
     z.object({
       type: z.literal("link"),
-      url: z.string().url(),
+      url: z.string(),
     }),
     z.object({
       type: z.literal("mention"),
