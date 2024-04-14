@@ -73,7 +73,7 @@ async function fetchAPI<T extends z.ZodTypeAny>(
     })
     .safeParse(json);
 
-  if (!parsed.success) {
+  if (parsed.success === false) {
     console.error(json);
     throw new Error("Failed to parse Tumblr API response", {
       cause: parsed.error,
