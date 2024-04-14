@@ -63,7 +63,7 @@ async function fetchAPI<T extends z.ZodTypeAny>(
       },
     },
   );
-  const data = z
+  const parsed = z
     .object({
       meta: z.object({
         status: z.number(),
@@ -71,7 +71,16 @@ async function fetchAPI<T extends z.ZodTypeAny>(
       }),
       response: body,
     })
-    .parse(json);
+    .safeParse(json);
+
+  if (!parsed.success) {
+    console.error(json);
+    throw new Error("Failed to parse Tumblr API response", {
+      cause: parsed.error,
+    });
+  }
+
+  const data = parsed.data;
 
   if (data.meta.status !== 200) {
     throw new Error(data.meta.msg);
