@@ -169,7 +169,11 @@ const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
 });
 
 export function canHandle(url: URL): boolean {
-  return url.hostname.endsWith(".tumblr.com") || url.hostname === "tumblr.com";
+  return (
+    url.hostname.endsWith(".tumblr.com") ||
+    url.hostname === "tumblr.com" ||
+    url.hostname === "tmblr.co"
+  );
 }
 
 async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
@@ -198,6 +202,16 @@ async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
 
       return extractBlogNameAndPostId(new URL(location));
     }
+  } else if (url.hostname === "tmblr.co") {
+    const location = await undici
+      .request(url, { method: "HEAD", throwOnError: true })
+      .then((response) => response.headers.location);
+
+    if (typeof location !== "string") {
+      throw new Error(`Invalid location header: ${location}`);
+    }
+
+    return extractBlogNameAndPostId(new URL(location));
   } else {
     blogName = url.hostname.slice(0, -".tumblr.com".length);
 
