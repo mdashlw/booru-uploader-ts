@@ -189,7 +189,7 @@ async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
 
     if (!/^\d+$/.test(postId)) {
       const location = await undici
-        .request(url, { maxRedirections: 1 })
+        .request(url, { throwOnError: true })
         .then((response) => response.headers.location);
 
       if (typeof location !== "string") {
