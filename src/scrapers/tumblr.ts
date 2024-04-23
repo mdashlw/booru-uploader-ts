@@ -180,7 +180,10 @@ async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
   let blogName: string, postId: string;
 
   if (url.hostname === "www.tumblr.com" || url.hostname === "tumblr.com") {
-    if (url.pathname.startsWith("/blog/view/")) {
+    if (
+      url.pathname.startsWith("/blog/view/") ||
+      url.pathname.startsWith("/dashboard/blog/")
+    ) {
       [, , , blogName, postId] = url.pathname.split("/");
     } else if (url.pathname.startsWith("/blog/private_")) {
       [, , blogName] = url.pathname.split("/");
