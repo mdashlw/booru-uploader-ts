@@ -211,6 +211,10 @@ async function extractBlogNameAndPostId(url: URL): Promise<[string, string]> {
     [, , postId] = url.pathname.split("/");
   }
 
+  if (blogName.startsWith("@")) {
+    blogName = blogName.substring(1);
+  }
+
   return [blogName, postId];
 }
 
