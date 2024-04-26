@@ -13,7 +13,7 @@ import { getReblogs } from "../tumblr-archives/index.js";
 import { lazyInit } from "../utils/lazy-init.js";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
 import { ProbeResult } from "../utils/probe-image.js";
-import { NpfContentBlock, NpfImageBlock } from "../utils/tumblr-npf-types.js";
+import { NpfContentBlock } from "../utils/tumblr-npf-types.js";
 
 /*
  * Images can be:
