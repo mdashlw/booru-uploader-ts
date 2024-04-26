@@ -74,7 +74,7 @@ export default class TagList {
             this.booru.fetchTagBySlug(impliedSlug),
           ),
         )
-      ).filter((impliedObject): impliedObject is Tag => Boolean(impliedObject));
+      ).filter((impliedObject) => impliedObject !== null);
 
       if (impliedObjects.length) {
         const implies =

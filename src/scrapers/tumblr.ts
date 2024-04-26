@@ -281,7 +281,7 @@ export async function scrape(
 
   const images: SourceImageData[] = await Promise.all(
     content
-      .filter((block): block is NpfImageBlock => block.type === "image")
+      .filter((block) => block.type === "image")
       .map(async (block, index) => {
         const {
           media: [media],

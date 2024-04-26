@@ -3,7 +3,7 @@ import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { ProbeResult, probeImageUrl } from "../utils/probe-image.js";
+import { probeImageUrl } from "../utils/probe-image.js";
 
 const API_VERSION = "5.199";
 const API_ACCESS_TOKEN = process.env.VK_ACCESS_TOKEN;
@@ -153,10 +153,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         "photos.getById",
         {
           photos: attachments
-            .filter(
-              (attachment): attachment is VkPhotoAttachment =>
-                attachment.type === "photo",
-            )
+            .filter((attachment) => attachment.type === "photo")
             .map(
               ({ photo }) =>
                 `${photo.owner_id}_${photo.id}_${photo.access_key}`,
@@ -211,11 +208,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
             return null;
           })
-          .filter(
-            (
-              promise: Promise<ProbeResult> | null,
-            ): promise is Promise<ProbeResult> => promise !== null,
-          ) ?? [],
+          .filter((promise) => promise !== null) ?? [],
       ),
       artist: getGroupCustomScreenName(post.owner),
       date: formatDate((comment ?? post).date),

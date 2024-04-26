@@ -1,13 +1,13 @@
 import { MarkdownDialect } from "../booru/types.js";
 import { escapeMarkdownWithWhitespace } from "./markdown.js";
-import { NpfContentBlock, NpfTextBlock } from "./tumblr-npf-types.js";
+import { NpfContentBlock } from "./tumblr-npf-types.js";
 
 export default function convertTumblrNpfToMarkdown(
   npf: NpfContentBlock[],
   markdown: MarkdownDialect,
 ) {
   return npf
-    .filter((block): block is NpfTextBlock => block.type === "text")
+    .filter((block) => block.type === "text")
     .map((block) => {
       if (!block.formatting) {
         if (!block.text.trim()) {

@@ -1,10 +1,5 @@
 import _ from "lodash";
-import {
-  NpfContentBlock,
-  NpfImageBlock,
-  NpfMediaObject,
-  NpfVideoBlock,
-} from "../utils/tumblr-npf-types.js";
+import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.js";
 import { fetchBlogPosts } from "./api.js";
 import { client } from "./internal.js";
 
@@ -132,12 +127,12 @@ export async function archivePosts(blogName: string): Promise<void> {
         function handleContent(content: NpfContentBlock[]) {
           const mediaObjects = [
             ...content
-              .filter((block): block is NpfImageBlock => block.type === "image")
+              .filter((block) => block.type === "image")
               .map((block) => block.media[0]),
             ...content
-              .filter((block): block is NpfVideoBlock => block.type === "video")
+              .filter((block) => block.type === "video")
               .map((block) => block.media)
-              .filter((it): it is NpfMediaObject => Boolean(it)),
+              .filter((object) => object !== undefined),
           ];
 
           return mediaObjects.map(transformMediaObject);
