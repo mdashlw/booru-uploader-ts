@@ -37,7 +37,9 @@ export function canHandle(url: URL): boolean {
       url.hostname === "mobile.twitter.com" ||
       url.hostname === "x.com" ||
       url.hostname === "www.twitter.com" ||
-      url.hostname === "nitter.net") &&
+      url.hostname === "nitter.net" ||
+      url.hostname === "fxtwitter.com" ||
+      url.hostname === "vxtwitter.com") &&
     /^\/\w+\/status\/\d+/.test(url.pathname)
   );
 }
