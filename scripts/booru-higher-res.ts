@@ -230,20 +230,19 @@ for await (const image of images(
       }
     }
 
-    const sameAspectRatio =
+    const isBetterDimensions =
+      imageData.width > image.width || imageData.height > image.height;
+    const isBetterFormat = imageData.type === "png" && image.format === "jpg";
+    const isWorseFormat = imageData.type === "jpg" && image.format === "png";
+    const isSameDimensions =
+      numbersEqualWithinMargin(imageData.width, image.width, 1) &&
+      numbersEqualWithinMargin(imageData.height, image.height, 1);
+    const isSameAspectRatio =
       Math.abs(
         image.width / image.height - imageData.width / imageData.height,
       ) <= 0.009;
 
-    if (
-      (image.width < imageData.width || image.height < imageData.height) &&
-      !(
-        numbersEqualWithinMargin(imageData.width, image.width, 1) &&
-        numbersEqualWithinMargin(imageData.height, image.height, 1) &&
-        image.format === "png" &&
-        imageData.type === "jpg"
-      )
-    ) {
+    if (isBetterDimensions && !(isSameDimensions && isWorseFormat)) {
       ok = false;
       console.log(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${
@@ -251,17 +250,12 @@ for await (const image of images(
         }x${imageData.height} ${imageData.type} (${sourceData.source}) vs ${
           image.width
         }x${image.height} ${image.format} (${booru.name})${
-          sameAspectRatio ? "" : " ! different aspect ratio"
+          isSameAspectRatio ? "" : " ! different aspect ratio"
         }}`,
       );
     }
 
-    if (
-      numbersEqualWithinMargin(imageData.width, image.width, 1) &&
-      numbersEqualWithinMargin(imageData.height, image.height, 1) &&
-      image.format === "jpg" &&
-      imageData.type === "png"
-    ) {
+    if (isSameDimensions && isBetterFormat) {
       ok = false;
       console.log(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${imageData.type} (${sourceData.source}) vs ${image.format} (${booru.name})}`,
