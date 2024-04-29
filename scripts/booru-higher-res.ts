@@ -12,6 +12,14 @@ import type { SourceData, SourceImageData } from "../src/scraper/types.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 
+function numbersEqualWithinMargin(
+  a: number,
+  b: number,
+  marginPercentage: number,
+) {
+  return Math.abs(a - b) <= Math.max(a, b) * (marginPercentage / 100);
+}
+
 const { values: args } = util.parseArgs({
   options: {
     booru: { type: "string" },
@@ -227,7 +235,15 @@ for await (const image of images(
         image.width / image.height - imageData.width / imageData.height,
       ) <= 0.009;
 
-    if (image.width < imageData.width || image.height < imageData.height) {
+    if (
+      (image.width < imageData.width || image.height < imageData.height) &&
+      !(
+        numbersEqualWithinMargin(imageData.width, image.width, 1) &&
+        numbersEqualWithinMargin(imageData.height, image.height, 1) &&
+        image.format === "png" &&
+        imageData.type === "jpg"
+      )
+    ) {
       ok = false;
       console.log(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${
@@ -241,8 +257,8 @@ for await (const image of images(
     }
 
     if (
-      image.width === imageData.width &&
-      image.height === imageData.height &&
+      numbersEqualWithinMargin(imageData.width, image.width, 1) &&
+      numbersEqualWithinMargin(imageData.height, image.height, 1) &&
       image.format === "jpg" &&
       imageData.type === "png"
     ) {
