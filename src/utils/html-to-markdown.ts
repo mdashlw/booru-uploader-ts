@@ -82,7 +82,7 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
         href.substring(href.indexOf("//") + 2).startsWith(content.slice(0, -1))
       ) {
         if (markdown.inlineAllLinks) {
-          return markdown.inlineLink(href, href, "");
+          return markdown.inlineLink(href, href);
         } else {
           return href;
         }

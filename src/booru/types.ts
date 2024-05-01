@@ -61,6 +61,6 @@ export type MarkdownDialect = {
   headingStart(n: number): string;
   blockQuoteStart: string;
   blockQuoteEnd: string;
-  inlineLink: (text: string, destination: string, title: string) => string;
+  inlineLink: (text: string, destination: string, title?: string) => string;
   inlineImage(description: string, destination: string, title: string): string;
 };
