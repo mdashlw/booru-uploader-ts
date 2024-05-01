@@ -23,16 +23,33 @@ const E621Post = z.object({
 type E621Post = z.infer<typeof E621Post>;
 
 export function canHandle(url: URL): boolean {
-  return url.hostname === "e621.net" && url.pathname.startsWith("/posts/");
+  return (
+    url.hostname === "e621.net" &&
+    (url.pathname.startsWith("/posts/") ||
+      url.pathname.startsWith("/post/show/"))
+  );
+}
+
+function extractPostId(url: URL): number {
+  let postId: number;
+
+  if (url.pathname.startsWith("/posts/")) {
+    postId = Number(url.pathname.split("/")[2]);
+  } else if (url.pathname.startsWith("/post/show/")) {
+    postId = Number(url.pathname.split("/")[3]);
+  } else {
+    throw new Error(`Invalid URL: ${url}`);
+  }
+
+  if (Number.isNaN(postId)) {
+    throw new Error(`Invalid URL: ${url}`);
+  }
+
+  return postId;
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const postId = Number(url.pathname.split("/")[2]);
-
-  if (Number.isNaN(postId)) {
-    throw new Error("Invalid URL");
-  }
-
+  const postId = extractPostId(url);
   const { post } = await fetchPost(postId);
 
   const artists = post.tags.artist.filter(
