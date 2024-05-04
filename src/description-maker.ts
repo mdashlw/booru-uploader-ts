@@ -3,14 +3,11 @@ import { SourceData } from "./scraper/types.js";
 import { MultipleSources } from "./source-input.js";
 
 function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
-  let result = isAlternate
-    ? !booru.supportsMultipleSources
-      ? booru.markdown.inlineLink(
-          `Alternate Source (${source.source})`,
-          source.url,
-        )
-      : ""
-    : source.date ?? "";
+  let result =
+    (booru.supportsMultipleSources
+      ? source.source
+      : booru.markdown.inlineLink(source.source, source.url)) +
+    ` (${source.date})`;
 
   const formattedTitle =
     source.title && booru.markdown.bold(booru.markdown.escape(source.title));
