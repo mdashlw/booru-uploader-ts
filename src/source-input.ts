@@ -10,18 +10,9 @@ export interface MultipleSources {
 export default async function inputSources(
   metadataOnly?: boolean,
 ): Promise<MultipleSources> {
-  const validateSourceUrlInput = (value: string): string | boolean => {
-    try {
-      new URL(value);
-      return true;
-    } catch (error: any) {
-      return error.message;
-    }
-  };
-
   const primarySourceUrlString = await input({
     message: "Primary Source",
-    validate: (value: string) => validateSourceUrlInput(value),
+    validate: (value) => URL.canParse(value),
   });
   const primarySourceUrl = new URL(primarySourceUrlString);
 
@@ -30,7 +21,7 @@ export default async function inputSources(
   while (true) {
     const alternateSourceUrlString = await input({
       message: "Alternate Source",
-      validate: (value: string) => !value || validateSourceUrlInput(value),
+      validate: (value) => !value || URL.canParse(value),
     });
 
     if (!alternateSourceUrlString) {
