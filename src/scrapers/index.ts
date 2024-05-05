@@ -13,6 +13,7 @@ import * as Mastodon from "./mastodon.js";
 // import * as PassThrough from "./pass-through.js";
 import * as Pixiv from "./pixiv.js";
 import * as Raw from "./raw.js";
+import * as Reddit from "./reddit.js";
 import * as Stash from "./stash.js";
 // import * as Tabun from "./tabun.js";
 import * as Tumblr from "./tumblr.js";
@@ -36,6 +37,7 @@ export const scrapers: Scraper[] = [
   Pixiv,
   YchArt,
   Raw,
+  Reddit,
   Stash,
   // Tabun,
   Tumblr,
