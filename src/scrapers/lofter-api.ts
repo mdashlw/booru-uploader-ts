@@ -46,7 +46,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: await Promise.all(
       data.postData.postView.photoPostView.photoLinks.map(({ orign, ow, oh }) =>
         probeAndValidateImageUrl(
-          orign.substring(0, orign.indexOf("?")),
+          orign.includes("?") ? orign.substring(0, orign.indexOf("?")) : orign,
           undefined,
           ow,
           oh,
