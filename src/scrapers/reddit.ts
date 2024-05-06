@@ -1,4 +1,3 @@
-import child_process from "node:child_process";
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
@@ -6,7 +5,12 @@ import { formatDate } from "../scraper/utils.js";
 import { probeImageUrl } from "../utils/probe-image.js";
 
 export function canHandle(url: URL): boolean {
-  return url.hostname === "www.reddit.com" && url.pathname.startsWith("/r/");
+  return (
+    (url.hostname === "www.reddit.com" ||
+      url.hostname === "reddit.com" ||
+      url.hostname === "old.reddit.com") &&
+    url.pathname.startsWith("/r/")
+  );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
@@ -63,13 +67,13 @@ async function fetchAPI<T extends z.ZodTypeAny>(
   url: string,
   body: T,
 ): Promise<z.infer<T>> {
-  const curl = child_process.spawnSync("curl", ["-s", url], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
+  const oldRedditUrl = new URL(url);
+  oldRedditUrl.hostname = "old.reddit.com";
+  const response = await undici.request(oldRedditUrl, {
+    headers: { "user-agent": "curl" },
+    throwOnError: true,
   });
-  const json = JSON.parse(curl.stdout);
-
-  console.log(json);
+  const json = await response.body.json();
 
   return body.parse(json);
 }
