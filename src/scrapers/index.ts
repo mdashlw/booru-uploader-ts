@@ -20,7 +20,7 @@ import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 import * as Vk from "./vk.js";
 import * as YchArtAuction from "./ychart-auction.js";
-import * as YchArt from "./ychart.js";
+import * as YchArtCdn from "./ychart-cdn.js";
 
 export const scrapers: Scraper[] = [
   Bluesky,
@@ -37,7 +37,7 @@ export const scrapers: Scraper[] = [
   // PassThrough,
   Pixiv,
   YchArtAuction,
-  YchArt,
+  YchArtCdn,
   Raw,
   Reddit,
   Stash,
