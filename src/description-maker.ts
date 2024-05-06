@@ -7,7 +7,7 @@ function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
     (booru.supportsMultipleSources
       ? source.source
       : booru.markdown.inlineLink(source.source, source.url)) +
-    ` (${source.date})`;
+    (source.date ? ` (${source.date})` : "");
 
   const formattedTitle =
     source.title && booru.markdown.bold(booru.markdown.escape(source.title));
