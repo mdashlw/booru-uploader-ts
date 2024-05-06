@@ -19,6 +19,7 @@ import * as Stash from "./stash.js";
 import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 import * as Vk from "./vk.js";
+import * as YchArtAuction from "./ychart-auction.js";
 import * as YchArt from "./ychart.js";
 
 export const scrapers: Scraper[] = [
@@ -35,6 +36,7 @@ export const scrapers: Scraper[] = [
   Mastodon,
   // PassThrough,
   Pixiv,
+  YchArtAuction,
   YchArt,
   Raw,
   Reddit,
