@@ -8,25 +8,27 @@ const InitializeData = z.object({
   blogInfo: z.object({
     blogName: z.string(),
   }),
-  postData: z.object({
-    postView: z.object({
-      id: z.number(),
-      title: z.string(),
-      publishTime: z.coerce.date(),
-      digest: z.string(),
-      tagList: z.string().array(),
-      permalink: z.string(),
-      photoPostView: z.object({
-        photoLinks: z
-          .object({
-            orign: z.string().url(),
-            ow: z.number().int().positive(),
-            oh: z.number().int().positive(),
-          })
-          .array(),
+  postData: z
+    .object({
+      postView: z.object({
+        id: z.number(),
+        title: z.string(),
+        publishTime: z.coerce.date(),
+        digest: z.string(),
+        tagList: z.string().array(),
+        permalink: z.string(),
+        photoPostView: z.object({
+          photoLinks: z
+            .object({
+              orign: z.string().url(),
+              ow: z.number().int().positive(),
+              oh: z.number().int().positive(),
+            })
+            .array(),
+        }),
       }),
-    }),
-  }),
+    })
+    .optional(),
 });
 type InitializeData = z.infer<typeof InitializeData>;
 
@@ -39,6 +41,10 @@ export function canHandle(url: URL): boolean {
 export async function scrape(url: URL): Promise<SourceData> {
   const permalink = url.pathname.substring("/post/".length);
   const data = await fetchInitializeData(permalink);
+
+  if (data.postData === undefined) {
+    throw new Error("Post does not exist");
+  }
 
   return {
     source: "Lofter",
