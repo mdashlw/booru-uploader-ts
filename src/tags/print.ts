@@ -20,8 +20,8 @@ function printTag(tags: Tag[], tag: Tag, depth: number = 0) {
   if (tag.resolvedImpliedTags?.length) {
     const implies =
       chalk.grey(" implies ") +
-      tag
-        .resolvedImpliedTags!.map((tag) => chalk.magenta(tag.name))
+      tag.resolvedImpliedTags
+        .map((tag) => chalk.magenta(tag.name))
         .join(chalk.grey(", "));
 
     text += depth > 0 ? chalk.dim(implies) : implies;
