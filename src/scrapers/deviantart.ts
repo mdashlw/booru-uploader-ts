@@ -1,5 +1,6 @@
 import Bluebird from "bluebird";
 import { Blob } from "node:buffer";
+import events from "node:events";
 import os from "node:os";
 import process from "node:process";
 import sharp from "sharp";
@@ -172,6 +173,7 @@ async function extractProbeResult(
     }
 
     const abortController = new AbortController();
+    events.setMaxListeners(100, abortController.signal);
 
     const probes = await Bluebird.map(
       urls,
