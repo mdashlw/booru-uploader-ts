@@ -17,11 +17,11 @@ function printTag(tags: Tag[], tag: Tag, depth: number = 0) {
     text += chalk.green(tag.name);
   }
 
-  if (tag.resolvedImpliedTags) {
+  if (tag.implied_tags.length) {
     const implies =
       chalk.grey(" implies ") +
-      tag.resolvedImpliedTags
-        .map((tag) => chalk.magenta(tag.name))
+      tag
+        .resolvedImpliedTags!.map((tag) => chalk.magenta(tag.name))
         .join(chalk.grey(", "));
 
     text += depth > 0 ? chalk.dim(implies) : implies;
@@ -34,8 +34,8 @@ function printTag(tags: Tag[], tag: Tag, depth: number = 0) {
   );
 
   if (depth < 1) {
-    if (tag.resolvedImpliedTags) {
-      for (const impliedTag of tag.resolvedImpliedTags) {
+    if (tag.implied_tags.length) {
+      for (const impliedTag of tag.resolvedImpliedTags!) {
         printTag(tags, impliedTag, depth + 1);
       }
     }
