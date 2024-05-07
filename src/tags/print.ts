@@ -17,7 +17,7 @@ function printTag(tags: Tag[], tag: Tag, depth: number = 0) {
     text += chalk.green(tag.name);
   }
 
-  if (tag.implied_tags.length) {
+  if (tag.resolvedImpliedTags?.length) {
     const implies =
       chalk.grey(" implies ") +
       tag
