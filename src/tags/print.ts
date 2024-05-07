@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { fetchTagsBySlugs } from "./fetch.js";
-import { convertTagSlugToName, Tag } from "./index.js";
+import { Tag } from "./index.js";
 
 function hasTag(tags: Tag[], slug: string): boolean {
   return tags.some((tag) => tag.slug === slug || tag.aliased_tag === slug);
