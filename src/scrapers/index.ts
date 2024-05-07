@@ -3,7 +3,7 @@ import * as Bluesky from "./bluesky.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
 import * as Commishes from "./commishes-api.js";
-import * as DeviantArt from "./deviantart-other.js";
+import * as DeviantArt from "./deviantart.js";
 import * as E621 from "./e621.js";
 import * as FurAffinity from "./furaffinity.js";
 import * as Inkbunny from "./inkbunny.js";
