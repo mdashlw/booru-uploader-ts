@@ -32,6 +32,8 @@ tags.push(...(await fetchTagsByNames([ratingTag])));
 while (true) {
   await promptTags(tags);
 
+  console.log(tags.map((tag) => tag.name).join(", "));
+
   const confirmAnswer = await confirm({
     message: "Confirm?",
     default: true,
