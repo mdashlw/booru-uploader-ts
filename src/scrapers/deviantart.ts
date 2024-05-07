@@ -177,7 +177,7 @@ async function extractProbeResult(
     }
 
     const abortController = new AbortController();
-    events.setMaxListeners(100, abortController.signal);
+    events.setMaxListeners(16 * 16 * 2, abortController.signal);
 
     const probes = await Bluebird.map(
       urls,
