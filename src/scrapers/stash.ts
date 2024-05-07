@@ -2,7 +2,7 @@ import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { fetchAPI } from "./deviantart-other.js";
+import { fetchAPI } from "./deviantart.js";
 
 const StashItem = z.object({
   itemid: z.number().positive(),
