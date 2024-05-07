@@ -3,11 +3,10 @@ import Booru from "./index.js";
 import { Tag, TagName, TagSlug } from "./types.js";
 
 export default class TagList {
-  private readonly objects: Map<TagSlug, Tag>;
-
-  constructor(private readonly booru: Booru) {
-    this.objects = new Map<TagSlug, Tag>();
-  }
+  constructor(
+    private readonly booru: Booru,
+    private readonly objects = new Map<TagSlug, Tag>(),
+  ) {}
 
   get names() {
     return Array.from(this.objects.values()).map((object) => object.name);

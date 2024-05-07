@@ -2,13 +2,13 @@ import { confirm, select } from "@inquirer/prompts";
 import process from "node:process";
 import util from "node:util";
 import selectBoorus from "./booru-selector.js";
-import TagLists from "./booru/tag-lists.js";
-import { TagName } from "./booru/types.js";
 import makeDescription from "./description-maker.js";
 import selectImage from "./image-selector.js";
 import { ratingTags } from "./rating-tags.js";
 import inputSources from "./source-input.js";
-import inputTags from "./tag-input.js";
+import { fetchTagsByNames } from "./tags/fetch.js";
+import { Tag } from "./tags/index.js";
+import promptTags from "./tags/prompt.js";
 
 util.inspect.defaultOptions.depth = Infinity;
 
@@ -21,16 +21,16 @@ const image = await selectImage(sources.primary);
 
 const boorus = await selectBoorus();
 
-const tags = new TagLists(boorus);
+let tags: Tag[] = [];
 
 const ratingTag = await select({
   message: "Rating",
   choices: ratingTags.map((value) => ({ value })),
 });
-await tags.addByName(ratingTag as TagName);
+tags.push(...(await fetchTagsByNames([ratingTag])));
 
 while (true) {
-  await inputTags(tags);
+  await promptTags(tags);
 
   const confirmAnswer = await confirm({
     message: "Confirm?",
@@ -52,7 +52,7 @@ await Promise.allSettled(
           .flatMap((source) => source.artist)
           .filter(Boolean)
           .map((artist) => `artist:${artist}`),
-        ...tags.getList(booru)!.names,
+        ...tags.map((tag) => tag.name),
       ],
       sourceUrl: sources.primary.url,
       sourceUrls: [sources.primary, ...sources.alternate].map(
