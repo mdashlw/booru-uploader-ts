@@ -1,4 +1,6 @@
+import Bluebird from "bluebird";
 import { Blob } from "node:buffer";
+import os from "node:os";
 import process from "node:process";
 import sharp from "sharp";
 import undici from "undici";
@@ -11,6 +13,7 @@ import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 import { lazyInit } from "../utils/lazy-init.js";
 import { ProbeResult } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
+import { ZodLuxonDateTime } from "../utils/zod.js";
 
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
@@ -46,7 +49,7 @@ const Deviation = z.object({
   deviationId: z.number().int().positive(),
   url: z.string().url(),
   title: z.string().trim(),
-  publishedTime: z.coerce.date(),
+  publishedTime: ZodLuxonDateTime,
   isDownloadable: z.boolean(),
   author: z.number().int().positive(),
   media: z.object({
@@ -133,7 +136,7 @@ export async function scrape(
       },
     ),
     artist: author.username,
-    date: formatDate(deviation.publishedTime),
+    date: formatDate(deviation.publishedTime.toJSDate()),
     title: deviation.title,
     description: extractDescription(deviationExtended),
   };
@@ -150,6 +153,84 @@ async function extractProbeResult(
     error.deviation = deviation;
     throw error;
   }
+
+  const origify = async () => {
+    const urls = [];
+
+    const urlBase = `http://orig00.deviantart.net/0000/`;
+    const urlPathPrefix = `/${deviation.publishedTime.year}/${deviation.publishedTime.ordinal.toString().padStart(3, "0")}/`;
+    const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
+
+    for (const z of ["f", "i"]) {
+      const urlPrefix = `${urlBase}${z}${urlPathPrefix}`;
+
+      for (let a = 0; a < 16; ++a) {
+        for (let b = 0; b < 16; ++b) {
+          urls.push(
+            `${urlPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+          );
+        }
+      }
+    }
+
+    const probes = await Bluebird.map(
+      urls,
+      async (url) => {
+        let response: undici.Dispatcher.ResponseData | undefined;
+
+        for (let attempt = 0; attempt < 5; ++attempt) {
+          try {
+            response = await undici.request(url, {
+              method: "HEAD",
+              maxRedirections: 0,
+            });
+            break;
+          } catch {
+            continue;
+          }
+        }
+
+        if (response === undefined) {
+          throw new Error(`Failed to request ${url}`);
+        }
+
+        if (response.statusCode === 404) {
+          return;
+        }
+
+        if (response.statusCode !== 301) {
+          throw new Error(
+            `Unexpected status code ${response.statusCode} for ${url}`,
+          );
+        }
+
+        const location = response.headers.location;
+
+        if (typeof location !== "string") {
+          throw new Error(`Invalid location header: ${location}`);
+        }
+
+        console.log(`[deviantart] [debug] orig url: ${url}`);
+        console.log(`[deviantart] [debug] redirects to: ${location}`);
+
+        return await probeAndValidateImageUrl(
+          location,
+          deviationExtended.originalFile.type,
+          deviationExtended.originalFile.width,
+          deviationExtended.originalFile.height,
+        );
+      },
+      { concurrency: os.availableParallelism() },
+    );
+
+    const result = probes.find(Boolean);
+
+    if (!result) {
+      throw new Error("Failed to find original image");
+    }
+
+    return result;
+  };
 
   const chunkify = async () => {
     if (!fullview.c) {
@@ -336,21 +417,33 @@ async function extractProbeResult(
 
     console.log(`[deviantart] [debug] intermediary url: ${url}`);
 
-    return await probeAndValidateImageUrl(
-      url,
-      deviationExtended.originalFile.type,
-      deviationExtended.originalFile.width,
-      deviationExtended.originalFile.height,
-    ).catch((error) => {
-      if (error.message.startsWith("Unexpected image ")) {
-        return chunkify();
+    try {
+      return await probeAndValidateImageUrl(
+        url,
+        deviationExtended.originalFile.type,
+        deviationExtended.originalFile.width,
+        deviationExtended.originalFile.height,
+      );
+    } catch (error: any) {
+      if (!error.message.startsWith("Unexpected image ")) {
+        throw error;
       }
-
-      throw error;
-    });
+    }
   }
 
-  return await chunkify();
+  try {
+    return await origify();
+  } catch (error: any) {
+    console.error(`[deviantart] [debug] origify error: ${error.message}`);
+  }
+
+  try {
+    return await chunkify();
+  } catch (error: any) {
+    console.error(`[deviantart] [debug] chunkify error: ${error.message}`);
+  }
+
+  throw new Error("Cannot extract probe result");
 }
 
 async function extractInitialState(
