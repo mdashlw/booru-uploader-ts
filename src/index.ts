@@ -21,13 +21,12 @@ const image = await selectImage(sources.primary);
 
 const boorus = await selectBoorus();
 
-let tags: Tag[] = [];
-
 const ratingTag = await select({
   message: "Rating",
   choices: ratingTags.map((value) => ({ value })),
 });
-tags.push(...(await fetchTagsByNames([ratingTag])));
+
+const tags: Tag[] = await fetchTagsByNames([ratingTag]);
 
 while (true) {
   await promptTags(tags);
