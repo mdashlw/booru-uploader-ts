@@ -158,7 +158,11 @@ async function extractProbeResult(
   const origify = async () => {
     const urls = [];
 
-    const urlBase = `http://orig00.deviantart.net/0000/`;
+    const urlBase = "http://orig00.deviantart.net";
+
+    const pool = new undici.Pool(urlBase);
+
+    const urlPathBase = "/0000/";
     const urlPathPrefix = `/${deviation.publishedTime.year}/${deviation.publishedTime.ordinal.toString().padStart(3, "0")}/`;
     const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
 
@@ -166,7 +170,7 @@ async function extractProbeResult(
       for (let b = 0; b < 16; ++b) {
         for (const z of ["f", "i"]) {
           urls.push(
-            `${urlBase}${z}${urlPathPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+            `${urlPathBase}${z}${urlPathPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
           );
         }
       }
@@ -177,7 +181,7 @@ async function extractProbeResult(
 
     const probes = await Bluebird.map(
       urls,
-      async (url) => {
+      async (path) => {
         if (abortController.signal.aborted) {
           return;
         }
@@ -186,8 +190,9 @@ async function extractProbeResult(
 
         for (let attempt = 0; attempt < 5; ++attempt) {
           try {
-            response = await undici.request(url, {
+            response = await pool.request({
               method: "HEAD",
+              path,
               maxRedirections: 0,
               signal: abortController.signal,
             });
@@ -200,6 +205,8 @@ async function extractProbeResult(
             continue;
           }
         }
+
+        const url = `${urlBase}${path}`;
 
         if (response === undefined) {
           throw new Error(`Failed to request ${url}`);
@@ -235,6 +242,8 @@ async function extractProbeResult(
       },
       { concurrency: os.availableParallelism() },
     );
+
+    await pool.close();
 
     const result = probes.find(Boolean);
 
