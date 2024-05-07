@@ -161,21 +161,25 @@ async function extractProbeResult(
     const urlPathPrefix = `/${deviation.publishedTime.year}/${deviation.publishedTime.ordinal.toString().padStart(3, "0")}/`;
     const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
 
-    for (const z of ["f", "i"]) {
-      const urlPrefix = `${urlBase}${z}${urlPathPrefix}`;
-
-      for (let a = 0; a < 16; ++a) {
-        for (let b = 0; b < 16; ++b) {
+    for (let a = 0; a < 16; ++a) {
+      for (let b = 0; b < 16; ++b) {
+        for (const z of ["f", "i"]) {
           urls.push(
-            `${urlPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+            `${urlBase}${z}${urlPathPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
           );
         }
       }
     }
 
+    const abortController = new AbortController();
+
     const probes = await Bluebird.map(
       urls,
       async (url) => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
         let response: undici.Dispatcher.ResponseData | undefined;
 
         for (let attempt = 0; attempt < 5; ++attempt) {
@@ -183,9 +187,14 @@ async function extractProbeResult(
             response = await undici.request(url, {
               method: "HEAD",
               maxRedirections: 0,
+              signal: abortController.signal,
             });
             break;
-          } catch {
+          } catch (error: any) {
+            if (error.name === "AbortError") {
+              return;
+            }
+
             continue;
           }
         }
@@ -209,6 +218,8 @@ async function extractProbeResult(
         if (typeof location !== "string") {
           throw new Error(`Invalid location header: ${location}`);
         }
+
+        abortController.abort();
 
         console.log(`[deviantart] [debug] orig url: ${url}`);
         console.log(`[deviantart] [debug] redirects to: ${location}`);
