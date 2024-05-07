@@ -212,6 +212,8 @@ async function extractProbeResult(
           throw new Error(`Failed to request ${url}`);
         }
 
+        await response.body.dump();
+
         if (response.statusCode === 404) {
           return;
         }
