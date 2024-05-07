@@ -64,3 +64,6 @@ await client.execute(
 await client.execute(
   "CREATE INDEX IF NOT EXISTS idx_media_key_c ON media(key_c COLLATE NOCASE)",
 );
+await client.execute(
+  "CREATE INDEX IF NOT EXISTS idx_media_postId ON media(postId)",
+);
