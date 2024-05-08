@@ -23,7 +23,7 @@ export default class Derpibooru extends Booru {
         text
           .replaceAll("*", "\\*") // bold/italics
           .replaceAll("_", "\\_") // underline
-          .replaceAll("|", "\\|") // spoiler
+          .replaceAll("||", "\\|\\|") // spoiler
           .replaceAll("`", "\\`") // code
           .replaceAll("~", "\\~") // strikethrough
           .replaceAll("^", "\\^") // superscript

@@ -54,6 +54,8 @@ export default function convertTumblrNpfToMarkdown(
           (a, b) => Number(b.type === "link") - Number(a.type === "link"),
         );
 
+        text += chunk.substring(0, chunk.length - chunk.trimStart().length);
+
         for (const formatting of formattings) {
           switch (formatting.type) {
             case "bold":
@@ -84,7 +86,7 @@ export default function convertTumblrNpfToMarkdown(
           }
         }
 
-        text += escapeMarkdownWithWhitespace(chunk, markdown);
+        text += markdown.escape(chunk.trim());
 
         for (const formatting of formattings.reverse()) {
           switch (formatting.type) {
@@ -109,6 +111,8 @@ export default function convertTumblrNpfToMarkdown(
               break;
           }
         }
+
+        text += chunk.substring(chunk.trimEnd().length);
       }
 
       switch (block.subtype) {
