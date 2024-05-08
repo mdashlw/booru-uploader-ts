@@ -78,6 +78,13 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
       }
 
       if (
+        href.startsWith("https://t.umblr.com/redirect") ||
+        href.startsWith("http://t.umblr.com/redirect")
+      ) {
+        href = new URL(href).searchParams.get("z")!;
+      }
+
+      if (
         content.endsWith("…") &&
         href.substring(href.indexOf("//") + 2).startsWith(content.slice(0, -1))
       ) {
