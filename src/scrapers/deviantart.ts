@@ -156,28 +156,35 @@ async function extractProbeResult(
   }
 
   const origify = async () => {
-    const urls = [];
+    const urls: string[] = [];
 
     const urlBase = "http://orig00.deviantart.net";
 
     const pool = new undici.Pool(urlBase);
 
     const urlPathBase = "/0000/";
-    const urlPathPrefix = `/${deviation.publishedTime.year}/${deviation.publishedTime.ordinal.toString().padStart(3, "0")}/`;
     const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
 
-    for (let a = 0; a < 16; ++a) {
-      for (let b = 0; b < 16; ++b) {
-        for (const z of ["f", "i"]) {
-          urls.push(
-            `${urlPathBase}${z}${urlPathPrefix}${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
-          );
+    const constructUrls = (dt: luxon.DateTime) => {
+      for (let a = 0; a < 16; ++a) {
+        for (let b = 0; b < 16; ++b) {
+          for (const z of ["f", "i"]) {
+            urls.push(
+              `${urlPathBase}${z}/${dt.year}/${dt.ordinal.toString().padStart(3, "0")}/${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+            );
+          }
         }
       }
+    };
+
+    constructUrls(deviation.publishedTime);
+
+    for (let i = 1; i <= 90; ++i) {
+      constructUrls(deviation.publishedTime.plus({ days: i }));
     }
 
     const abortController = new AbortController();
-    events.setMaxListeners(16 * 16 * 2, abortController.signal);
+    events.setMaxListeners(Infinity, abortController.signal);
 
     const probes = await Bluebird.map(
       urls,
@@ -242,7 +249,7 @@ async function extractProbeResult(
           deviationExtended.originalFile.height,
         );
       },
-      { concurrency: os.availableParallelism() },
+      { concurrency: 256 },
     );
 
     await pool.close();
