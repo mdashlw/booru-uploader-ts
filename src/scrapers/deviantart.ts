@@ -1,4 +1,5 @@
 import Bluebird from "bluebird";
+import { DateTime } from "luxon";
 import { Blob } from "node:buffer";
 import events from "node:events";
 import os from "node:os";
@@ -179,8 +180,16 @@ async function extractProbeResult(
 
     constructUrls(deviation.publishedTime);
 
+    const now = DateTime.now();
+
     for (let i = 1; i <= 90; ++i) {
-      constructUrls(deviation.publishedTime.plus({ days: i }));
+      const dt = deviation.publishedTime.plus({ days: i });
+
+      if (dt > now) {
+        break;
+      }
+
+      constructUrls(dt);
     }
 
     const abortController = new AbortController();
