@@ -2,6 +2,8 @@ import TurndownService from "turndown";
 import { MarkdownDialect } from "../booru/types.js";
 import { escapeMarkdownWithWhitespace } from "./markdown.js";
 
+const MAGIC_NEW_LINE = "\0";
+
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
 }
@@ -32,7 +34,9 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
         isBlock: node.isBlock,
         content,
       });
-      return node.isBlock ? "\n" + content.trim() + "\n" : content;
+      return node.isBlock
+        ? content.replaceAll(MAGIC_NEW_LINE, "\n").trim() + MAGIC_NEW_LINE
+        : content;
     },
   });
 
@@ -103,5 +107,5 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
     },
   });
 
-  return turndownService.turndown(html);
+  return turndownService.turndown(html).replaceAll(MAGIC_NEW_LINE, "\n").trim();
 }

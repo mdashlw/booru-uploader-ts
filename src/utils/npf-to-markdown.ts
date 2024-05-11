@@ -1,5 +1,4 @@
 import { MarkdownDialect } from "../booru/types.js";
-import { escapeMarkdownWithWhitespace } from "./markdown.js";
 import { NpfContentBlock } from "./tumblr-npf-types.js";
 
 export default function convertTumblrNpfToMarkdown(
