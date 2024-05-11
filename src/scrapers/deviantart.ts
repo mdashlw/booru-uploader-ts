@@ -157,7 +157,9 @@ async function extractProbeResult(
   }
 
   const origify = async () => {
-    const urls: string[] = [];
+    if (deviation.publishedTime.year > 2019) {
+      throw new Error("Cannot origify this deviation: too new");
+    }
 
     const urlBase = "http://orig00.deviantart.net";
 
@@ -166,110 +168,110 @@ async function extractProbeResult(
     const urlPathBase = "/0000/";
     const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
 
-    const constructUrls = (dt: luxon.DateTime) => {
-      for (let a = 0; a < 16; ++a) {
-        for (let b = 0; b < 16; ++b) {
-          for (const z of ["f", "i"]) {
-            urls.push(
-              `${urlPathBase}${z}/${dt.year}/${dt.ordinal.toString().padStart(3, "0")}/${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
-            );
-          }
-        }
-      }
-    };
-
-    constructUrls(deviation.publishedTime);
-
     const now = DateTime.now();
 
-    for (let i = 1; i <= 90; ++i) {
+    for (let i = 0; i <= 90; ++i) {
       const dt = deviation.publishedTime.plus({ days: i });
 
       if (dt > now) {
         break;
       }
 
-      constructUrls(dt);
-    }
+      const paths: string[] = [];
 
-    const abortController = new AbortController();
-    events.setMaxListeners(Infinity, abortController.signal);
-
-    const probes = await Bluebird.map(
-      urls,
-      async (path) => {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        let response: undici.Dispatcher.ResponseData | undefined;
-
-        for (let attempt = 0; attempt < 5; ++attempt) {
-          try {
-            response = await pool.request({
-              method: "HEAD",
-              path,
-              maxRedirections: 0,
-              signal: abortController.signal,
-            });
-            break;
-          } catch (error: any) {
-            if (error.name === "AbortError") {
-              return;
-            }
-
-            continue;
+      for (const z of deviation.isDownloadable ? ["f", "i"] : ["i", "f"]) {
+        for (let a = 0; a < 16; ++a) {
+          for (let b = 0; b < 16; ++b) {
+            paths.push(
+              `${urlPathBase}${z}/${dt.year}/${dt.ordinal.toString().padStart(3, "0")}/${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+            );
           }
         }
+      }
 
-        const url = `${urlBase}${path}`;
+      const abortController = new AbortController();
+      events.setMaxListeners(Infinity, abortController.signal);
 
-        if (response === undefined) {
-          throw new Error(`Failed to request ${url}`);
-        }
+      const probes = await Bluebird.map(
+        paths,
+        async (path) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
 
-        await response.body.dump();
+          let response: undici.Dispatcher.ResponseData | undefined;
 
-        if (response.statusCode === 404) {
-          return;
-        }
+          for (let attempt = 0; attempt < 5; ++attempt) {
+            try {
+              response = await pool.request({
+                method: "HEAD",
+                path,
+                maxRedirections: 0,
+                signal: abortController.signal,
+              });
 
-        if (response.statusCode !== 301) {
-          throw new Error(
-            `Unexpected status code ${response.statusCode} for ${url}`,
+              if (response.statusCode >= 500) {
+                continue;
+              }
+
+              break;
+            } catch (error: any) {
+              if (error.name === "AbortError") {
+                return;
+              }
+
+              continue;
+            }
+          }
+
+          const url = `${urlBase}${path}`;
+
+          if (response === undefined) {
+            throw new Error(`Failed to request ${url}`);
+          }
+
+          await response.body.dump();
+
+          if (response.statusCode === 404) {
+            return;
+          }
+
+          if (response.statusCode !== 301) {
+            throw new Error(
+              `Unexpected status code ${response.statusCode} for ${url}`,
+            );
+          }
+
+          const location = response.headers.location;
+
+          if (typeof location !== "string") {
+            throw new Error(`Invalid location header: ${location}`);
+          }
+
+          abortController.abort();
+
+          console.log(`[deviantart] [debug] orig url: ${url}`);
+          console.log(`[deviantart] [debug] redirects to: ${location}`);
+
+          return await probeAndValidateImageUrl(
+            location,
+            deviationExtended.originalFile.type,
+            deviationExtended.originalFile.width,
+            deviationExtended.originalFile.height,
           );
-        }
+        },
+        { concurrency: 16 * 16 },
+      );
 
-        const location = response.headers.location;
+      const result = probes.find(Boolean);
 
-        if (typeof location !== "string") {
-          throw new Error(`Invalid location header: ${location}`);
-        }
-
-        abortController.abort();
-
-        console.log(`[deviantart] [debug] orig url: ${url}`);
-        console.log(`[deviantart] [debug] redirects to: ${location}`);
-
-        return await probeAndValidateImageUrl(
-          location,
-          deviationExtended.originalFile.type,
-          deviationExtended.originalFile.width,
-          deviationExtended.originalFile.height,
-        );
-      },
-      { concurrency: 256 },
-    );
-
-    await pool.close();
-
-    const result = probes.find(Boolean);
-
-    if (!result) {
-      throw new Error("Failed to find original image");
+      if (result) {
+        await pool.close();
+        return result;
+      }
     }
 
-    return result;
+    throw new Error("Failed to find original image");
   };
 
   const chunkify = async () => {
