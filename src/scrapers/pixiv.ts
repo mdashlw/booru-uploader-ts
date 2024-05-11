@@ -85,7 +85,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     },
   ];
 
-  let description = illust.comment;
+  let description = illust.comment ?? "";
 
   if (illust.tags.length) {
     if (description) {
