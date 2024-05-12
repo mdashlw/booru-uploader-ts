@@ -287,6 +287,10 @@ export async function scrape(
           media: [media],
         } = block;
 
+        if (media.width === undefined || media.height === undefined) {
+          throw new Error("Missing media dimensions");
+        }
+
         media.url = media.url.replace(".pnj", ".png");
 
         let { type } = media;
@@ -304,7 +308,8 @@ export async function scrape(
           probeResult: ProbeResult | undefined;
 
         if (media.hasOriginalDimensions) {
-          ({ width, height } = media);
+          width = media.width!;
+          height = media.height!;
           probeResult = await probeAndValidateImageUrl(
             media.url,
             undefined,
@@ -358,8 +363,8 @@ export async function scrape(
             }
           } else {
             console.log("v1 failed for", post.postUrl);
-            width = media.width + Math.random();
-            height = media.height + Math.random();
+            width = media.width! + Math.random();
+            height = media.height! + Math.random();
           }
 
           if (media.mediaKey) {

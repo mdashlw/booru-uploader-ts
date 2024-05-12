@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const NpfMediaObject = z.object({
-  url: z.string().url(),
+  url: z.string(),
   type: z.string(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
   hasOriginalDimensions: z.boolean().optional(),
   mediaKey: z.string().optional(),
 });
