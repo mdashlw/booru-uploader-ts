@@ -17,7 +17,7 @@ export const client = createClient({
   authToken: process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN,
   intMode: "string",
   fetch: (request: any) =>
-    retry(() => fetch(new Request(request)), {
+    retry(() => fetch(request.clone()), {
       retries: 3,
       onRetry(error, attempt) {
         console.error(`libsql client fetch error (attempt ${attempt})`, error);
