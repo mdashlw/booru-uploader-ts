@@ -270,8 +270,7 @@ export async function scrape(
     content = post.content;
   }
 
-  let v1Post: V1Post;
-
+  let v1PostPromise: Promise<V1Post | null> | undefined;
   let backupDataPromise:
     | Promise<{
         reblogPostId: string;
@@ -317,22 +316,18 @@ export async function scrape(
             height,
           );
         } else {
-          try {
-            v1Post ??= await fetchV1Post(post.blogName, post.idString);
-          } catch (error: any) {
-            if (
-              error.message === "Cannot access nsfw posts" ||
-              (error.message === "Failed to fetch" &&
-                error.cause instanceof undici.errors.ResponseStatusCodeError &&
-                error.cause.statusCode === 404)
-            ) {
-              // no-op
-            } else {
-              throw error;
-            }
-          }
+          const v1Post = await (v1PostPromise ??
+            (v1PostPromise = fetchV1Post(post.blogName, post.idString).catch(
+              (error) => {
+                if (error.message === "Post not found") {
+                  return null;
+                }
 
-          if (v1Post) {
+                throw error;
+              },
+            )));
+
+          if (v1Post !== null) {
             if (v1Post.type === "regular") {
               const match = Array.from(
                 v1Post["regular-body"].matchAll(
@@ -574,35 +569,52 @@ async function fetchCsrfToken(): Promise<string> {
 }
 
 async function fetchV1Post(blogName: string, postId: string): Promise<V1Post> {
-  const response = await undici
-    .request(`https://${blogName}.tumblr.com/api/read/json?id=${postId}`, {
-      throwOnError: true,
-    })
-    .catch((error) => {
-      error = new Error("Failed to fetch", { cause: error });
-      error.blogName = blogName;
-      error.postId = postId;
-      throw error;
-    });
-  const body = await response.body.text().catch((error) => {
-    error = new Error("Failed to read response body", { cause: error });
-    error.blogName = blogName;
-    error.postId = postId;
-    error.response = response;
-    throw error;
-  });
+  const response = await undici.request(
+    `https://${blogName}.tumblr.com/api/read/json?id=${postId}`,
+  );
+  const body = await response.body.text();
 
   if (
-    response.statusCode === 302 &&
-    (response.headers["location"] as string)?.startsWith(
-      "https://www.tumblr.com/safe-mode",
-    )
+    response.statusCode === 404 ||
+    (response.statusCode === 302 &&
+      (response.headers["location"] as string)?.startsWith(
+        "https://www.tumblr.com/safe-mode",
+      ))
   ) {
-    const error: any = new Error("Cannot access nsfw posts");
-    error.blogName = blogName;
-    error.postId = postId;
-    error.response = response;
-    throw error;
+    const num = 50;
+
+    let start = 0;
+    let end = 0;
+
+    do {
+      const mid = Math.floor((start + end) / 2);
+
+      const response = await undici.request(
+        `https://${blogName}.tumblr.com/api/read/json?num=${num}&start=${mid}`,
+      );
+      const body = await response.body.text();
+      const json = JSON.parse(body.slice("var tumblr_api_read = ".length, -2));
+
+      const post = json.posts.find((p: any) => p.id === postId);
+
+      if (post) {
+        return V1Post.parse(post);
+      }
+
+      if (end === 0) {
+        start = num;
+        end = json["posts-total"] - num;
+        continue;
+      }
+
+      if (Number(json.posts[0].id) > Number(postId)) {
+        start = mid + num;
+      } else {
+        end = mid;
+      }
+    } while (start < end);
+
+    throw new Error("Post not found");
   }
 
   let data: any;
