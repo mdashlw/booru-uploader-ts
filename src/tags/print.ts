@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { fetchTagsBySlugs } from "./fetch.js";
-import { Tag } from "./index.js";
+import { convertTagSlugToName, Tag } from "./index.js";
 
 function hasTag(tags: Tag[], slug: string): boolean {
   return tags.some((tag) => tag.slug === slug || tag.aliased_tag === slug);
@@ -17,11 +17,11 @@ function printTag(tags: Tag[], tag: Tag, depth: number = 0) {
     text += chalk.green(tag.name);
   }
 
-  if (tag.resolvedImpliedTags?.length) {
+  if (tag.implied_tags.length) {
     const implies =
       chalk.grey(" implies ") +
-      tag.resolvedImpliedTags
-        .map((tag) => chalk.magenta(tag.name))
+      tag.implied_tags
+        .map((slug) => chalk.magenta(convertTagSlugToName(slug)))
         .join(chalk.grey(", "));
 
     text += depth > 0 ? chalk.dim(implies) : implies;
