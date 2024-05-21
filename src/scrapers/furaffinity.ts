@@ -4,9 +4,6 @@ import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 
-// Cookie for UTC time and NSFW.
-// Make sure time zone is set to Greenwich Mean Time and Daylight saving time correction is disabled.
-// https://www.furaffinity.net/controls/settings/
 const COOKIE = process.env.FURAFFINITY_COOKIE;
 
 export function canHandle(url: URL): boolean {
@@ -62,10 +59,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     ],
     artist: $(".submission-id-sub-container > a > strong").text(),
     date: formatDate(
-      new Date(
-        $(".submission-id-sub-container > strong > span").attr("title") +
-          " UTC",
-      ),
+      new Date(Number(new URL(imageUrl).pathname.split("/")[3]) * 1_000),
     ),
     title: $(".submission-title").text().trim(),
     description,
