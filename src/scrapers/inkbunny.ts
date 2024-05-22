@@ -61,23 +61,43 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  let submissionId: number;
+  let submissionId: number,
+    pictureIdx: number = -1;
 
   if (url.pathname === "/submissionview.php") {
     submissionId = Number(url.searchParams.get("id"));
   } else if (url.pathname.startsWith("/s/")) {
-    submissionId = Number(url.pathname.split("/")[2]);
+    const [_submissionId, _pictureIdx] = url.pathname.split("/")[2].split("-");
+
+    submissionId = Number(_submissionId);
+
+    if (_pictureIdx?.startsWith("p") && _pictureIdx.length > 1) {
+      pictureIdx = Number(_pictureIdx.substring(1)) - 1;
+
+      if (Number.isNaN(pictureIdx)) {
+        pictureIdx = -1;
+      } else if (pictureIdx < 0) {
+        pictureIdx = 0;
+      }
+    }
   } else {
     throw new Error("Invalid URL");
   }
 
   const submission = await fetchSubmission(submissionId);
 
+  if (pictureIdx >= submission.files.length) {
+    pictureIdx = -1;
+  }
+
+  const files =
+    pictureIdx === -1 ? submission.files : [submission.files[pictureIdx]];
+
   return {
     source: "Inkbunny",
-    url: `https://inkbunny.net/s/${submission.submission_id}`,
+    url: `https://inkbunny.net/s/${submission.submission_id}${pictureIdx === -1 ? "" : `-p${pictureIdx + 1}`}`,
     images: await Promise.all(
-      submission.files.map((file) =>
+      files.map((file) =>
         probeAndValidateImageUrl(
           file.file_url_full,
           file.mimetype,
