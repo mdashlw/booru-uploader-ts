@@ -10,6 +10,7 @@ import * as Inkbunny from "./inkbunny.js";
 import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter-api.js";
 import * as Mastodon from "./mastodon.js";
+import * as Newgrounds from "./newgrounds.js";
 // import * as PassThrough from "./pass-through.js";
 import * as Pixiv from "./pixiv.js";
 import * as Raw from "./raw.js";
@@ -34,6 +35,7 @@ export const scrapers: Scraper[] = [
   Itaku,
   Lofter,
   Mastodon,
+  Newgrounds,
   // PassThrough,
   Pixiv,
   YchArtAuction,
