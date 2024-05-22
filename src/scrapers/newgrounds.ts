@@ -47,10 +47,26 @@ export async function scrape(url: URL): Promise<SourceData> {
       new Date(pod.find("meta[itemprop=datePublished]").attr("content")!),
     ),
     title: pod.find("[itemprop=name]").text().trim(),
-    description: (booru) =>
-      convertHtmlToMarkdown(
+    description: (booru) => {
+      let description = convertHtmlToMarkdown(
         pod.find("#author_comments").html()!,
         booru.markdown,
-      ),
+      );
+
+      const tags = pod
+        .find(".tags a")
+        .map((_, el) => $(el).text())
+        .toArray();
+
+      if (tags.length) {
+        if (description) {
+          description += "\n\n";
+        }
+
+        description += tags.map((tag) => `#${tag}`).join(" ");
+      }
+
+      return description;
+    },
   };
 }
