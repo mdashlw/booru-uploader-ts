@@ -92,7 +92,7 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
         (content.endsWith("…") &&
           href
             .substring(href.indexOf("//") + 2)
-            .startsWith(content.slice(0, -1))) ||
+            .startsWith(content.replaceAll("\\", "").slice(0, -1))) ||
         node.classList.contains("auto_link_shortened")
       ) {
         if (markdown.inlineAllLinks) {
