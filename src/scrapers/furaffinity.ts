@@ -3,6 +3,7 @@ import process from "node:process";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 
 const COOKIE = process.env.FURAFFINITY_COOKIE;
 
@@ -37,19 +38,6 @@ export async function scrape(url: URL): Promise<SourceData> {
   const imageUrl = "https:" + $(".download > a").attr("href");
 
   $(".submission-footer").remove();
-  let description = $(".submission-description").text().trim();
-
-  const tags = $(".tags-row .tags")
-    .map((_, el) => $(el).text().trim())
-    .toArray();
-
-  if (tags.length) {
-    if (description) {
-      description += "\n\n";
-    }
-
-    description += tags.map((tag) => `#${tag}`).join(" ");
-  }
 
   return {
     source: "FurAffinity",
@@ -62,6 +50,23 @@ export async function scrape(url: URL): Promise<SourceData> {
       new Date(Number(new URL(imageUrl).pathname.split("/")[3]) * 1_000),
     ),
     title: $(".submission-title").text().trim(),
-    description,
+    description: (booru) => {
+      const descriptionHtml = $(".submission-description").html()!;
+      let description = convertHtmlToMarkdown(descriptionHtml, booru.markdown);
+
+      const tags = $(".tags-row .tags")
+        .map((_, el) => $(el).text().trim())
+        .toArray();
+
+      if (tags.length) {
+        if (description) {
+          description += "\n\n";
+        }
+
+        description += tags.map((tag) => `#${tag}`).join(" ");
+      }
+
+      return description;
+    },
   };
 }
