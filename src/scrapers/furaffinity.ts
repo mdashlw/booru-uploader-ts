@@ -40,7 +40,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   $(".submission-footer").remove();
 
   return {
-    source: "FurAffinity",
+    source: "Fur Affinity",
     url: $("meta[property='og:url']").attr("content")!,
     images: [
       await probeAndValidateImageUrl(imageUrl, undefined, width, height),
