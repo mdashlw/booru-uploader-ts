@@ -8,6 +8,24 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
+  const exString = url.searchParams.get("ex");
+
+  if (exString === null) {
+    throw new Error("unsigned url");
+  }
+
+  const exSeconds = Number.parseInt(exString, 16);
+
+  if (Number.isNaN(exSeconds)) {
+    throw new Error("invalid ex value in url");
+  }
+
+  const exMillis = exSeconds * 1_000;
+
+  if (Date.now() > exMillis) {
+    throw new Error("expired url");
+  }
+
   const cleanUrl = new URL(url);
   cleanUrl.search = "";
 
