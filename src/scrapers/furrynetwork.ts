@@ -70,7 +70,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: [await probeImageUrl(artwork.images.original)],
     artist: artwork.character.name,
     date: formatDate(artwork.made_public_date),
-    title: artwork.title,
+    title: artwork.title.trim(),
     description,
   };
 }
