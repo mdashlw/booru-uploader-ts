@@ -7,6 +7,7 @@ import * as DeviantArt from "./deviantart.js";
 import * as DiscordCdn from "./discord-cdn.js";
 import * as E621 from "./e621.js";
 import * as FurAffinity from "./furaffinity.js";
+import * as FurryNetwork from "./furrynetwork.js";
 import * as Inkbunny from "./inkbunny.js";
 import * as Itaku from "./itaku.js";
 import * as Lofter from "./lofter-api.js";
@@ -33,6 +34,7 @@ export const scrapers: Scraper[] = [
   DiscordCdn,
   E621,
   FurAffinity,
+  FurryNetwork,
   Inkbunny,
   Itaku,
   Lofter,
