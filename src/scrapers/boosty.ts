@@ -30,16 +30,23 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const match = url.pathname.match(/^\/(.+?)\/posts\/(.+)$/);
+  const [_, blogUrl, _literalPosts, postId, _literalMedia, mediaId] =
+    url.pathname.split("/");
 
-  if (!match) {
-    const error: any = new Error("Failed to match blog url and post id");
+  if (
+    _literalPosts !== "posts" ||
+    (_literalMedia !== undefined && _literalMedia !== "media")
+  ) {
+    const error: any = new Error("invalid url");
     error.url = url;
     throw error;
   }
 
-  const [, blogUrl, postId] = match;
   const post = await fetchPost(blogUrl, postId);
+  const media =
+    mediaId !== undefined
+      ? post.data.filter(({ type, id }) => type === "image" && id === mediaId)
+      : post.data.filter(({ type }) => type === "image");
 
   let description: string = post.data
     .filter(({ type }) => type === "text" || type === "link")
@@ -61,11 +68,9 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "Boosty",
     url: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}`,
     images: await Promise.all(
-      post.data
-        .filter(({ type }) => type === "image")
-        .map(({ url, width, height }) =>
-          probeAndValidateImageUrl(url, undefined, width, height),
-        ),
+      media.map(({ url, width, height }) =>
+        probeAndValidateImageUrl(url, undefined, width, height),
+      ),
     ),
     artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),
