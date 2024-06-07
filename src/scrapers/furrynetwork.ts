@@ -4,8 +4,6 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import { probeImageUrl } from "../utils/probe-image.js";
 
-const pool = new undici.Pool("https://furrynetwork.com");
-
 const Artwork = z.object({
   id: z.number(),
   title: z.string(),
@@ -27,6 +25,8 @@ const Artwork = z.object({
   }),
 });
 type Artwork = z.infer<typeof Artwork>;
+
+const pool = new undici.Pool("https://furrynetwork.com");
 
 export function canHandle(url: URL): boolean {
   return (
