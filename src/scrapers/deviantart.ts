@@ -170,7 +170,11 @@ async function extractProbeResult(
 
     const now = DateTime.now();
 
-    for (let i = 0; i <= 90; ++i) {
+    for (const i of (function* () {
+      yield 0;
+      for (let i = -1; i > -28; --i) yield i;
+      for (let i = 1; i < 28; ++i) yield i;
+    })()) {
       const dt = deviation.publishedTime.plus({ days: i });
 
       if (dt > now) {
