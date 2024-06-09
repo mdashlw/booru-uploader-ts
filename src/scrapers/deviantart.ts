@@ -453,7 +453,10 @@ async function extractProbeResult(
   }
 
   // https://github.com/danbooru/danbooru/blob/a2ab035555bf4bfb67e5cd196134058928af4bf1/app/logical/source/url/deviant_art.rb#L220C57-L220C69
-  if (deviation.deviationId <= 790_677_560) {
+  if (
+    deviation.deviationId <= 790_677_560 &&
+    deviationExtended.originalFile.type === "png"
+  ) {
     const url = new URL(deviation.media.baseUri);
     url.pathname = `/intermediary${url.pathname}`;
 
