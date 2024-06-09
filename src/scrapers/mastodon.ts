@@ -1,6 +1,6 @@
-import { SourceData } from "../scraper/types.js";
 import undici from "undici";
 import { z } from "zod";
+import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 
