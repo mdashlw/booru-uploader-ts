@@ -2,7 +2,7 @@ import { Scraper } from "../scraper/types.js";
 import * as Bluesky from "./bluesky.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
-import * as Commishes from "./commishes-api.js";
+import * as Commishes from "./commishes.js";
 import * as DeviantArt from "./deviantart.js";
 import * as DiscordCdn from "./discord-cdn.js";
 import * as E621 from "./e621.js";

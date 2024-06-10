@@ -1,108 +1,179 @@
-import * as cheerio from "cheerio";
 import undici from "undici";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import probeImageType from "../utils/probe-image-type.js";
+import { formatDate } from "../scraper/utils.js";
+import { probeImageUrl } from "../utils/probe-image.js";
+
+const Upload = z.object({
+  id: z.number().int().positive(),
+  created: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  media: z.object({
+    o: z.string().url(),
+  }),
+  author: z.object({
+    id: z.number().int().positive(),
+    username: z.string(),
+  }),
+});
+type Upload = z.infer<typeof Upload>;
+
+const Auction = z.object({
+  id: z.number().int().positive(),
+  username: z.string(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  media: z.object({
+    original: z.string().url(),
+  }),
+});
+type Auction = z.infer<typeof Auction>;
+
+const AuctionExtended = z.object({
+  id: z.number().int().positive(),
+  url: z.string().startsWith("/"),
+  userName: z.string(),
+  started: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
+});
+type AuctionExtended = z.infer<typeof AuctionExtended>;
 
 export function canHandle(url: URL): boolean {
   return (
-    url.hostname === "portfolio.commishes.com" &&
-    url.pathname.startsWith("/upload/show/")
+    (url.hostname === "portfolio.commishes.com" &&
+      url.pathname.startsWith("/upload/show/")) ||
+    (url.hostname === "ych.commishes.com" &&
+      url.pathname.startsWith("/auction/show/"))
   );
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const body = await undici
-    .request(url, { throwOnError: true })
-    .then((response) => response.body.text());
+  const objectId = url.pathname.split("/")[3]!;
 
-  const userMatch = /<a href="\/user\/(.+?)\/">\1<\/a>/.exec(body);
-  if (!userMatch) {
-    throw new Error("Could not find user");
+  if (url.hostname === "ych.commishes.com") {
+    const auction = await fetchAuction(objectId);
+    const auctionExtended = await fetchAuctionExtended(
+      auction.username,
+      auction.id,
+    );
+
+    return {
+      source: "Commishes",
+      url: `https://${url.host}${auctionExtended.url}`,
+      images: [await probeImageUrl(auction.media.original)],
+      artist: auction.username,
+      date: formatDate(auctionExtended.started),
+      title: auction.title,
+      description: auction.description?.replaceAll("\r\n", "\n") ?? null,
+    };
+  } else if (url.hostname === "portfolio.commishes.com") {
+    const upload = await fetchUpload(objectId);
+
+    return {
+      source: "Commishes",
+      url: `https://${url.host}/upload/show/${objectId}/`,
+      images: [await probeImageUrl(upload.media.o)],
+      artist: upload.author.username,
+      date: formatDate(upload.created),
+      title: upload.title,
+      description: upload.description,
+    };
+  } else {
+    throw new Error("Unknown hostname");
   }
-  const [, user] = userMatch;
+}
 
-  const uploadPathnameMatch =
-    /history\.replaceState\({}, window\.title, '(.+)'\);/.exec(body);
-  if (!uploadPathnameMatch) {
-    throw new Error("Could not find canonical upload pathname");
-  }
-  const uploadUrl = new URL(url.href);
-  [, uploadUrl.pathname] = uploadPathnameMatch;
-
-  const dateMatch = /&copy; (\d+) - (\w+), (\d+)		<\/div>/.exec(body);
-  if (!dateMatch) {
-    throw new Error("Could not find date");
-  }
-  const [, year, monthShort] = dateMatch;
-  const month =
-    {
-      Jan: "January",
-      Feb: "February",
-      Mar: "March",
-      Apr: "April",
-      May: "May",
-      Jun: "June",
-      Jul: "July",
-      Aug: "August",
-      Sep: "September",
-      Oct: "October",
-      Nov: "November",
-      Dec: "December",
-    }[monthShort] ?? monthShort;
-  const day = Number(dateMatch[3]);
-
-  const uploadIdMatch = /'\/upload\/tag\/(\d+)\/'/.exec(body);
-  if (!uploadIdMatch) {
-    throw new Error("Could not find upload id");
-  }
-  const [, uploadId] = uploadIdMatch;
-
-  const originalImageUrl = `https://portfolio.commishes.com/image/${uploadId}/original`;
-  const directImageUrl = await undici
-    .request(originalImageUrl, {
-      method: "HEAD",
+async function fetchUpload(uploadId: string): Promise<Upload> {
+  const response = await undici
+    .request(`https://portfolio.commishes.com/upload/show/${uploadId}.json`, {
       throwOnError: true,
-      maxRedirections: 0,
     })
-    .then((response) => {
-      if (response.statusCode === 302) {
-        return response.headers["location"] as string;
-      } else {
-        return originalImageUrl;
-      }
+    .catch((error) => {
+      error = new Error("Failed to fetch", { cause: error });
+      error.uploadId = uploadId;
+      throw error;
     });
+  const json = await response.body.json().catch((error) => {
+    error = new Error("Failed to read response body", { cause: error });
+    error.uploadId = uploadId;
+    error.response = response;
+    throw error;
+  });
 
-  const widthMatch = /var imgWidth {2}= (\d+);/.exec(body);
-  const heightMatch = /var imgHeight = (\d+);/.exec(body);
-  if (!widthMatch || !heightMatch) {
-    throw new Error("Could not find image dimensions");
-  }
-  const width = Number(widthMatch[1]);
-  const height = Number(heightMatch[1]);
+  return Upload.parse(json);
+}
 
-  const $ = cheerio.load(body);
+async function fetchAuction(auctionId: string): Promise<Auction> {
+  const response = await undici
+    .request(`https://ych.commishes.com/auction/show/${auctionId}.json`, {
+      throwOnError: true,
+    })
+    .catch((error) => {
+      error = new Error("Failed to fetch", { cause: error });
+      error.auctionId = auctionId;
+      throw error;
+    });
+  const json = await response.body.json().catch((error) => {
+    error = new Error("Failed to read response body", { cause: error });
+    error.auctionId = auctionId;
+    error.response = response;
+    throw error;
+  });
+  const data = z
+    .object({
+      result: z.literal("200 OK"),
+      payload: Auction,
+    })
+    .parse(json);
 
-  let title: string | null = $("#upload-title").text().trim();
-  if (title === "No title") {
-    title = null;
-  }
+  return data.payload;
+}
 
-  const description = $("#upload-description").text().trim() || null;
-
-  return {
-    source: "Commishes",
-    url: uploadUrl.toString(),
-    images: [
+async function fetchAuctionExtended(
+  username: string,
+  auctionId: number,
+): Promise<AuctionExtended> {
+  const response = await undici
+    .request(
+      `https://ych.commishes.com/user/history/${username}.json?rating=100&until=${
+        auctionId + 1
+      }`,
       {
-        url: directImageUrl,
-        type: await probeImageType(directImageUrl),
-        width,
-        height,
+        throwOnError: true,
       },
-    ],
-    artist: user,
-    date: `${month} ${day}, ${year}`,
-    title,
-    description,
-  };
+    )
+    .catch((error) => {
+      error = new Error("Failed to fetch", { cause: error });
+      error.auctionId = auctionId;
+      throw error;
+    });
+  const json = await response.body.json().catch((error) => {
+    error = new Error("Failed to read response body", { cause: error });
+    error.auctionId = auctionId;
+    error.response = response;
+    throw error;
+  });
+  const data = z
+    .object({
+      status: z.literal("200 OK"),
+      payload: AuctionExtended.array(),
+    })
+    .parse(json);
+  const auction = data.payload.find((a) => a.id === auctionId);
+
+  if (!auction) {
+    throw new Error("Auction not found");
+  }
+
+  return auction;
 }
