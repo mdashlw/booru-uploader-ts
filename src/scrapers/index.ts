@@ -15,6 +15,7 @@ import * as Lofter from "./lofter-api.js";
 import * as Mastodon from "./mastodon.js";
 import * as Newgrounds from "./newgrounds.js";
 // import * as PassThrough from "./pass-through.js";
+import * as Pillowfort from "./pillowfort.js";
 import * as Pixiv from "./pixiv.js";
 import * as Raw from "./raw.js";
 import * as Reddit from "./reddit.js";
@@ -44,6 +45,7 @@ export const scrapers: Scraper[] = [
   Mastodon,
   Newgrounds,
   // PassThrough,
+  Pillowfort,
   Pixiv,
   YchArtAuction,
   YchArtCdn,
