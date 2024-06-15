@@ -62,7 +62,10 @@ export async function probeImageUrl(
     result.filename = parseContentDisposition(contentDisposition).parameters
       .filename as string | undefined;
   } else {
-    result.filename = new URL(url).pathname.split("/").pop();
+    result.filename = (response.context as { history: URL[] }).history
+      .at(-1)!
+      .pathname.split("/")
+      .pop();
   }
 
   return result;
