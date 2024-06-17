@@ -298,6 +298,8 @@ export async function scrape(
           type = "png";
         } else if (type === "image/jpeg") {
           type = "jpg";
+        } else if (type === "image/webp") {
+          type = "gif";
         } else {
           throw new Error(`Unexpected media type: ${type}`);
         }
