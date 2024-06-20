@@ -78,20 +78,51 @@ export function canHandle(url: URL): boolean {
   );
 }
 
+function parseDeviationPath(path: string) {
+  const match =
+    /^\/(?:(?:deviation|view)\/|(?:(?<username>[\w-]+)\/)?art\/[\w-]*?)(?<deviationId>\d+)$/gim.exec(
+      path,
+    );
+
+  if (!match) {
+    throw new Error(`Invalid path: ${path}`);
+  }
+
+  const { username, deviationId } = match.groups!;
+
+  return { username, deviationId };
+}
+
 export async function scrape(
   url: URL,
   metadataOnly?: boolean,
 ): Promise<SourceData> {
-  const match =
-    /^\/(?:(?:deviation|view)\/|(?:(?<username>\w+)\/)?art\/[\w-]*?)(?<deviationId>\d+)$/gim.exec(
-      url.pathname,
-    );
+  let { username, deviationId } = parseDeviationPath(url.pathname);
 
-  if (!match) {
-    throw new Error("invalid url");
+  if (!username) {
+    const response = await undici.request(url, {
+      method: "HEAD",
+      maxRedirections: 0,
+    });
+
+    if (response.statusCode !== 301) {
+      throw new Error(`Invalid redirect status code: ${response.statusCode}`);
+    }
+
+    const location = response.headers.location;
+
+    if (!location) {
+      throw new Error("Missing location header");
+    }
+
+    if (typeof location !== "string" || !URL.canParse(location)) {
+      throw new Error(`Invalid location header: ${location}`);
+    }
+
+    url = new URL(location);
+    ({ username, deviationId } = parseDeviationPath(url.pathname));
   }
 
-  const { username, deviationId } = match.groups!;
   const { deviation } = await fetchDeviation(username, deviationId);
 
   return {
