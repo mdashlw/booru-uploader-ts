@@ -72,13 +72,26 @@ type Deviation = z.infer<typeof Deviation>;
 
 export function canHandle(url: URL): boolean {
   return (
-    url.hostname.endsWith(".deviantart.com") &&
-    url.pathname.substring(1).includes("/") &&
-    !url.pathname.startsWith("/stash/")
+    (url.hostname.endsWith(".deviantart.com") &&
+      url.pathname.substring(1).includes("/") &&
+      !url.pathname.startsWith("/stash/")) ||
+    url.hostname === "fav.me"
   );
 }
 
 function parseDeviationInfo(hostname: string, pathname: string) {
+  if (hostname === "fav.me") {
+    let deviationId: string;
+
+    if (pathname.startsWith("/d")) {
+      deviationId = Number.parseInt(pathname.substring(2), 36).toString();
+    } else {
+      deviationId = pathname.substring(1);
+    }
+
+    return { deviationId };
+  }
+
   const match =
     /^\/(?:(?:deviation|view)\/|(?:(?<username>[\w-]+)\/)?art\/[\w-]*?)(?<deviationId>\d+)$/gim.exec(
       pathname,
@@ -111,7 +124,7 @@ export async function scrape(
   );
 
   if (!username) {
-    url.protocol = "https:";
+    url.protocol = url.hostname === "fav.me" ? "http:" : "https:";
     const response = await undici.request(url, {
       method: "HEAD",
       maxRedirections: 0,
