@@ -2,11 +2,9 @@ import Bluebird from "bluebird";
 import { DateTime } from "luxon";
 import { Blob } from "node:buffer";
 import events from "node:events";
-import os from "node:os";
 import process from "node:process";
 import sharp from "sharp";
 import undici from "undici";
-import { IncomingHttpHeaders } from "undici/types/header.js";
 import { z } from "zod";
 import Booru from "../booru/index.js";
 import { SourceData } from "../scraper/types.js";
@@ -17,43 +15,21 @@ import { ProbeResult } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
 import { ZodLuxonDateTime } from "../utils/zod.js";
 
+const COOKIE = process.env.DEVIANTART_COOKIE;
+const CSRF_TOKEN = process.env.DEVIANTART_CSRF_TOKEN;
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
-const HEADERS = {
-  accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-  "accept-language": "en-US,en;q=0.9",
-  "cache-control": "no-cache",
-  dnt: "1",
-  pragma: "no-cache",
-  "sec-ch-ua":
-    '"Microsoft Edge";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-  "sec-ch-viewport-height": "1075",
-  "sec-ch-viewport-width": "1912",
-  "sec-fetch-dest": "document",
-  "sec-fetch-mode": "navigate",
-  "sec-fetch-site": "none",
-  "sec-fetch-user": "?1",
-  "upgrade-insecure-requests": "1",
-  "user-agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
-};
-
-const User = z.object({
-  userId: z.number().int().positive(),
-  username: z.string(),
-});
-type User = z.infer<typeof User>;
 
 const Deviation = z.object({
-  deviationId: z.number().int().positive(),
+  deviationId: z.number(),
   url: z.string().url(),
   title: z.string().trim(),
   publishedTime: ZodLuxonDateTime,
   isDownloadable: z.boolean(),
-  author: z.number().int().positive(),
+  author: z.object({
+    userId: z.number(),
+    username: z.string(),
+  }),
   media: z.object({
     baseUri: z.string().url(),
     prettyName: z.string(),
@@ -68,33 +44,31 @@ const Deviation = z.object({
       })
       .array(),
   }),
-});
-type Deviation = z.infer<typeof Deviation>;
-
-const DeviationExtended = z.object({
-  deviationUuid: z.string().uuid(),
-  originalFile: z.object({
-    type: z.string(),
-    width: z.number().int().positive(),
-    height: z.number().int().positive(),
-  }),
-  tags: z
-    .object({
-      name: z.string(),
-      url: z.string().url(),
-    })
-    .array()
-    .nonempty()
-    .optional(),
-  descriptionText: z.object({
-    excerpt: z.string(),
-    html: z.object({
-      type: z.enum(["writer", "draft"]),
-      markup: z.string(),
+  extended: z.object({
+    deviationUuid: z.string().uuid(),
+    originalFile: z.object({
+      type: z.string(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+    }),
+    tags: z
+      .object({
+        name: z.string(),
+        url: z.string().url(),
+      })
+      .array()
+      .nonempty()
+      .optional(),
+    descriptionText: z.object({
+      excerpt: z.string(),
+      html: z.object({
+        type: z.enum(["writer", "draft"]),
+        markup: z.string(),
+      }),
     }),
   }),
 });
-type DeviationExtended = z.infer<typeof DeviationExtended>;
+type Deviation = z.infer<typeof Deviation>;
 
 export function canHandle(url: URL): boolean {
   return (
@@ -108,25 +82,22 @@ export async function scrape(
   url: URL,
   metadataOnly?: boolean,
 ): Promise<SourceData> {
-  const initialState = await extractInitialState(url).catch((error) => {
-    throw new Error(`Failed to extract initial state for ${url}`, {
-      cause: error,
-    });
-  });
-  const deviationId: number =
-    initialState["@@DUPERBROWSE"].rootStream.currentOpenItem;
-  const deviation = Deviation.parse(
-    initialState["@@entities"].deviation[deviationId],
-  );
-  const deviationExtended = DeviationExtended.parse(
-    initialState["@@entities"].deviationExtended[deviationId],
-  );
-  const author = User.parse(initialState["@@entities"].user[deviation.author]);
+  const match =
+    /^\/(?:(?:deviation|view)\/|(?:(?<username>\w+)\/)?art\/[\w-]*?)(?<deviationId>\d+)$/gim.exec(
+      url.pathname,
+    );
+
+  if (!match) {
+    throw new Error("invalid url");
+  }
+
+  const { username, deviationId } = match.groups!;
+  const { deviation } = await fetchDeviation(username, deviationId);
 
   return {
     source: "DeviantArt",
     url: deviation.url,
-    images: await extractProbeResult(deviation, deviationExtended).then(
+    images: await extractProbeResult(deviation).then(
       (probeResult) => [probeResult],
       (error) => {
         if (metadataOnly) {
@@ -137,17 +108,14 @@ export async function scrape(
         throw new Error(`Failed to extract probe result: ${error.message}`);
       },
     ),
-    artist: author.username,
+    artist: deviation.author.username,
     date: formatDate(deviation.publishedTime.toJSDate()),
     title: deviation.title,
-    description: extractDescription(deviationExtended),
+    description: extractDescription(deviation),
   };
 }
 
-async function extractProbeResult(
-  deviation: Deviation,
-  deviationExtended: DeviationExtended,
-): Promise<ProbeResult> {
+async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
   if (!fullview) {
@@ -259,9 +227,9 @@ async function extractProbeResult(
 
           return await probeAndValidateImageUrl(
             location,
-            deviationExtended.originalFile.type,
-            deviationExtended.originalFile.width,
-            deviationExtended.originalFile.height,
+            deviation.extended.originalFile.type,
+            deviation.extended.originalFile.width,
+            deviation.extended.originalFile.height,
           );
         },
         { concurrency: 16 * 16 },
@@ -285,14 +253,14 @@ async function extractProbeResult(
       );
     }
 
-    if (deviationExtended.originalFile.type !== "png") {
+    if (deviation.extended.originalFile.type !== "png") {
       throw new Error(
         "Cannot chunkify this deviation: original file type is not png",
       );
     }
 
     const { width: imageWidth, height: imageHeight } =
-      deviationExtended.originalFile;
+      deviation.extended.originalFile;
     const chunkWidth = fullview.w;
     const chunkHeight = fullview.h;
 
@@ -374,13 +342,13 @@ async function extractProbeResult(
   };
 
   console.log(
-    `[deviantart] [debug] original file: ${JSON.stringify(deviationExtended.originalFile)}`,
+    `[deviantart] [debug] original file: ${JSON.stringify(deviation.extended.originalFile)}`,
   );
   console.log(`[deviantart] [debug] fullview: ${JSON.stringify(fullview)}`);
 
   if (
-    fullview.w === deviationExtended.originalFile.width &&
-    fullview.h === deviationExtended.originalFile.height
+    fullview.w === deviation.extended.originalFile.width &&
+    fullview.h === deviation.extended.originalFile.height
   ) {
     const url = new URL(deviation.media.baseUri);
 
@@ -399,20 +367,20 @@ async function extractProbeResult(
 
     return await probeAndValidateImageUrl(
       url,
-      deviationExtended.originalFile.type,
-      deviationExtended.originalFile.width,
-      deviationExtended.originalFile.height,
+      deviation.extended.originalFile.type,
+      deviation.extended.originalFile.width,
+      deviation.extended.originalFile.height,
     );
   }
 
   if (deviation.isDownloadable) {
     const download = await apiDownloadDeviation(
-      deviationExtended.deviationUuid,
+      deviation.extended.deviationUuid,
     );
 
     if (
-      download.width !== deviationExtended.originalFile.width ||
-      download.height !== deviationExtended.originalFile.height
+      download.width !== deviation.extended.originalFile.width ||
+      download.height !== deviation.extended.originalFile.height
     ) {
       throw new Error("Download has different dimensions than original file");
     }
@@ -421,45 +389,16 @@ async function extractProbeResult(
 
     return await probeAndValidateImageUrl(
       download.src,
-      deviationExtended.originalFile.type,
-      deviationExtended.originalFile.width,
-      deviationExtended.originalFile.height,
+      deviation.extended.originalFile.type,
+      deviation.extended.originalFile.width,
+      deviation.extended.originalFile.height,
     );
-  }
-
-  const { cardImage } = await extractInitialState(
-    "https://www.deviantart.com/users/login",
-    { referer: deviation.url.toString() },
-  );
-  const cardImageUrl = new URL(cardImage);
-  if (cardImageUrl.searchParams.has("token")) {
-    const token = JSON.parse(
-      Buffer.from(
-        cardImageUrl.searchParams.get("token")!.split(".")[1],
-        "base64",
-      ).toString("utf8"),
-    );
-
-    console.log(
-      `[deviantart] [debug] login card image token: ${JSON.stringify(token)}`,
-    );
-
-    if (token.aud?.includes("urn:service:file.download")) {
-      console.log(`[deviantart] [debug] login card image url: ${cardImageUrl}`);
-
-      return await probeAndValidateImageUrl(
-        cardImageUrl,
-        deviationExtended.originalFile.type,
-        deviationExtended.originalFile.width,
-        deviationExtended.originalFile.height,
-      );
-    }
   }
 
   // https://github.com/danbooru/danbooru/blob/a2ab035555bf4bfb67e5cd196134058928af4bf1/app/logical/source/url/deviant_art.rb#L220C57-L220C69
   if (
     deviation.deviationId <= 790_677_560 &&
-    deviationExtended.originalFile.type === "png"
+    deviation.extended.originalFile.type === "png"
   ) {
     const url = new URL(deviation.media.baseUri);
     url.pathname = `/intermediary${url.pathname}`;
@@ -469,9 +408,9 @@ async function extractProbeResult(
     try {
       return await probeAndValidateImageUrl(
         url,
-        deviationExtended.originalFile.type,
-        deviationExtended.originalFile.width,
-        deviationExtended.originalFile.height,
+        deviation.extended.originalFile.type,
+        deviation.extended.originalFile.width,
+        deviation.extended.originalFile.height,
       );
     } catch (error: any) {
       if (!error.message.startsWith("Unexpected image ")) {
@@ -495,60 +434,75 @@ async function extractProbeResult(
   throw new Error("Cannot extract probe result");
 }
 
-async function extractInitialState(
-  url: string | URL,
-  headers?: IncomingHttpHeaders,
-): Promise<any> {
-  const response = await undici
-    .request(url, {
-      headers: {
-        ...HEADERS,
-        ...headers,
-      },
-      maxRedirections: 2,
-      throwOnError: true,
-    })
-    .catch((error) => {
-      throw new Error(`Failed to fetch ${url}`, { cause: error });
-    });
-  const body = await response.body.text().catch((error) => {
-    throw new Error(`Failed to read response body for ${url}`, {
-      cause: error,
-    });
-  });
-  const match = /window\.__INITIAL_STATE__ = (.+);/.exec(body);
-
-  if (!match) {
-    throw new Error("Could not find initial state");
+async function fetchInternalAPI<T extends z.ZodTypeAny>(
+  path: string,
+  params: Record<string, string>,
+  body: T,
+): Promise<z.infer<T>> {
+  if (!COOKIE || !CSRF_TOKEN) {
+    throw new Error("Missing DEVIANTART_COOKIE or DEVIANTART_CSRF_TOKEN env");
   }
 
-  return eval(match[1]);
+  params.csrf_token = CSRF_TOKEN;
+
+  const response = await undici.request(
+    `https://www.deviantart.com${path}?${new URLSearchParams(params).toString()}`,
+    {
+      headers: {
+        accept: "application/json",
+        cookie: COOKIE,
+        referer: "https://www.deviantart.com/",
+        origin: "https://www.deviantart.com",
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      },
+      throwOnError: true,
+    },
+  );
+  const json = await response.body.json();
+
+  return body.parse(json);
+}
+
+async function fetchDeviation(username: string, deviationid: string) {
+  return fetchInternalAPI(
+    "/_puppy/dadeviation/init",
+    {
+      type: "art",
+      username,
+      deviationid,
+      include_session: "",
+    },
+    z.object({
+      deviation: Deviation,
+    }),
+  );
 }
 
 function extractDescription(
-  deviationExtended: DeviationExtended,
+  deviation: Deviation,
 ): string | null | ((booru: Booru) => string) {
   function appendTags(dest: string) {
-    if (deviationExtended.tags) {
+    if (deviation.extended.tags) {
       if (dest) {
         dest += "\n\n";
       }
 
-      dest += deviationExtended.tags.map((tag) => `#${tag.name}`).join(" ");
+      dest += deviation.extended.tags.map((tag) => `#${tag.name}`).join(" ");
     }
 
     return dest;
   }
 
-  if (deviationExtended.descriptionText.excerpt) {
-    return appendTags(deviationExtended.descriptionText.excerpt);
+  if (deviation.extended.descriptionText.excerpt) {
+    return appendTags(deviation.extended.descriptionText.excerpt);
   }
 
-  if (deviationExtended.descriptionText.html.type !== "draft") {
+  if (deviation.extended.descriptionText.html.type !== "draft") {
     return (booru) =>
       appendTags(
         convertHtmlToMarkdown(
-          deviationExtended.descriptionText.html.markup,
+          deviation.extended.descriptionText.html.markup,
           booru.markdown,
         ),
       );
