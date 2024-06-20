@@ -78,17 +78,25 @@ export function canHandle(url: URL): boolean {
   );
 }
 
-function parseDeviationPath(path: string) {
+function parseDeviationInfo(hostname: string, pathname: string) {
   const match =
     /^\/(?:(?:deviation|view)\/|(?:(?<username>[\w-]+)\/)?art\/[\w-]*?)(?<deviationId>\d+)$/gim.exec(
-      path,
+      pathname,
     );
 
   if (!match) {
-    throw new Error(`Invalid path: ${path}`);
+    throw new Error(`Invalid path: ${pathname}`);
   }
 
-  const { username, deviationId } = match.groups!;
+  let { username, deviationId } = match.groups!;
+
+  if (
+    !username &&
+    hostname !== "www.deviantart.com" &&
+    hostname.endsWith(".deviantart.com")
+  ) {
+    username = hostname.substring(0, hostname.indexOf("."));
+  }
 
   return { username, deviationId };
 }
@@ -97,9 +105,13 @@ export async function scrape(
   url: URL,
   metadataOnly?: boolean,
 ): Promise<SourceData> {
-  let { username, deviationId } = parseDeviationPath(url.pathname);
+  let { username, deviationId } = parseDeviationInfo(
+    url.hostname,
+    url.pathname,
+  );
 
   if (!username) {
+    url.protocol = "https:";
     const response = await undici.request(url, {
       method: "HEAD",
       maxRedirections: 0,
@@ -120,7 +132,14 @@ export async function scrape(
     }
 
     url = new URL(location);
-    ({ username, deviationId } = parseDeviationPath(url.pathname));
+    ({ username, deviationId } = parseDeviationInfo(
+      url.hostname,
+      url.pathname,
+    ));
+  }
+
+  if (!username) {
+    throw new Error("Failed to find username");
   }
 
   const { deviation } = await fetchDeviation(username, deviationId);
