@@ -19,7 +19,7 @@ export default async function promptTags(tags: Tag[]) {
           return [];
         }
 
-        const otherInputs = input.trimStart().split(/([,-] *)/);
+        const otherInputs = input.trimStart().split(/((?:, *-|,|^-) *)/);
         const lastInput = otherInputs.pop()!;
 
         return autocompleteTags(lastInput).map(({ name, imageCount }) => ({
