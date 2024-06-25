@@ -71,7 +71,9 @@ export async function scrape(url: URL): Promise<SourceData> {
 
     submissionId = Number(_submissionId);
 
-    if (_pictureIdx?.startsWith("p") && _pictureIdx.length > 1) {
+    if (_pictureIdx === "latest") {
+      pictureIdx = 1337;
+    } else if (_pictureIdx?.startsWith("p") && _pictureIdx.length > 1) {
       pictureIdx = Number(_pictureIdx.substring(1)) - 1;
 
       if (Number.isNaN(pictureIdx)) {
@@ -86,25 +88,26 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   const submission = await fetchSubmission(submissionId);
 
-  if (pictureIdx >= submission.files.length) {
+  if (pictureIdx === 1337) {
+    pictureIdx = submission.files.length - 1;
+  } else if (pictureIdx >= submission.files.length) {
     pictureIdx = -1;
   }
 
-  const files =
-    pictureIdx === -1 ? submission.files : [submission.files[pictureIdx]];
-
   return {
     source: "Inkbunny",
-    url: `https://inkbunny.net/s/${submission.submission_id}${pictureIdx === -1 ? "" : `-p${pictureIdx + 1}`}`,
+    url: `https://inkbunny.net/s/${submission.submission_id}`,
     images: await Promise.all(
-      files.map((file) =>
-        probeAndValidateImageUrl(
+      submission.files.map(async (file, idx, files) => ({
+        selected: idx === pictureIdx,
+        pageUrl: `https://inkbunny.net/s/${submission.submission_id}${files.length > 1 ? `-p${idx + 1}` : ""}`,
+        ...(await probeAndValidateImageUrl(
           file.file_url_full,
           file.mimetype,
           file.full_size_x,
           file.full_size_y,
-        ),
-      ),
+        )),
+      })),
     ),
     artist: submission.username,
     date: formatDate(submission.create_datetime),
