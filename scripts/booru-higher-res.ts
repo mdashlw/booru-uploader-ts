@@ -187,7 +187,9 @@ for await (const image of images(
     let hashMatch = false;
 
     if (sourceData.images.length === 1) {
-      imageData = sourceData.images[0];
+      [imageData] = sourceData.images;
+    } else if (sourceData.images.some((i) => i.selected)) {
+      imageData = sourceData.images.find((i) => i.selected)!;
     } else {
       for (const sourceImage of sourceData.images) {
         if (!sourceImage.blob) {
