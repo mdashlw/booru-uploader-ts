@@ -43,10 +43,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   }
 
   const post = await fetchPost(blogUrl, postId);
-  const media =
-    mediaId !== undefined
-      ? post.data.filter(({ type, id }) => type === "image" && id === mediaId)
-      : post.data.filter(({ type }) => type === "image");
+  const media = post.data.filter(({ type }) => type === "image");
 
   let description: string = post.data
     .filter(({ type }) => type === "text" || type === "link")
@@ -68,9 +65,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "Boosty",
     url: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}`,
     images: await Promise.all(
-      media.map(({ url, width, height }) =>
-        probeAndValidateImageUrl(url, undefined, width, height),
-      ),
+      media.map(async ({ id, url, width, height }) => ({
+        selected: id === mediaId,
+        pageUrl: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}/media/${id}`,
+        ...(await probeAndValidateImageUrl(url, undefined, width, height)),
+      })),
     ),
     artist: post.user.blogUrl,
     date: formatDate(new Date(post.publishTime * 1_000)),
