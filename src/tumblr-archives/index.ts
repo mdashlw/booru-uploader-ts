@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.js";
 import { fetchBlogPosts } from "./api.js";
-import { client } from "./internal.js";
+import { client, clientReliableBatch } from "./internal.js";
 
 export type ArchivedTumblrPost = {
   rootPostId: string;
@@ -20,7 +20,7 @@ export async function archivePosts(blogName: string): Promise<void> {
     console.log(
       `[archivePosts blogName=${blogName}] progress: ${totalPostsSoFar} / ${totalPosts}`,
     );
-    await client.batch(
+    await clientReliableBatch(
       posts
         .filter((post) => post.rebloggedRootId)
         .map((post) => ({
@@ -36,7 +36,7 @@ export async function archivePosts(blogName: string): Promise<void> {
         })),
       "write",
     );
-    await client.batch(
+    await clientReliableBatch(
       posts.flatMap((post) => {
         function extractMediaKey(mediaObject: NpfMediaObject) {
           if (mediaObject.mediaKey) {

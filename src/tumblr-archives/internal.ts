@@ -1,4 +1,9 @@
-import { createClient } from "@libsql/client";
+import {
+  createClient,
+  InStatement,
+  ResultSet,
+  TransactionMode,
+} from "@libsql/client";
 import retry from "async-retry";
 import process from "node:process";
 
@@ -24,6 +29,18 @@ export const client = createClient({
       },
     }),
 });
+
+export function clientReliableBatch(
+  stmts: Array<InStatement>,
+  mode?: TransactionMode,
+): Promise<Array<ResultSet>> {
+  return retry(() => client.batch(stmts, mode), {
+    retries: 3,
+    onRetry(error, attempt) {
+      console.error(`libsql client batch error (attempt ${attempt})`, error);
+    },
+  });
+}
 
 await client.execute(
   "CREATE TABLE IF NOT EXISTS reblogs (\
