@@ -3,22 +3,30 @@ import { SourceData, SourceImageData } from "./scraper/types.js";
 
 export default async function selectImage(
   source: SourceData,
+  isPrimary = false,
 ): Promise<SourceImageData> {
   if (source.images.length === 0) {
     throw new Error("No images");
   }
 
   if (source.images.length === 1) {
-    return source.images[0];
+    const [image] = source.images;
+    image.selected = true;
+    return image;
+  }
+
+  if (source.images.some((i) => i.selected)) {
+    return source.images.find((i) => i.selected)!;
   }
 
   const image = await select({
-    message: "Image",
+    message: isPrimary ? "Primary image" : `${source.source} (${source.url})`,
     choices: source.images.map((image, index) => ({
       value: image,
       name: `#${index + 1}`,
     })),
   });
 
+  image.selected = true;
   return image;
 }

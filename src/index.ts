@@ -7,7 +7,6 @@ import selectImage from "./image-selector.js";
 import { ratingTags } from "./rating-tags.js";
 import inputSources from "./source-input.js";
 import { fetchTagsByNames } from "./tags/fetch.js";
-import { Tag } from "./tags/index.js";
 import promptTags from "./tags/prompt.js";
 
 util.inspect.defaultOptions.depth = Infinity;
@@ -17,7 +16,11 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const sources = await inputSources();
-const image = await selectImage(sources.primary);
+const image = await selectImage(sources.primary, true);
+
+for (const source of sources.alternate) {
+  await selectImage(source);
+}
 
 const boorus = await selectBoorus();
 
@@ -26,7 +29,7 @@ const ratingTag = await select({
   choices: ratingTags.map((value) => ({ value })),
 });
 
-const tags: Tag[] = await fetchTagsByNames([ratingTag]);
+const tags = await fetchTagsByNames([ratingTag]);
 
 while (true) {
   await promptTags(tags);
@@ -55,9 +58,10 @@ await Promise.allSettled(
           .map((artist) => `artist:${artist}`),
         ...tags.map((tag) => tag.name),
       ],
-      sourceUrl: sources.primary.url,
+      sourceUrl: image.pageUrl ?? sources.primary.url,
       sourceUrls: [sources.primary, ...sources.alternate].map(
-        (source) => source.url,
+        (source) =>
+          source.images.find((i) => i.selected)?.pageUrl ?? source.url,
       ),
       description: makeDescription(booru, sources),
     });

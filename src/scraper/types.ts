@@ -16,6 +16,8 @@ export interface SourceData {
 }
 
 export interface SourceImageData {
+  selected?: boolean;
+  pageUrl?: string;
   blob: Blob;
   filename: string | undefined;
   type: string;

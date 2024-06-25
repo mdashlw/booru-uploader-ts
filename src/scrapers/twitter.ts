@@ -54,24 +54,22 @@ export async function scrape(url: URL): Promise<SourceData> {
     throw error;
   });
 
-  let photos = tweet.media?.photos ?? [];
-
-  if (photoIdx) {
-    photos = [photos[photoIdx - 1]];
-  }
+  const photos = tweet.media?.photos ?? [];
 
   return {
     source: "Twitter",
-    url: tweet.url,
+    url: `https://x.com/${tweet.author.screen_name}/status/${tweet.id}`,
     images: await Promise.all(
-      photos.map((media) =>
-        probeAndValidateImageUrl(
+      photos.map(async (media, idx) => ({
+        selected: photoIdx === idx + 1,
+        pageUrl: `https://x.com/${tweet.author.screen_name}/status/${tweet.id}/photo/${photos.indexOf(media) + 1}`,
+        ...(await probeAndValidateImageUrl(
           `${media.url}:orig`,
           undefined,
           media.width,
           media.height,
-        ),
-      ),
+        )),
+      })),
     ),
     artist: tweet.author.screen_name,
     date: formatDate(new Date(tweet.created_timestamp * 1_000)),
