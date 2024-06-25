@@ -236,7 +236,7 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
 
           let response: undici.Dispatcher.ResponseData | undefined;
 
-          for (let attempt = 0; attempt < 5; ++attempt) {
+          for (let attempt = 0; attempt < 10; ++attempt) {
             try {
               response = await pool.request({
                 method: "HEAD",
