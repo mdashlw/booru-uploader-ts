@@ -11,7 +11,7 @@ import { SourceData } from "../scraper/types.js";
 import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 import { lazyInit } from "../utils/lazy-init.js";
-import { ProbeResult } from "../utils/probe-image.js";
+import { probeImageUrl, ProbeResult } from "../utils/probe-image.js";
 import { readableToBuffer } from "../utils/stream.js";
 import { ZodLuxonDateTime } from "../utils/zod.js";
 
@@ -22,12 +22,11 @@ const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
 
 const Deviation = z.object({
   deviationId: z.number(),
-  url: z.string().url(),
+  url: z.string().url().nullable(),
   title: z.string().trim(),
   publishedTime: ZodLuxonDateTime,
   isDownloadable: z.boolean(),
   author: z.object({
-    userId: z.number(),
     username: z.string(),
   }),
   media: z.object({
@@ -45,7 +44,7 @@ const Deviation = z.object({
       .array(),
   }),
   extended: z.object({
-    deviationUuid: z.string().uuid(),
+    deviationUuid: z.string().uuid().nullable(),
     originalFile: z.object({
       type: z.string(),
       width: z.number().int().positive(),
@@ -54,10 +53,8 @@ const Deviation = z.object({
     tags: z
       .object({
         name: z.string(),
-        url: z.string().url(),
       })
       .array()
-      .nonempty()
       .optional(),
     descriptionText: z.object({
       excerpt: z.string(),
@@ -70,26 +67,53 @@ const Deviation = z.object({
 });
 type Deviation = z.infer<typeof Deviation>;
 
+const DeviationEmbed = z.object({
+  title: z.string().trim(),
+  url: z.string().url(),
+  author_name: z.string(),
+  pubdate: ZodLuxonDateTime,
+  tags: z.string().optional(),
+  description: z.string(),
+});
+type DeviationEmbed = z.infer<typeof DeviationEmbed>;
+
 export function canHandle(url: URL): boolean {
   return (
     (url.hostname.endsWith(".deviantart.com") &&
       url.pathname.substring(1).includes("/") &&
       !url.pathname.startsWith("/stash/")) ||
-    url.hostname === "fav.me"
+    url.hostname === "fav.me" ||
+    url.hostname === "orig00.deviantart.net"
   );
 }
 
 function parseDeviationInfo(hostname: string, pathname: string) {
   if (hostname === "fav.me") {
-    let deviationId: string;
+    let deviationId: number;
 
     if (pathname.startsWith("/d")) {
-      deviationId = Number.parseInt(pathname.substring(2), 36).toString();
+      deviationId = Number.parseInt(pathname.substring(2), 36);
     } else {
-      deviationId = pathname.substring(1);
+      deviationId = Number(pathname.substring(1));
     }
 
     return { deviationId };
+  }
+
+  if (hostname.endsWith(".deviantart.net")) {
+    return {
+      deviationId: Number.parseInt(
+        pathname
+          .split("/")
+          .pop()!
+          .split(".")
+          .shift()!
+          .split("-")
+          .pop()!
+          .substring(1),
+        36,
+      ),
+    };
   }
 
   const match =
@@ -111,7 +135,39 @@ function parseDeviationInfo(hostname: string, pathname: string) {
     username = hostname.substring(0, hostname.indexOf("."));
   }
 
-  return { username, deviationId };
+  return {
+    username,
+    deviationId: Number(deviationId),
+  };
+}
+
+async function fetchRedirectLocation(url: URL) {
+  const response = await undici.request(url, {
+    method: "HEAD",
+    maxRedirections: 0,
+  });
+
+  if (response.statusCode !== 301) {
+    throw new Error(`Invalid redirect status code: ${response.statusCode}`);
+  }
+
+  const location = response.headers.location;
+
+  if (!location) {
+    throw new Error("Missing location header");
+  }
+
+  if (typeof location !== "string" || !URL.canParse(location)) {
+    throw new Error(`Invalid location header: ${location}`);
+  }
+
+  return new URL(location);
+}
+
+function fetchCanonicalUrl(deviationId: number) {
+  return fetchRedirectLocation(
+    new URL(`http://fav.me/d${deviationId.toString(36)}`),
+  );
 }
 
 export async function scrape(
@@ -122,32 +178,14 @@ export async function scrape(
     url.hostname,
     url.pathname,
   );
+  const initialUsername = username;
+  let canonicalUrl: URL | undefined;
 
   if (!username) {
-    url.protocol = url.hostname === "fav.me" ? "http:" : "https:";
-    const response = await undici.request(url, {
-      method: "HEAD",
-      maxRedirections: 0,
-    });
-
-    if (response.statusCode !== 301) {
-      throw new Error(`Invalid redirect status code: ${response.statusCode}`);
-    }
-
-    const location = response.headers.location;
-
-    if (!location) {
-      throw new Error("Missing location header");
-    }
-
-    if (typeof location !== "string" || !URL.canParse(location)) {
-      throw new Error(`Invalid location header: ${location}`);
-    }
-
-    url = new URL(location);
+    canonicalUrl = await fetchCanonicalUrl(deviationId);
     ({ username, deviationId } = parseDeviationInfo(
-      url.hostname,
-      url.pathname,
+      canonicalUrl.hostname,
+      canonicalUrl.pathname,
     ));
   }
 
@@ -155,12 +193,45 @@ export async function scrape(
     throw new Error("Failed to find username");
   }
 
-  const { deviation } = await fetchDeviation(username, deviationId);
+  const { deviation } = await fetchDeviation(username, deviationId).catch(
+    async (error) => {
+      if (
+        error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
+        error.statusCode === 400 &&
+        error.body.error === "invalid_request"
+      ) {
+        if (
+          error.body.errorDescription !== `Deviation #${deviationId} not found.`
+        ) {
+          throw new Error(`Deviation #${deviationId} not found.`);
+        }
+
+        const embed = await fetchDeviationEmbed(deviationId);
+        const deviation = await convertEmbed(deviationId, embed);
+
+        return { deviation };
+      }
+
+      throw error;
+    },
+  );
 
   return {
     source: "DeviantArt",
-    url: deviation.url,
-    images: await extractProbeResult(deviation).then(
+    url:
+      deviation.url ??
+      canonicalUrl?.href ??
+      (await fetchCanonicalUrl(deviationId)).href,
+    images: await (
+      url.hostname.endsWith(".deviantart.net")
+        ? probeAndValidateImageUrl(
+            url,
+            deviation.extended.originalFile.type,
+            deviation.extended.originalFile.width,
+            deviation.extended.originalFile.height,
+          )
+        : extractProbeResult(deviation, initialUsername)
+    ).then(
       (probeResult) => [probeResult],
       (error) => {
         if (metadataOnly) {
@@ -178,7 +249,10 @@ export async function scrape(
   };
 }
 
-async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
+async function extractProbeResult(
+  deviation: Deviation,
+  initialUsername?: string,
+): Promise<ProbeResult> {
   const fullview = deviation.media.types.find((t) => t.t === "fullview");
 
   if (!fullview) {
@@ -197,112 +271,117 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
     const pool = new undici.Pool(urlBase);
 
     const urlPathBase = "/0000/";
-    const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf("_"))}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
 
     const now = DateTime.now();
 
-    for (const i of (function* () {
-      yield 0;
-      for (let i = -1; i > -28; --i) yield i;
-      for (let i = 1; i < 28; ++i) yield i;
-    })()) {
-      const dt = deviation.publishedTime.plus({ days: i });
+    for (const username of initialUsername !== undefined &&
+    initialUsername.toLowerCase() !== deviation.author.username.toLowerCase()
+      ? [initialUsername, deviation.author.username]
+      : [deviation.author.username]) {
+      for (const i of (function* () {
+        yield 0;
+        for (let i = -1; i > -28; --i) yield i;
+        for (let i = 1; i < 28; ++i) yield i;
+      })()) {
+        const dt = deviation.publishedTime.plus({ days: i });
 
-      if (dt > now) {
-        break;
-      }
-
-      const paths: string[] = [];
-
-      for (const z of deviation.isDownloadable ? ["f", "i"] : ["i", "f"]) {
-        for (let a = 0; a < 16; ++a) {
-          for (let b = 0; b < 16; ++b) {
-            paths.push(
-              `${urlPathBase}${z}/${dt.year}/${dt.ordinal.toString().padStart(3, "0")}/${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
-            );
-          }
+        if (dt > now) {
+          break;
         }
-      }
 
-      const abortController = new AbortController();
-      events.setMaxListeners(Infinity, abortController.signal);
+        const urlPathSuffix = `/${deviation.media.prettyName.substring(0, deviation.media.prettyName.lastIndexOf(`_by_${deviation.author.username.toLowerCase().replaceAll("-", "_")}`))}_by_${username.toLowerCase().replaceAll("-", "_")}-${deviation.media.prettyName.substring(deviation.media.prettyName.lastIndexOf("_") + 1)}.${deviation.media.baseUri.substring(deviation.media.baseUri.lastIndexOf(".") + 1)}`;
+        const paths: string[] = [];
 
-      const probes = await Bluebird.map(
-        paths,
-        async (path) => {
-          if (abortController.signal.aborted) {
-            return;
-          }
-
-          let response: undici.Dispatcher.ResponseData | undefined;
-
-          for (let attempt = 0; attempt < 10; ++attempt) {
-            try {
-              response = await pool.request({
-                method: "HEAD",
-                path,
-                maxRedirections: 0,
-                signal: abortController.signal,
-              });
-
-              if (response.statusCode >= 500) {
-                continue;
-              }
-
-              break;
-            } catch (error: any) {
-              if (error.name === "AbortError") {
-                return;
-              }
-
-              continue;
+        for (const z of deviation.isDownloadable ? ["f", "i"] : ["i", "f"]) {
+          for (let a = 0; a < 16; ++a) {
+            for (let b = 0; b < 16; ++b) {
+              paths.push(
+                `${urlPathBase}${z}/${dt.year}/${dt.ordinal.toString().padStart(3, "0")}/${a.toString(16)}/${b.toString(16)}${urlPathSuffix}`,
+              );
             }
           }
+        }
 
-          const url = `${urlBase}${path}`;
+        const abortController = new AbortController();
+        events.setMaxListeners(Infinity, abortController.signal);
 
-          if (response === undefined) {
-            throw new Error(`Failed to request ${url}`);
-          }
+        const probes = await Bluebird.map(
+          paths,
+          async (path) => {
+            if (abortController.signal.aborted) {
+              return;
+            }
 
-          await response.body.dump();
+            let response: undici.Dispatcher.ResponseData | undefined;
 
-          if (response.statusCode === 404) {
-            return;
-          }
+            for (let attempt = 0; attempt < 10; ++attempt) {
+              try {
+                response = await pool.request({
+                  method: "HEAD",
+                  path,
+                  maxRedirections: 0,
+                  signal: abortController.signal,
+                });
 
-          if (response.statusCode !== 301) {
-            throw new Error(
-              `Unexpected status code ${response.statusCode} for ${url}`,
+                if (response.statusCode >= 500) {
+                  continue;
+                }
+
+                break;
+              } catch (error: any) {
+                if (error.name === "AbortError") {
+                  return;
+                }
+
+                continue;
+              }
+            }
+
+            const url = `${urlBase}${path}`;
+
+            if (response === undefined) {
+              throw new Error(`Failed to request ${url}`);
+            }
+
+            await response.body.dump();
+
+            if (response.statusCode === 404) {
+              return;
+            }
+
+            if (response.statusCode !== 301) {
+              throw new Error(
+                `Unexpected status code ${response.statusCode} for ${url}`,
+              );
+            }
+
+            const location = response.headers.location;
+
+            if (typeof location !== "string") {
+              throw new Error(`Invalid location header: ${location}`);
+            }
+
+            abortController.abort();
+
+            console.log(`[deviantart] [debug] orig url: ${url}`);
+            console.log(`[deviantart] [debug] redirects to: ${location}`);
+
+            return await probeAndValidateImageUrl(
+              location,
+              deviation.extended.originalFile.type,
+              deviation.extended.originalFile.width,
+              deviation.extended.originalFile.height,
             );
-          }
+          },
+          { concurrency: 16 * 16 },
+        );
 
-          const location = response.headers.location;
+        const result = probes.find(Boolean);
 
-          if (typeof location !== "string") {
-            throw new Error(`Invalid location header: ${location}`);
-          }
-
-          abortController.abort();
-
-          console.log(`[deviantart] [debug] orig url: ${url}`);
-          console.log(`[deviantart] [debug] redirects to: ${location}`);
-
-          return await probeAndValidateImageUrl(
-            location,
-            deviation.extended.originalFile.type,
-            deviation.extended.originalFile.width,
-            deviation.extended.originalFile.height,
-          );
-        },
-        { concurrency: 16 * 16 },
-      );
-
-      const result = probes.find(Boolean);
-
-      if (result) {
-        await pool.close();
-        return result;
+        if (result) {
+          await pool.close();
+          return result;
+        }
       }
     }
 
@@ -415,13 +494,6 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
   ) {
     const url = new URL(deviation.media.baseUri);
 
-    if (fullview.c) {
-      url.pathname += fullview.c.replace(
-        "<prettyName>",
-        deviation.media.prettyName,
-      );
-    }
-
     if (fullview.r >= 0 && deviation.media.token) {
       url.searchParams.set("token", deviation.media.token[fullview.r]);
     }
@@ -438,7 +510,7 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
 
   if (deviation.isDownloadable) {
     const download = await apiDownloadDeviation(
-      deviation.extended.deviationUuid,
+      deviation.extended.deviationUuid!,
     );
 
     if (
@@ -497,6 +569,240 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
   throw new Error("Cannot extract probe result");
 }
 
+function parseJwtToken<T>(token: string): T {
+  return JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+}
+
+// Test deviations:
+// - https://www.deviantart.com/laymyy/art/Stickers-commission-1066895423
+// - https://www.deviantart.com/airiniblock/art/Patreon-reward-for-BlackBow-1067185248
+// - https://www.deviantart.com/kjara-grissaecrim/art/Flutterdash-297332951
+async function probeOriginalFile({
+  baseUri,
+  token,
+}: {
+  baseUri: string;
+  token?: string;
+}): Promise<{
+  type: string;
+  width: number;
+  height: number;
+}> {
+  if (token === undefined) {
+    return await probeImageUrl(baseUri);
+  }
+
+  const {
+    aud,
+    obj: [[{ path, width, height }]],
+  } = parseJwtToken<{
+    aud: string[];
+    obj: [
+      [
+        {
+          path: string;
+          width: `<=${number}`;
+          height: `<=${number}`;
+        },
+      ],
+    ];
+  }>(token);
+
+  if (aud === undefined || path !== new URL(baseUri).pathname) {
+    throw new Error(`Invalid image token: ${token}`);
+  }
+
+  if (aud.includes("urn:service:file.download")) {
+    return await probeImageUrl(`${baseUri}?token=${token}`);
+  }
+
+  if (
+    !aud.includes("urn:service:image.operations") ||
+    width === undefined ||
+    height === undefined
+  ) {
+    throw new Error(`Invalid image token: ${token}`);
+  }
+
+  const maxWidth = Number(width.substring(2));
+  const maxHeight = Number(height.substring(2));
+
+  const type = baseUri.substring(baseUri.lastIndexOf(".") + 1);
+
+  if (await probeDimensions({ width: maxWidth, height: maxHeight })) {
+    return {
+      type,
+      width: maxWidth,
+      height: maxHeight,
+    };
+  }
+
+  /**
+   * @returns whether the original image is equal to or smaller than the given dimensions
+   */
+  async function probeDimensions({
+    width = 0,
+    height = 0,
+  }: {
+    width?: number;
+    height?: number;
+  }): Promise<boolean> {
+    const response = await undici.request(
+      `${baseUri}/v1/crop/w_1,h_1,x_${width},y_${height}/probe.png?token=${token}`,
+      { method: "HEAD" },
+    );
+
+    if (response.statusCode === 400) {
+      return true;
+    }
+
+    if (response.statusCode !== 200) {
+      throw new Error(`Unexpected status code: ${response.statusCode}`);
+    }
+
+    return false;
+  }
+
+  async function probe(
+    dimension: "width" | "height",
+    smallest: number,
+  ): Promise<number> {
+    let biggest = 16_384;
+
+    while (smallest < biggest) {
+      const middle = Math.floor((smallest + biggest) / 2);
+
+      if (await probeDimensions({ [dimension]: middle })) {
+        biggest = middle;
+      } else {
+        smallest = middle + 1;
+      }
+    }
+
+    return smallest;
+  }
+
+  return {
+    type,
+    width: await probe("width", maxWidth),
+    height: await probe("height", maxHeight),
+  };
+}
+
+async function convertUrlToDeviationMedia(
+  url: URL,
+): Promise<Deviation["media"]> {
+  const segments = url.pathname.split("/");
+  const basePath = [
+    segments.shift(), // first one is empty string
+    segments.shift(),
+    segments.shift(),
+    segments.shift(),
+  ].join("/");
+  const baseUri = url.origin + basePath;
+  const prettyName = segments.pop()?.split("-")[0] ?? "";
+
+  if (url.searchParams.has("token")) {
+    const token = url.searchParams.get("token")!;
+    const {
+      obj: [[obj]],
+    } = parseJwtToken<{
+      aud: string[];
+      obj: [
+        [
+          {
+            path: string;
+            width: `<=${number}`;
+            height: `<=${number}`;
+          },
+        ],
+      ];
+    }>(token);
+
+    if (obj.path !== basePath) {
+      throw new Error("Invalid image token");
+    }
+
+    const maxWidth = Number(obj.width.substring(2));
+    const maxHeight = Number(obj.height.substring(2));
+
+    return {
+      baseUri,
+      prettyName,
+      token: [token],
+      types: [
+        {
+          t: "fullview",
+          r: 0,
+          c: `/v1/fill/w_${maxWidth},h_${maxHeight}/<prettyName>-fullview.png`,
+          h: maxHeight,
+          w: maxWidth,
+        },
+      ],
+    };
+  }
+
+  const { width, height } = await probeImageUrl(baseUri);
+
+  return {
+    baseUri,
+    prettyName,
+    token: [],
+    types: [
+      {
+        t: "fullview",
+        r: -1,
+        h: height,
+        w: width,
+      },
+    ],
+  };
+}
+
+async function convertEmbed(
+  deviationId: number,
+  embed: DeviationEmbed,
+): Promise<Deviation> {
+  const media = await convertUrlToDeviationMedia(new URL(embed.url));
+
+  return {
+    deviationId,
+    url: null,
+    title: embed.title,
+    publishedTime: embed.pubdate,
+    isDownloadable: false,
+    author: {
+      username: embed.author_name,
+    },
+    media,
+    extended: {
+      deviationUuid: null,
+      originalFile: await probeOriginalFile({
+        baseUri: media.baseUri,
+        token: media.token?.[0],
+      }),
+      tags: embed.tags?.split(", ").map((name) => ({ name })),
+      descriptionText: {
+        excerpt: "",
+        html: {
+          type: "writer",
+          markup: embed.description,
+        },
+      },
+    },
+  };
+}
+
+async function fetchDeviationEmbed(deviationId: number) {
+  const response = await undici.request(
+    `https://backend.deviantart.com/oembed?consumer=internal&url=${deviationId}`,
+    { throwOnError: true },
+  );
+  const json = await response.body.json();
+
+  return DeviationEmbed.parse(json);
+}
+
 async function fetchInternalAPI<T extends z.ZodTypeAny>(
   path: string,
   params: Record<string, string>,
@@ -527,13 +833,13 @@ async function fetchInternalAPI<T extends z.ZodTypeAny>(
   return body.parse(json);
 }
 
-async function fetchDeviation(username: string, deviationid: string) {
+async function fetchDeviation(username: string, deviationid: number) {
   return fetchInternalAPI(
     "/_puppy/dadeviation/init",
     {
       type: "art",
       username,
-      deviationid,
+      deviationid: deviationid.toString(),
       include_session: "",
     },
     z.object({
