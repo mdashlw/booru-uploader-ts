@@ -22,6 +22,8 @@ for (const source of sources.alternate) {
   await selectImage(source);
 }
 
+console.log(sources);
+
 const boorus = await selectBoorus();
 
 const ratingTag = await select({
