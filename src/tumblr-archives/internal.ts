@@ -23,7 +23,7 @@ export const client = createClient({
   intMode: "string",
   fetch: (request: any) =>
     retry(async () => await fetch(request.clone()), {
-      retries: 3,
+      retries: 10,
       onRetry(error, attempt) {
         console.error(`libsql client fetch error (attempt ${attempt})`, error);
       },
@@ -35,7 +35,7 @@ export function clientReliableBatch(
   mode?: TransactionMode,
 ): Promise<Array<ResultSet>> {
   return retry(async () => await client.batch(stmts, mode), {
-    retries: 3,
+    retries: 10,
     onRetry(error, attempt) {
       console.error(`libsql client batch error (attempt ${attempt})`, error);
     },
