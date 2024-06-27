@@ -17,6 +17,10 @@ if (!command) {
   process.exit(1);
 }
 
+process.on("unhandledRejection", (reason) => {
+  console.error(reason);
+});
+
 if (command === "archive") {
   const { values: args } = util.parseArgs({
     args: process.argv.slice(3),
