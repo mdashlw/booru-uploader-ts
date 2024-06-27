@@ -6,16 +6,19 @@ import { NpfContentBlock } from "../utils/tumblr-npf-types.js";
 export const TumblrPost = z.object({
   blogName: z.string(),
   blog: z.object({
-    uuid: z.string().startsWith("t:"),
+    uuid: z.string().startsWith("t:").length(24),
   }),
   id: z.string(),
   rebloggedRootId: z.string().optional(),
   rebloggedRootName: z.string().optional(),
-  rebloggedRootUuid: z.string().startsWith("t:").optional(),
+  rebloggedRootUuid: z.string().startsWith("t:").length(24).optional(),
   content: NpfContentBlock.array(),
   trail: z
     .object({
       content: NpfContentBlock.array(),
+      post: z.object({
+        id: z.string().optional(),
+      }),
     })
     .array(),
 });

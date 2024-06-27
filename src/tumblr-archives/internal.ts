@@ -1,86 +1,33 @@
-import {
-  createClient,
-  InStatement,
-  ResultSet,
-  TransactionMode,
-} from "@libsql/client";
-import retry from "async-retry";
-import process from "node:process";
+import pg from "pg";
 
-if (!process.env.TUMBLR_ARCHIVES_LIBSQL_URL) {
-  throw new Error("Missing TUMBLR_ARCHIVES_LIBSQL_URL environment variable");
-}
+export const client = new pg.Client();
 
-if (!process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN) {
-  throw new Error(
-    "Missing TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN environment variable",
+await client.connect();
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS reblogs (
+    rootPostId bigint NOT NULL,
+    rootBlogUuid varchar(24) NOT NULL,
+    rootBlogName text NOT NULL,
+    reblogPostId bigint NOT NULL,
+    reblogBlogUuid varchar(24) NOT NULL,
+    reblogBlogName text NOT NULL,
+    PRIMARY KEY (rootPostId, reblogPostId)
   );
-}
-
-export const client = createClient({
-  url: process.env.TUMBLR_ARCHIVES_LIBSQL_URL,
-  authToken: process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN,
-  intMode: "string",
-  fetch: (request: any) =>
-    retry(() => fetch(request.clone()), {
-      retries: 10,
-      onRetry(error, attempt) {
-        console.error(`libsql client fetch error (attempt ${attempt})`, error);
-      },
-    }),
-});
-
-export function clientReliableBatch(
-  stmts: Array<InStatement>,
-  mode?: TransactionMode,
-): Promise<Array<ResultSet>> {
-  return retry(() => client.batch(stmts, mode), {
-    retries: 10,
-    onRetry(error, attempt) {
-      console.error(`libsql client batch error (attempt ${attempt})`, error);
-    },
-  });
-}
-
-await client.execute(
-  "CREATE TABLE IF NOT EXISTS reblogs (\
-    rootPostId INTEGER NOT NULL, \
-    rootBlogUuid TEXT NOT NULL, \
-    rootBlogName TEXT NOT NULL, \
-    reblogPostId INTEGER NOT NULL, \
-    reblogBlogUuid TEXT NOT NULL, \
-    reblogBlogName TEXT NOT NULL, \
-    PRIMARY KEY (rootPostId, reblogPostId)\
-  ) WITHOUT ROWID, STRICT",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS reblogs_rootBlogName_index ON reblogs(rootBlogName)",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS reblogs_rootBlogUuid_index ON reblogs(rootBlogUuid)",
-);
-
-await client.execute(
-  "CREATE TABLE IF NOT EXISTS media (\
-    key TEXT PRIMARY KEY NOT NULL COLLATE NOCASE, \
-    key_a TEXT COLLATE NOCASE, \
-    key_b TEXT NOT NULL COLLATE NOCASE, \
-    key_c TEXT COLLATE NOCASE, \
-    url TEXT NOT NULL UNIQUE, \
-    postId INTEGER NOT NULL, \
-    blogUuid TEXT NOT NULL, \
-    UNIQUE (key_a, key_b)\
-  ) WITHOUT ROWID, STRICT",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS idx_media_key_a ON media(key_a COLLATE NOCASE)",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS idx_media_key_b ON media(key_b COLLATE NOCASE)",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS idx_media_key_c ON media(key_c COLLATE NOCASE)",
-);
-await client.execute(
-  "CREATE INDEX IF NOT EXISTS idx_media_postId ON media(postId)",
-);
+  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogUuid ON reblogs(rootBlogUuid);
+  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogName ON reblogs(rootBlogName);
+  CREATE TABLE IF NOT EXISTS media (
+    key text PRIMARY KEY NOT NULL,
+    key_a varchar(32),
+    key_b text NOT NULL,
+    key_c varchar(6),
+    url text NOT NULL UNIQUE,
+    postId bigint NOT NULL,
+    blogUuid varchar(24) NOT NULL,
+    UNIQUE (key_a, key_b)
+  );
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_a ON media(key_a);
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_b ON media(key_b);
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_c ON media(key_c);
+  CREATE INDEX IF NOT EXISTS idx_media_on_postId ON media(postId);
+`);
