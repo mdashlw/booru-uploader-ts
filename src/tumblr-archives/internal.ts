@@ -22,8 +22,8 @@ export const client = createClient({
   authToken: process.env.TUMBLR_ARCHIVES_LIBSQL_AUTH_TOKEN,
   intMode: "string",
   fetch: (request: any) =>
-    retry(async () => await fetch(request.clone()), {
-      retries: 10,
+    retry(() => fetch(request.clone()), {
+      retries: 3,
       onRetry(error, attempt) {
         console.error(`libsql client fetch error (attempt ${attempt})`, error);
       },
@@ -34,8 +34,8 @@ export function clientReliableBatch(
   stmts: Array<InStatement>,
   mode?: TransactionMode,
 ): Promise<Array<ResultSet>> {
-  return retry(async () => await client.batch(stmts, mode), {
-    retries: 10,
+  return retry(() => client.batch(stmts, mode), {
+    retries: 3,
     onRetry(error, attempt) {
       console.error(`libsql client batch error (attempt ${attempt})`, error);
     },
