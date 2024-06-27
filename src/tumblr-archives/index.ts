@@ -124,18 +124,20 @@ export async function archivePosts(blogName: string): Promise<void> {
     await client.query("BEGIN");
 
     for (const post of posts) {
-      await client.query({
-        name: "insert-reblogs",
-        text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
-        values: [
-          post.rebloggedRootId!,
-          post.rebloggedRootUuid!,
-          post.rebloggedRootName!,
-          post.id,
-          post.blog.uuid,
-          post.blogName,
-        ],
-      });
+      if (post.rebloggedRootId) {
+        await client.query({
+          name: "insert-reblogs",
+          text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
+          values: [
+            post.rebloggedRootId!,
+            post.rebloggedRootUuid!,
+            post.rebloggedRootName!,
+            post.id,
+            post.blog.uuid,
+            post.blogName,
+          ],
+        });
+      }
 
       for (const values of [
         ...handleContent(post.content).map((args) =>
