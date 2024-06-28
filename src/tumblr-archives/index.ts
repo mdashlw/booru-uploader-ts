@@ -59,7 +59,7 @@ function transformMediaObject(mediaObject: NpfMediaObject) {
     const key_b = parts.pop()!;
     const key_a = parts.join(":");
 
-    return [key, key_a, key_b, null, mediaObject.url];
+    return [key, key_a, key_b, null, mediaObject.url] as const;
   }
 
   let key_a: string | null = parts[0];
@@ -95,7 +95,7 @@ function transformMediaObject(mediaObject: NpfMediaObject) {
     }
   }
 
-  return [key, key_a, key_b, key_c, mediaObject.url];
+  return [key, key_a, key_b, key_c, mediaObject.url] as const;
 }
 
 function handleContent(content: NpfContentBlock[]) {
@@ -107,7 +107,7 @@ function handleContent(content: NpfContentBlock[]) {
       .filter((block) => block.type === "video")
       .map((block) => block.media)
       .filter((object) => object !== undefined),
-  ];
+  ].filter(({ url }) => url.includes("media.tumblr.com"));
 
   return mediaObjects.map(transformMediaObject);
 }
