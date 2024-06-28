@@ -6,6 +6,7 @@ import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
 
 const InitializeData = z.object({
   blogInfo: z.object({
+    blogNickName: z.string(),
     blogName: z.string(),
   }),
   postData: z
@@ -58,7 +59,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         ),
       ),
     ),
-    artist: blogInfo.blogName,
+    artist: [blogInfo.blogName, blogInfo.blogNickName],
     date: formatDate(postData.postView.publishTime),
     title: postData.postView.title,
     description: (booru) => {
