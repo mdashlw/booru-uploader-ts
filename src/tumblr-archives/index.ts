@@ -121,44 +121,51 @@ export async function archivePosts(blogName: string): Promise<void> {
       `[archivePosts blogName=${blogName}] progress: ${totalPostsSoFar} / ${totalPosts}`,
     );
 
-    await client.query("BEGIN");
-
     for (const post of posts) {
-      if (post.rebloggedRootId) {
-        await client.query({
-          name: "insert-reblogs",
-          text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
-          values: [
-            post.rebloggedRootId!,
-            post.rebloggedRootUuid!,
-            post.rebloggedRootName!,
-            post.id,
-            post.blog.uuid,
-            post.blogName,
-          ],
-        });
-      }
+      await client.query("BEGIN");
 
-      for (const values of [
-        ...handleContent(post.content).map((args) =>
-          args.concat(post.id, post.blog.uuid),
-        ),
-        ...(post.rebloggedRootId &&
-        post.trail[0]?.post.id === post.rebloggedRootId
-          ? handleContent(post.trail[0].content).map((args) =>
-              args.concat(post.rebloggedRootId!, post.rebloggedRootUuid!),
-            )
-          : []),
-      ]) {
-        await client.query({
-          name: "insert-media",
-          text: "INSERT INTO media VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
-          values,
-        });
+      try {
+        if (post.rebloggedRootId) {
+          await client.query({
+            name: "insert-reblogs",
+            text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
+            values: [
+              post.rebloggedRootId!,
+              post.rebloggedRootUuid!,
+              post.rebloggedRootName!,
+              post.id,
+              post.blog.uuid,
+              post.blogName,
+            ],
+          });
+        }
+
+        for (const values of [
+          ...handleContent(post.content).map((args) =>
+            args.concat(post.id, post.blog.uuid),
+          ),
+          ...(post.rebloggedRootId &&
+          post.trail[0]?.post.id === post.rebloggedRootId
+            ? handleContent(post.trail[0].content).map((args) =>
+                args.concat(post.rebloggedRootId!, post.rebloggedRootUuid!),
+              )
+            : []),
+        ]) {
+          await client.query({
+            name: "insert-media",
+            text: "INSERT INTO media VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
+            values,
+          });
+        }
+
+        await client.query("COMMIT");
+      } catch (error) {
+        console.error(`Failed to archive post ${post.id}`, error);
+        console.error(post);
+        await client.query("ROLLBACK");
+        continue;
       }
     }
-
-    await client.query("COMMIT");
   }
 }
 
