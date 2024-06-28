@@ -1,7 +1,36 @@
-import * as cheerio from "cheerio";
 import undici from "undici";
+import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
-import { probeAndValidateImageUrl } from "../scraper/utils.js";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
+
+const InitializeData = z.object({
+  blogInfo: z.object({
+    blogName: z.string(),
+  }),
+  postData: z
+    .object({
+      postView: z.object({
+        id: z.number(),
+        title: z.string(),
+        publishTime: z.coerce.date(),
+        digest: z.string(),
+        tagList: z.string().array(),
+        permalink: z.string(),
+        photoPostView: z.object({
+          photoLinks: z
+            .object({
+              orign: z.string().url(),
+              ow: z.number().int().positive(),
+              oh: z.number().int().positive(),
+            })
+            .array(),
+        }),
+      }),
+    })
+    .optional(),
+});
+type InitializeData = z.infer<typeof InitializeData>;
 
 export function canHandle(url: URL): boolean {
   return (
@@ -10,30 +39,71 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  const response = await undici.request(url, { throwOnError: true });
-  const body = await response.body.text();
-  const $ = cheerio.load(body);
+  const permalink = url.pathname.substring("/post/".length);
+  const data = await fetchInitializeData(permalink);
+
+  if (data.postData === undefined) {
+    throw new Error("Post does not exist");
+  }
 
   return {
     source: "Lofter",
-    url: `https://${url.hostname}${url.pathname}`,
+    url: `https://${data.blogInfo.blogName}.lofter.com/post/${data.postData.postView.permalink}`,
     images: await Promise.all(
-      Array.from(
-        body.matchAll(
-          /bigimgwidth="(?<width>\d+)" bigimgheight="(?<height>\d+)" bigimgsrc="(?<url>.+?)\?/g,
-        ),
-      ).map(async ({ groups }) =>
+      data.postData.postView.photoPostView.photoLinks.map(({ orign, ow, oh }) =>
         probeAndValidateImageUrl(
-          groups!.url,
+          orign.includes("?") ? orign.substring(0, orign.indexOf("?")) : orign,
           undefined,
-          Number(groups!.width),
-          Number(groups!.height),
+          ow,
+          oh,
         ),
       ),
     ),
-    artist: /<a href="\/">(.+?)<\/a>\s*<\/h1>/.exec(body)![1],
-    date: "",
-    title: null,
-    description: $(".content .text").text() || $(".ct .text").text() || null,
+    artist: data.blogInfo.blogName,
+    date: formatDate(data.postData.postView.publishTime),
+    title: data.postData.postView.title,
+    description: (booru) => {
+      let description = convertHtmlToMarkdown(
+        data.postData.postView.digest,
+        booru.markdown,
+      );
+
+      if (data.postData.postView.tagList.length) {
+        if (description) {
+          description += "\n\n";
+        }
+
+        description += data.postData.postView.tagList
+          .map((tag) => `#${tag}`)
+          .join(" ");
+      }
+
+      return description;
+    },
   };
+}
+
+async function fetchInitializeData(permalink: string): Promise<InitializeData> {
+  const response = await undici
+    .request(
+      `https://www.lofter.com/newweb/post/detail.json?permalink=${permalink}`,
+      { throwOnError: true },
+    )
+    .catch((error) => {
+      error.permalink = permalink;
+      throw new Error("Failed to fetch", { cause: error });
+    });
+  const json = await response.body.json().catch((error) => {
+    error.permalink = permalink;
+    error.response = response;
+    throw new Error("Failed to read response body", { cause: error });
+  });
+  const data = z
+    .object({
+      code: z.literal(0),
+      data: InitializeData,
+    })
+    .parse(json);
+
+  return data.data;
 }

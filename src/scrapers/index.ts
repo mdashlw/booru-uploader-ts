@@ -11,7 +11,7 @@ import * as FurryNetwork from "./furrynetwork.js";
 import * as HentaiFoundry from "./hentai-foundry.js";
 import * as Inkbunny from "./inkbunny.js";
 import * as Itaku from "./itaku.js";
-import * as Lofter from "./lofter-api.js";
+import * as Lofter from "./lofter.js";
 import * as Mastodon from "./mastodon.js";
 import * as Newgrounds from "./newgrounds.js";
 // import * as PassThrough from "./pass-through.js";
