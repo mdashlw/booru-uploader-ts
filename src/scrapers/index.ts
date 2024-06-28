@@ -25,6 +25,7 @@ import * as Tumblr from "./tumblr.js";
 import * as Twitter from "./twitter.js";
 import * as Vk from "./vk.js";
 import * as Weasyl from "./weasyl.js";
+import * as Xiaohongshu from "./xiaohongshu.js";
 import * as YchArtAuction from "./ychart-auction.js";
 import * as YchArtCdn from "./ychart-cdn.js";
 
@@ -57,4 +58,5 @@ export const scrapers: Scraper[] = [
   Twitter,
   Vk,
   Weasyl,
+  Xiaohongshu,
 ];
