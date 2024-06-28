@@ -11,9 +11,8 @@ const InitializeData = z.object({
   postData: z
     .object({
       postView: z.object({
-        id: z.number(),
         title: z.string(),
-        publishTime: z.coerce.date(),
+        publishTime: z.number().int().positive().pipe(z.coerce.date()),
         digest: z.string(),
         tagList: z.string().array(),
         permalink: z.string(),
@@ -40,17 +39,17 @@ export function canHandle(url: URL): boolean {
 
 export async function scrape(url: URL): Promise<SourceData> {
   const permalink = url.pathname.substring("/post/".length);
-  const data = await fetchInitializeData(permalink);
+  const { blogInfo, postData } = await fetchInitializeData(permalink);
 
-  if (data.postData === undefined) {
+  if (postData === undefined) {
     throw new Error("Post does not exist");
   }
 
   return {
     source: "Lofter",
-    url: `https://${data.blogInfo.blogName}.lofter.com/post/${data.postData.postView.permalink}`,
+    url: `https://${blogInfo.blogName}.lofter.com/post/${postData.postView.permalink}`,
     images: await Promise.all(
-      data.postData.postView.photoPostView.photoLinks.map(({ orign, ow, oh }) =>
+      postData.postView.photoPostView.photoLinks.map(({ orign, ow, oh }) =>
         probeAndValidateImageUrl(
           orign.includes("?") ? orign.substring(0, orign.indexOf("?")) : orign,
           undefined,
@@ -59,21 +58,21 @@ export async function scrape(url: URL): Promise<SourceData> {
         ),
       ),
     ),
-    artist: data.blogInfo.blogName,
-    date: formatDate(data.postData.postView.publishTime),
-    title: data.postData.postView.title,
+    artist: blogInfo.blogName,
+    date: formatDate(postData.postView.publishTime),
+    title: postData.postView.title,
     description: (booru) => {
       let description = convertHtmlToMarkdown(
-        data.postData.postView.digest,
+        postData.postView.digest,
         booru.markdown,
       );
 
-      if (data.postData.postView.tagList.length) {
+      if (postData.postView.tagList.length) {
         if (description) {
           description += "\n\n";
         }
 
-        description += data.postData.postView.tagList
+        description += postData.postView.tagList
           .map((tag) => `#${tag}`)
           .join(" ");
       }
