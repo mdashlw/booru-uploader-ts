@@ -183,7 +183,7 @@ export async function getReblogs(
   postId: string,
 ): Promise<ArchivedTumblrPost[]> {
   const { rows } = await client.query<ArchivedTumblrPost>({
-    text: "SELECT * FROM reblogs WHERE root_post_id = $1",
+    text: "SELECT * FROM reblogs WHERE root_post_id = $1 ORDER BY reblog_post_id DESC",
     values: [postId],
   });
 
