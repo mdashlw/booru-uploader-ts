@@ -113,7 +113,7 @@ if (command === "archive") {
 
   console.log(`Found ${media.length} media items for post ${args.postId}`);
 
-  for (const item of media.sort((a, b) => a.key.localeCompare(b.key))) {
+  for (const item of media.sort((a, b) => b.key.localeCompare(a.key))) {
     console.log(`- ${item.url}`);
   }
 } else {
