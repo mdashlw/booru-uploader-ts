@@ -13,7 +13,8 @@ if (!command) {
   console.error(
     "- cli.ts archive --blogs <blog name> [--blogs <blog name>]...",
   );
-  console.error("- cli.ts reblogs --post <post id>");
+  console.error("- cli.ts reblogs --postId <post id>");
+  console.error("- cli.ts media --postId <post id>");
   process.exit(1);
 }
 
@@ -73,34 +74,25 @@ if (command === "archive") {
   const { values: args } = util.parseArgs({
     args: process.argv.slice(3),
     options: {
-      post: {
+      postId: {
         type: "string",
       },
     },
   });
 
-  if (!args.post) {
-    console.error("Invalid usage: missing --post <post id>");
+  if (!args.postId) {
+    console.error("Invalid usage: missing --postId <post id>");
     process.exit(1);
   }
 
-  const postId = args.post.split("/").find((s) => /^\d+$/.test(s));
+  const reblogs = await getReblogs(args.postId);
 
-  if (!postId) {
-    console.error("Invalid post id");
-    process.exit(1);
-  }
+  console.log(`Found ${reblogs.length} reblogs for post ${args.postId}`);
 
-  const reblogs = await getReblogs(postId);
+  for (const reblog of reblogs) {
+    const reblogUrl = `https://www.tumblr.com/${reblog.reblog_blog_name}/${reblog.reblog_post_id}`;
 
-  if (reblogs) {
-    for (const reblog of reblogs) {
-      console.log(
-        `Post ${reblog.root_post_id} by ${reblog.root_blog_name} reblogged at https://www.tumblr.com/${reblog.reblog_blog_name}/${reblog.reblog_post_id}`,
-      );
-    }
-  } else {
-    console.log("No reblogs");
+    console.log(`- ${reblogUrl}`);
   }
 } else if (command === "media") {
   const { values: args } = util.parseArgs({
