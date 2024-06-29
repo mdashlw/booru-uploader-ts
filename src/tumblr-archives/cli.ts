@@ -96,7 +96,7 @@ if (command === "archive") {
   if (reblogs) {
     for (const reblog of reblogs) {
       console.log(
-        `Post ${reblog.rootPostId} by ${reblog.rootBlogName} reblogged at https://www.tumblr.com/${reblog.reblogBlogName}/${reblog.reblogPostId}`,
+        `Post ${reblog.rootpostid} by ${reblog.rootblogname} reblogged at https://www.tumblr.com/${reblog.reblogblogname}/${reblog.reblogpostid}`,
       );
     }
   } else {

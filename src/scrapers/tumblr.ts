@@ -163,7 +163,7 @@ const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
       }),
     }),
   );
-  const blog = blogs[0];
+  const blog = blogs.at(-1)!;
 
   return blog.name;
 });
@@ -342,12 +342,12 @@ export async function scrape(
             } else if (v1Post.type === "answer") {
               const match = Array.from(
                 v1Post.answer.matchAll(
-                  /<img src=".+?" alt="image" data-orig-width="(\d+)" data-orig-height="(\d+)"/g,
+                  /<img src=".+?" data-orig-height="(\d+)" data-orig-width="(\d+)"/g,
                 ),
               )[index];
 
-              width = Number(match[1]);
-              height = Number(match[2]);
+              width = Number(match[2]);
+              height = Number(match[1]);
             } else if (v1Post.type === "photo") {
               const photo = v1Post.photos.length
                 ? v1Post.photos[index]
@@ -508,13 +508,13 @@ async function fetchNpfPostTryReblogs(
 
     for (const reblog of reblogs) {
       const post = await fetchNpfPostTryReblogs(
-        reblog.reblogBlogUuid,
-        reblog.reblogPostId,
+        reblog.reblogbloguuid,
+        reblog.reblogpostid,
       );
 
       if (post) {
         console.log(
-          `Found reblog: https://www.tumblr.com/${reblog.reblogBlogName}/${reblog.reblogPostId}`,
+          `Found reblog: https://www.tumblr.com/${reblog.reblogblogname}/${reblog.reblogpostid}`,
         );
         return post;
       }

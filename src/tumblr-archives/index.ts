@@ -4,12 +4,12 @@ import { fetchBlogPosts } from "./api.js";
 import { client } from "./internal.js";
 
 export type ArchivedTumblrPost = {
-  rootPostId: string;
-  rootBlogUuid: string;
-  rootBlogName: string;
-  reblogPostId: string;
-  reblogBlogUuid: string;
-  reblogBlogName: string;
+  rootpostid: string;
+  rootbloguuid: string;
+  rootblogname: string;
+  reblogpostid: string;
+  reblogbloguuid: string;
+  reblogblogname: string;
 };
 
 function extractMediaKey(mediaObject: NpfMediaObject) {
