@@ -45,12 +45,12 @@ fastify.get("/blog-images", async (request, reply) => {
 
           try {
             post = await fetchBlogPost(
-              reblog.reblogbloguuid,
-              reblog.reblogpostid,
+              reblog.reblog_blog_uuid,
+              reblog.reblog_post_id,
             );
           } catch (error) {
             console.error(
-              `Failed to fetch reblog post ${reblog.reblogpostid} (blog ${reblog.reblogbloguuid} - ${reblog.reblogblogname})`,
+              `Failed to fetch reblog post ${reblog.reblog_post_id} (blog ${reblog.reblog_blog_uuid} - ${reblog.reblog_blog_name})`,
               error,
             );
             continue;

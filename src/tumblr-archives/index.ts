@@ -4,12 +4,12 @@ import { fetchBlogPosts } from "./api.js";
 import { client } from "./internal.js";
 
 export type ArchivedTumblrPost = {
-  rootpostid: string;
-  rootbloguuid: string;
-  rootblogname: string;
-  reblogpostid: string;
-  reblogbloguuid: string;
-  reblogblogname: string;
+  root_post_id: string;
+  root_blog_uuid: string;
+  root_blog_name: string;
+  reblog_post_id: string;
+  reblog_blog_uuid: string;
+  reblog_blog_name: string;
 };
 
 function extractMediaKey(mediaObject: NpfMediaObject) {
@@ -173,7 +173,7 @@ export async function getReblogs(
   postId: string,
 ): Promise<ArchivedTumblrPost[]> {
   const { rows } = await client.query<ArchivedTumblrPost>({
-    text: "SELECT * FROM reblogs WHERE rootPostId = $1",
+    text: "SELECT * FROM reblogs WHERE root_post_id = $1",
     values: [postId],
   });
 
@@ -184,9 +184,9 @@ export async function getAllReblogs(
   blogName: string,
 ): Promise<ArchivedTumblrPost[][]> {
   const { rows } = await client.query<ArchivedTumblrPost>({
-    text: "SELECT * FROM reblogs WHERE rootBlogName = $1 OR rootBlogUuid = $1 ORDER BY rootPostId DESC",
+    text: "SELECT * FROM reblogs WHERE root_blog_name = $1 OR root_blog_uuid = $1 ORDER BY root_post_id DESC",
     values: [blogName],
   });
 
-  return Object.values(_.groupBy(rows, "rootPostId"));
+  return Object.values(_.groupBy(rows, "root_post_id"));
 }

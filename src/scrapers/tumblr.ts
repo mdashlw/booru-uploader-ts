@@ -508,13 +508,13 @@ async function fetchNpfPostTryReblogs(
 
     for (const reblog of reblogs) {
       const post = await fetchNpfPostTryReblogs(
-        reblog.reblogbloguuid,
-        reblog.reblogpostid,
+        reblog.reblog_blog_uuid,
+        reblog.reblog_post_id,
       );
 
       if (post) {
         console.log(
-          `Found reblog: https://www.tumblr.com/${reblog.reblogblogname}/${reblog.reblogpostid}`,
+          `Found reblog: https://www.tumblr.com/${reblog.reblog_blog_name}/${reblog.reblog_post_id}`,
         );
         return post;
       }

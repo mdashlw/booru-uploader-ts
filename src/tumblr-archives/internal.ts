@@ -6,28 +6,28 @@ await client.connect();
 
 await client.query(`
   CREATE TABLE IF NOT EXISTS reblogs (
-    rootPostId bigint NOT NULL,
-    rootBlogUuid varchar(24) NOT NULL,
-    rootBlogName text NOT NULL,
-    reblogPostId bigint NOT NULL,
-    reblogBlogUuid varchar(24) NOT NULL,
-    reblogBlogName text NOT NULL,
-    PRIMARY KEY (rootPostId, reblogPostId)
+    root_post_id bigint NOT NULL,
+    root_blog_uuid varchar(24) NOT NULL,
+    root_blog_name text NOT NULL,
+    reblog_post_id bigint NOT NULL,
+    reblog_blog_uuid varchar(24) NOT NULL,
+    reblog_blog_name text NOT NULL,
+    PRIMARY KEY (root_post_id, reblog_post_id)
   );
-  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogUuid ON reblogs(rootBlogUuid);
-  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogName ON reblogs(rootBlogName);
+  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogUuid ON reblogs (root_blog_uuid);
+  CREATE INDEX IF NOT EXISTS idx_reblogs_on_rootBlogName ON reblogs (root_blog_name);
   CREATE TABLE IF NOT EXISTS media (
     key text PRIMARY KEY NOT NULL,
     key_a varchar(32),
     key_b text NOT NULL,
     key_c varchar(6),
     url text NOT NULL UNIQUE,
-    postId bigint NOT NULL,
-    blogUuid varchar(24) NOT NULL,
+    post_id bigint NOT NULL,
+    blog_uuid varchar(24) NOT NULL,
     UNIQUE (key_a, key_b)
   );
-  CREATE INDEX IF NOT EXISTS idx_media_on_key_a ON media(key_a);
-  CREATE INDEX IF NOT EXISTS idx_media_on_key_b ON media(key_b);
-  CREATE INDEX IF NOT EXISTS idx_media_on_key_c ON media(key_c);
-  CREATE INDEX IF NOT EXISTS idx_media_on_postId ON media(postId);
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_a ON media (key_a);
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_b ON media (key_b);
+  CREATE INDEX IF NOT EXISTS idx_media_on_key_c ON media (key_c);
+  CREATE INDEX IF NOT EXISTS idx_media_on_postId ON media (post_id);
 `);
