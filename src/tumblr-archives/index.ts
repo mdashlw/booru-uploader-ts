@@ -182,10 +182,10 @@ export async function archivePosts(blogName: string): Promise<void> {
 export async function getReblogs(
   postId: string,
 ): Promise<ArchivedTumblrPost[]> {
-  const { rows } = await client.query<ArchivedTumblrPost>({
-    text: "SELECT * FROM reblogs WHERE root_post_id = $1 ORDER BY reblog_post_id DESC",
-    values: [postId],
-  });
+  const { rows } = await client.query<ArchivedTumblrPost>(
+    "SELECT * FROM reblogs WHERE root_post_id = $1 ORDER BY reblog_post_id DESC",
+    [postId],
+  );
 
   return rows;
 }
@@ -193,10 +193,10 @@ export async function getReblogs(
 export async function getAllReblogs(
   blogName: string,
 ): Promise<ArchivedTumblrPost[][]> {
-  const { rows } = await client.query<ArchivedTumblrPost>({
-    text: "SELECT * FROM reblogs WHERE root_blog_name = $1 OR root_blog_uuid = $1 ORDER BY root_post_id DESC",
-    values: [blogName],
-  });
+  const { rows } = await client.query<ArchivedTumblrPost>(
+    "SELECT * FROM reblogs WHERE root_blog_name = $1 OR root_blog_uuid = $1 ORDER BY root_post_id DESC",
+    [blogName],
+  );
 
   return Object.values(_.groupBy(rows, "root_post_id"));
 }
@@ -204,10 +204,10 @@ export async function getAllReblogs(
 export async function getMediaByPostId(
   postId: string,
 ): Promise<ArchivedTumblrMedia[]> {
-  const { rows } = await client.query<ArchivedTumblrMedia>({
-    text: "SELECT * FROM media WHERE post_id = $1",
-    values: [postId],
-  });
+  const { rows } = await client.query<ArchivedTumblrMedia>(
+    "SELECT * FROM media WHERE post_id = $1",
+    [postId],
+  );
 
   return rows;
 }
