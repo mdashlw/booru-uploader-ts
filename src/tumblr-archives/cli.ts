@@ -11,7 +11,7 @@ const [, , command] = process.argv;
 if (!command) {
   console.error("Usage:");
   console.error(
-    "- cli.ts archive --blogs <blog name> [--blogs <blog name>]...",
+    "- cli.ts archive [--concurrency <number>] --blogs <blog name> [--blogs <blog name>]...",
   );
   console.error("- cli.ts reblogs --postId <post id>");
   console.error("- cli.ts media --postId <post id>");
@@ -52,7 +52,7 @@ if (command === "archive") {
 
   const concurrency = args.concurrency ? Number(args.concurrency) : 1;
 
-  if (Number.isNaN(concurrency)) {
+  if (Number.isNaN(concurrency) || concurrency < 1) {
     console.error("Invalid concurrency");
     process.exit(1);
   }
