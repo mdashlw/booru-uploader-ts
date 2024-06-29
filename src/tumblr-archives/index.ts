@@ -12,6 +12,16 @@ export type ArchivedTumblrPost = {
   reblog_blog_name: string;
 };
 
+export type ArchivedTumblrMedia = {
+  key: string;
+  key_a: string | null;
+  key_b: string;
+  key_c: string | null;
+  url: string;
+  post_id: string;
+  blog_uuid: string;
+};
+
 function extractMediaKey(mediaObject: NpfMediaObject) {
   if (mediaObject.mediaKey) {
     return mediaObject.mediaKey;
@@ -189,4 +199,15 @@ export async function getAllReblogs(
   });
 
   return Object.values(_.groupBy(rows, "root_post_id"));
+}
+
+export async function getMediaByPostId(
+  postId: string,
+): Promise<ArchivedTumblrMedia[]> {
+  const { rows } = await client.query<ArchivedTumblrMedia>({
+    text: "SELECT * FROM media WHERE post_id = $1",
+    values: [postId],
+  });
+
+  return rows;
 }

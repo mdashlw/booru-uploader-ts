@@ -2,7 +2,7 @@ import Bluebird from "bluebird";
 import fs from "node:fs";
 import process from "node:process";
 import util from "node:util";
-import { archivePosts, getReblogs } from "./index.js";
+import { archivePosts, getMediaByPostId, getReblogs } from "./index.js";
 
 util.inspect.defaultOptions.depth = null;
 
@@ -101,6 +101,28 @@ if (command === "archive") {
     }
   } else {
     console.log("No reblogs");
+  }
+} else if (command === "media") {
+  const { values: args } = util.parseArgs({
+    args: process.argv.slice(3),
+    options: {
+      postId: {
+        type: "string",
+      },
+    },
+  });
+
+  if (!args.postId) {
+    console.error("Invalid usage: missing --postId <post id>");
+    process.exit(1);
+  }
+
+  const media = await getMediaByPostId(args.postId);
+
+  console.log(`Found ${media.length} media items for post ${args.postId}`);
+
+  for (const item of media.sort((a, b) => a.key.localeCompare(b.key))) {
+    console.log(`- ${item.url}`);
   }
 } else {
   console.error("Unknown command");
