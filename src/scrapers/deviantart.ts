@@ -601,8 +601,8 @@ async function probeOriginalFile({
       [
         {
           path: string;
-          width: `<=${number}`;
-          height: `<=${number}`;
+          width?: `<=${number}`;
+          height?: `<=${number}`;
         },
       ],
     ];
@@ -705,6 +705,7 @@ async function convertUrlToDeviationMedia(
   if (url.searchParams.has("token")) {
     const token = url.searchParams.get("token")!;
     const {
+      aud,
       obj: [[obj]],
     } = parseJwtToken<{
       aud: string[];
@@ -712,14 +713,42 @@ async function convertUrlToDeviationMedia(
         [
           {
             path: string;
-            width: `<=${number}`;
-            height: `<=${number}`;
+            width?: `<=${number}`;
+            height?: `<=${number}`;
           },
         ],
       ];
     }>(token);
 
     if (obj.path !== basePath) {
+      throw new Error("Invalid image token");
+    }
+
+    if (aud.includes("urn:service:file.download")) {
+      const { width, height } = await probeImageUrl(
+        `${baseUri}?token=${token}`,
+      );
+
+      return {
+        baseUri,
+        prettyName,
+        token: [token],
+        types: [
+          {
+            t: "fullview",
+            r: 0,
+            h: height,
+            w: width,
+          },
+        ],
+      };
+    }
+
+    if (
+      !aud.includes("urn:service:image.operations") ||
+      obj.width === undefined ||
+      obj.height === undefined
+    ) {
       throw new Error("Invalid image token");
     }
 
