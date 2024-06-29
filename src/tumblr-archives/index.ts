@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.js";
 import { fetchBlogPosts } from "./api.js";
-import { client } from "./internal.js";
+import { pool } from "./internal.js";
 
 export type ArchivedTumblrPost = {
   root_post_id: string;
@@ -123,66 +123,72 @@ function handleContent(content: NpfContentBlock[]) {
 }
 
 export async function archivePosts(blogName: string): Promise<void> {
-  let totalPostsSoFar = 0;
+  const client = await pool.connect();
 
-  for await (const { totalPosts, posts } of fetchBlogPosts(blogName)) {
-    totalPostsSoFar += posts.length;
-    console.log(
-      `[archivePosts blogName=${blogName}] progress: ${totalPostsSoFar} / ${totalPosts}`,
-    );
+  try {
+    let totalPostsSoFar = 0;
 
-    for (const post of posts) {
-      await client.query("BEGIN");
+    for await (const { totalPosts, posts } of fetchBlogPosts(blogName)) {
+      totalPostsSoFar += posts.length;
+      console.log(
+        `[archivePosts blogName=${blogName}] progress: ${totalPostsSoFar} / ${totalPosts}`,
+      );
 
-      try {
-        if (post.rebloggedRootId) {
-          await client.query({
-            name: "insert-reblogs",
-            text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
-            values: [
-              post.rebloggedRootId!,
-              post.rebloggedRootUuid!,
-              post.rebloggedRootName!,
-              post.id,
-              post.blog.uuid,
-              post.blogName,
-            ],
-          });
+      for (const post of posts) {
+        await client.query("BEGIN");
+
+        try {
+          if (post.rebloggedRootId) {
+            await client.query({
+              name: "insert-reblogs",
+              text: "INSERT INTO reblogs VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
+              values: [
+                post.rebloggedRootId!,
+                post.rebloggedRootUuid!,
+                post.rebloggedRootName!,
+                post.id,
+                post.blog.uuid,
+                post.blogName,
+              ],
+            });
+          }
+
+          for (const values of [
+            ...handleContent(post.content).map((args) =>
+              args.concat(post.id, post.blog.uuid),
+            ),
+            ...(post.rebloggedRootId &&
+            post.trail[0]?.post.id === post.rebloggedRootId
+              ? handleContent(post.trail[0].content).map((args) =>
+                  args.concat(post.rebloggedRootId!, post.rebloggedRootUuid!),
+                )
+              : []),
+          ]) {
+            await client.query({
+              name: "insert-media",
+              text: "INSERT INTO media VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
+              values,
+            });
+          }
+
+          await client.query("COMMIT");
+        } catch (error) {
+          console.error(`Failed to archive post ${post.id}`, error);
+          console.error(post);
+          await client.query("ROLLBACK");
+          continue;
         }
-
-        for (const values of [
-          ...handleContent(post.content).map((args) =>
-            args.concat(post.id, post.blog.uuid),
-          ),
-          ...(post.rebloggedRootId &&
-          post.trail[0]?.post.id === post.rebloggedRootId
-            ? handleContent(post.trail[0].content).map((args) =>
-                args.concat(post.rebloggedRootId!, post.rebloggedRootUuid!),
-              )
-            : []),
-        ]) {
-          await client.query({
-            name: "insert-media",
-            text: "INSERT INTO media VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
-            values,
-          });
-        }
-
-        await client.query("COMMIT");
-      } catch (error) {
-        console.error(`Failed to archive post ${post.id}`, error);
-        console.error(post);
-        await client.query("ROLLBACK");
-        continue;
       }
     }
+  } finally {
+    client.release();
   }
 }
 
 export async function getReblogs(
   postId: string,
 ): Promise<ArchivedTumblrPost[]> {
-  const { rows } = await client.query<ArchivedTumblrPost>(
+  const { rows } = await pool.query<ArchivedTumblrPost>(
     "SELECT * FROM reblogs WHERE root_post_id = $1 ORDER BY reblog_post_id DESC",
     [postId],
   );
@@ -193,7 +199,7 @@ export async function getReblogs(
 export async function getAllReblogs(
   blogName: string,
 ): Promise<ArchivedTumblrPost[][]> {
-  const { rows } = await client.query<ArchivedTumblrPost>(
+  const { rows } = await pool.query<ArchivedTumblrPost>(
     "SELECT * FROM reblogs WHERE root_blog_name = $1 OR root_blog_uuid = $1 ORDER BY root_post_id DESC",
     [blogName],
   );
@@ -204,7 +210,7 @@ export async function getAllReblogs(
 export async function getMediaByPostId(
   postId: string,
 ): Promise<ArchivedTumblrMedia[]> {
-  const { rows } = await client.query<ArchivedTumblrMedia>(
+  const { rows } = await pool.query<ArchivedTumblrMedia>(
     "SELECT * FROM media WHERE post_id = $1",
     [postId],
   );
