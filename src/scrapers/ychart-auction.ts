@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import undici from "undici";
 import { SourceData } from "../scraper/types.js";
 import { probeImageUrl } from "../utils/probe-image.js";
+import { manipulateImageUrl } from "./ychart-cdn.js";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "ych.art" && url.pathname.startsWith("/auction/");
@@ -18,11 +19,13 @@ export async function scrape(url: URL): Promise<SourceData> {
   const data = JSON.parse(
     $("script[type='application/ld+json']").first().text().trim(),
   );
-  const completedImageUrl = $("#auction-result").attr("src")!;
+  const completedImageUrl = new URL($("#auction-result").attr("src")!);
 
   if ($("#auction-artist strong").text().trim() !== "Completed") {
     throw new Error("Not completed auctions are not supported");
   }
+
+  manipulateImageUrl(completedImageUrl);
 
   return {
     source: data.brand.name,

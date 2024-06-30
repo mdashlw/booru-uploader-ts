@@ -10,10 +10,7 @@ export function canHandle(url: URL): boolean {
 export async function scrape(url: URL): Promise<SourceData> {
   const [, , username] = url.pathname.split("/");
 
-  // https://docs.bunny.net/docs/stream-image-processing
-  url.search = "";
-  url.searchParams.append("width", "0");
-  url.searchParams.append("height", "0");
+  manipulateImageUrl(url);
 
   return {
     source: "YCH.art",
@@ -24,4 +21,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     title: null,
     description: null,
   };
+}
+
+export function manipulateImageUrl(url: URL) {
+  // https://docs.bunny.net/docs/stream-image-processing
+  url.search = "";
+  url.searchParams.append("width", "0");
+  url.searchParams.append("height", "0");
 }
