@@ -14,7 +14,7 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   return {
     source: "YCH.art",
-    url: url.toString(),
+    url: decodeURIComponent(url.href),
     images: [await probeImageUrl(url)],
     artist: username,
     date: null,
