@@ -50,11 +50,9 @@ async function fetchTagsByKeys<T>(
   if (uncachedTagKeys.length) {
     const response = await pool.request({
       method: "GET",
-      path: "/api/v1/json/search/tags",
-      query: {
-        q: uncachedTagKeys.map((key) => `${keyType}:${key}`).join(" || "),
-        per_page: MAX_PER_PAGE.toString(),
-      },
+      path: `/api/v1/json/search/tags?per_page=${MAX_PER_PAGE}&q=${uncachedTagKeys
+        .map((key) => (keyType === "slug" ? key : `${keyType}:${key}`))
+        .join(" OR ")}`,
       headers: {
         "user-agent": USER_AGENT,
       },
