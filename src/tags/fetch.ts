@@ -51,8 +51,10 @@ async function fetchTagsByKeys<T>(
     const response = await pool.request({
       method: "GET",
       path: `/api/v1/json/search/tags?per_page=${MAX_PER_PAGE}&q=${uncachedTagKeys
-        .map((key) => (keyType === "slug" ? key : `${keyType}:${key}`))
-        .join(" OR ")}`,
+        .map((key) =>
+          keyType === "slug" ? key : encodeURIComponent(`${keyType}:${key}`),
+        )
+        .join("%20OR%20")}`,
       headers: {
         "user-agent": USER_AGENT,
       },
