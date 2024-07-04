@@ -28,11 +28,15 @@ const Submission = z.object({
 type Submission = z.infer<typeof Submission>;
 
 const sessionId = lazyInit(async () => {
+  const username = process.env.INKBUNNY_USERNAME ?? "guest";
+  const password = process.env.INKBUNNY_PASSWORD;
+
   const { sid } = await fetchAPI(
     "/api_login.php",
     {
       sid: undefined,
-      username: "guest",
+      username,
+      password,
     },
     z.object({
       sid: z.string(),
