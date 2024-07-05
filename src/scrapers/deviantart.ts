@@ -81,7 +81,7 @@ const TinEyeMatch = z.object({
   domain: z.string(),
   backlinks: z
     .object({
-      url: z.string().url(),
+      url: z.string().url().or(z.string().length(0)),
     })
     .array(),
 });
@@ -378,6 +378,7 @@ async function extractProbeResult(
           tinEyeMatches
             .filter((match) => match.domain === "deviantart.com")
             .flatMap((match) => match.backlinks)
+            .filter(({ url }) => url)
             .map(({ url }) => new URL(url))
             .filter((url) => url.hostname.endsWith(".deviantart.net"))
             .filter(
