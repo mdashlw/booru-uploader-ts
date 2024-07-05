@@ -84,6 +84,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       height: illust.height,
     },
   ];
+  const pageIndex = url.hash ? Number(url.hash.substring(1)) - 1 : -1;
 
   let description = illust.comment ?? "";
 
@@ -99,11 +100,20 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "pixiv",
     url: illust.meta.canonical,
     images: await Promise.all(
-      illustPages.map((page) =>
-        probeAndValidateImageUrl(page.url, undefined, page.width, page.height, {
-          referer: "https://www.pixiv.net/",
-        }),
-      ),
+      illustPages.map(async (page, index, pages) => ({
+        selected: index === pageIndex,
+        pageUrl:
+          pages.length > 1
+            ? `${illust.meta.canonical}#${index + 1}`
+            : illust.meta.canonical,
+        ...(await probeAndValidateImageUrl(
+          page.url,
+          undefined,
+          page.width,
+          page.height,
+          { referer: "https://www.pixiv.net/" },
+        )),
+      })),
     ),
     artist: illust.author_details.user_name,
     date: formatDate(illust.upload_timestamp),
