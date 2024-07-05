@@ -1,5 +1,5 @@
 import undici from "undici";
-import { Tag } from "./index.js";
+import { convertTagSlugToName, Tag } from "./index.js";
 
 const BASE_URL = "https://derpibooru.org";
 const USER_AGENT =
@@ -8,12 +8,8 @@ const MAX_PER_PAGE = 50;
 
 const pool = new undici.Pool(BASE_URL);
 
-const cachedTagsById = new Map<number, Tag>();
-const cachedTagsBySlug = new Map<string, Tag>();
 const cachedTagsByName = new Map<string, Tag>();
 const cacheTag = (tag: Tag) => {
-  cachedTagsById.set(tag.id, tag);
-  cachedTagsBySlug.set(tag.slug, tag);
   cachedTagsByName.set(tag.name, tag);
 };
 
@@ -31,30 +27,26 @@ export async function fetchSimpleTagsByIds(ids: number[]): Promise<Tag[]> {
   return json.tags;
 }
 
-async function fetchTagsByKeys<T>(
-  keyType: string,
-  cache: Map<T, Tag>,
-  keys: T[],
-): Promise<Tag[]> {
+export async function fetchTagsByNames(names: string[]): Promise<Tag[]> {
   const cachedTags: Tag[] = [];
-  const uncachedTagKeys: T[] = [];
+  const uncachedTagNames: string[] = [];
 
-  for (const key of keys) {
-    if (cache.has(key)) {
-      cachedTags.push(cache.get(key)!);
+  for (const name of names) {
+    if (cachedTagsByName.has(name)) {
+      cachedTags.push(cachedTagsByName.get(name)!);
     } else {
-      uncachedTagKeys.push(key);
+      uncachedTagNames.push(name);
     }
   }
 
-  if (uncachedTagKeys.length) {
+  if (uncachedTagNames.length) {
     const response = await pool.request({
       method: "GET",
-      path: `/api/v1/json/search/tags?per_page=${MAX_PER_PAGE}&q=${uncachedTagKeys
-        .map((key) =>
-          keyType === "slug" ? key : encodeURIComponent(`${keyType}:${key}`),
-        )
-        .join("%20OR%20")}`,
+      path: `/api/v1/json/search/tags`,
+      query: {
+        per_page: MAX_PER_PAGE,
+        q: uncachedTagNames.join(" OR "),
+      },
       headers: {
         "user-agent": USER_AGENT,
       },
@@ -70,14 +62,6 @@ async function fetchTagsByKeys<T>(
   return cachedTags;
 }
 
-export function fetchTagsByIds(ids: number[]): Promise<Tag[]> {
-  return fetchTagsByKeys("id", cachedTagsById, ids);
-}
-
 export function fetchTagsBySlugs(slugs: string[]): Promise<Tag[]> {
-  return fetchTagsByKeys("slug", cachedTagsBySlug, slugs);
-}
-
-export function fetchTagsByNames(names: string[]): Promise<Tag[]> {
-  return fetchTagsByKeys("name", cachedTagsByName, names);
+  return fetchTagsByNames(slugs.map(convertTagSlugToName));
 }
