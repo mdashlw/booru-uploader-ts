@@ -97,6 +97,20 @@ export function canHandle(url: URL): boolean {
   );
 }
 
+function parseDeviationIdFromNetUrl(pathname: string) {
+  return Number.parseInt(
+    pathname
+      .split("/")
+      .pop()!
+      .split(".")
+      .shift()!
+      .split("-")
+      .pop()!
+      .substring(1),
+    36,
+  );
+}
+
 function parseDeviationInfo(hostname: string, pathname: string) {
   if (hostname === "fav.me") {
     let deviationId: number;
@@ -112,17 +126,7 @@ function parseDeviationInfo(hostname: string, pathname: string) {
 
   if (hostname.endsWith(".deviantart.net")) {
     return {
-      deviationId: Number.parseInt(
-        pathname
-          .split("/")
-          .pop()!
-          .split(".")
-          .shift()!
-          .split("-")
-          .pop()!
-          .substring(1),
-        36,
-      ),
+      deviationId: parseDeviationIdFromNetUrl(pathname),
     };
   }
 
@@ -383,14 +387,8 @@ async function extractProbeResult(
             .filter((url) => url.hostname.endsWith(".deviantart.net"))
             .filter(
               (url) =>
-                url.pathname
-                  .split("/")
-                  .at(-1)!
-                  .split(".")
-                  .at(0)!
-                  .split("-")
-                  .at(-1)!
-                  .substring(1) === deviation.deviationId.toString(36),
+                parseDeviationIdFromNetUrl(url.pathname) ===
+                deviation.deviationId,
             )
             .map((url) => {
               const segments = url.pathname.split("/");
