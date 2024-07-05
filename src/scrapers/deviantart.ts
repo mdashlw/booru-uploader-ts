@@ -635,7 +635,10 @@ function getDeviationFullviewUrl(deviation: Deviation) {
   const fullviewUrl = new URL(deviation.media.baseUri);
 
   if (fullview.c) {
-    fullviewUrl.pathname += fullview.c;
+    fullviewUrl.pathname += fullview.c.replace(
+      "<prettyName>",
+      deviation.media.prettyName,
+    );
   }
 
   if (fullview.r >= 0 && deviation.media.token) {
