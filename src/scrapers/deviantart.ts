@@ -77,6 +77,16 @@ const DeviationEmbed = z.object({
 });
 type DeviationEmbed = z.infer<typeof DeviationEmbed>;
 
+const TinEyeMatch = z.object({
+  domain: z.string(),
+  backlinks: z
+    .object({
+      url: z.string().url(),
+    })
+    .array(),
+});
+type TinEyeMatch = z.infer<typeof TinEyeMatch>;
+
 export function canHandle(url: URL): boolean {
   return (
     (url.hostname.endsWith(".deviantart.com") &&
@@ -267,10 +277,131 @@ async function extractProbeResult(
     }
 
     const urlBase = "http://orig00.deviantart.net";
-
+    const urlPathBase = "/0000/";
     const pool = new undici.Pool(urlBase);
 
-    const urlPathBase = "/0000/";
+    async function probe(abortController: AbortController, path: string) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      let response: undici.Dispatcher.ResponseData | undefined;
+
+      for (let attempt = 0; attempt < 10; ++attempt) {
+        try {
+          response = await pool.request({
+            method: "HEAD",
+            path,
+            maxRedirections: 0,
+            signal: abortController.signal,
+          });
+
+          if (response.statusCode >= 500) {
+            continue;
+          }
+
+          break;
+        } catch (error: any) {
+          if (error.name === "AbortError") {
+            return;
+          }
+
+          continue;
+        }
+      }
+
+      const url = `${urlBase}${path}`;
+
+      if (response === undefined) {
+        throw new Error(`Failed to request ${url}`);
+      }
+
+      await response.body.dump();
+
+      if (response.statusCode === 404) {
+        return;
+      }
+
+      if (response.statusCode !== 301) {
+        throw new Error(
+          `Unexpected status code ${response.statusCode} for ${url}`,
+        );
+      }
+
+      const location = response.headers.location;
+
+      if (typeof location !== "string") {
+        throw new Error(`Invalid location header: ${location}`);
+      }
+
+      abortController.abort();
+
+      console.log(`[deviantart] [debug] orig url: ${url}`);
+      console.log(`[deviantart] [debug] redirects to: ${location}`);
+
+      return await probeAndValidateImageUrl(
+        location,
+        deviation.extended.originalFile.type,
+        deviation.extended.originalFile.width,
+        deviation.extended.originalFile.height,
+      );
+    }
+
+    async function probePaths(paths: string[]) {
+      const abortController = new AbortController();
+      events.setMaxListeners(Infinity, abortController.signal);
+
+      const probes = await Bluebird.map(
+        paths,
+        probe.bind(null, abortController),
+        { concurrency: 16 * 16 },
+      );
+
+      const result = probes.find(Boolean);
+
+      if (result) {
+        await pool.close();
+        return result;
+      }
+    }
+
+    const tinEyeMatches = await fetchTinEyeMatches(
+      getDeviationFullviewUrl(deviation).href,
+    ).catch((error) => {
+      console.error("Failed to fetch TinEye matches:", error);
+      return [] as const;
+    });
+
+    if (tinEyeMatches.length) {
+      const paths = Array.from(
+        new Set(
+          tinEyeMatches
+            .filter((match) => match.domain === "deviantart.com")
+            .flatMap((match) => match.backlinks)
+            .map(({ url }) => new URL(url))
+            .filter((url) => url.hostname.endsWith(".deviantart.net"))
+            .map((url) => {
+              const segments = url.pathname.split("/");
+
+              while (segments[0] !== "f" && segments[0] !== "i") {
+                segments.shift();
+              }
+
+              return segments.join("/");
+            }),
+        ),
+      ).map((path) => `${urlPathBase}${path}`);
+
+      if (paths.length) {
+        console.log(`[deviantart] [debug] TinEye matches: ${paths.join(", ")}`);
+
+        const result = await probePaths(paths);
+
+        if (result) {
+          return result;
+        }
+      }
+    }
 
     const now = DateTime.now();
 
@@ -302,84 +433,9 @@ async function extractProbeResult(
           }
         }
 
-        const abortController = new AbortController();
-        events.setMaxListeners(Infinity, abortController.signal);
-
-        const probes = await Bluebird.map(
-          paths,
-          async (path) => {
-            if (abortController.signal.aborted) {
-              return;
-            }
-
-            let response: undici.Dispatcher.ResponseData | undefined;
-
-            for (let attempt = 0; attempt < 10; ++attempt) {
-              try {
-                response = await pool.request({
-                  method: "HEAD",
-                  path,
-                  maxRedirections: 0,
-                  signal: abortController.signal,
-                });
-
-                if (response.statusCode >= 500) {
-                  continue;
-                }
-
-                break;
-              } catch (error: any) {
-                if (error.name === "AbortError") {
-                  return;
-                }
-
-                continue;
-              }
-            }
-
-            const url = `${urlBase}${path}`;
-
-            if (response === undefined) {
-              throw new Error(`Failed to request ${url}`);
-            }
-
-            await response.body.dump();
-
-            if (response.statusCode === 404) {
-              return;
-            }
-
-            if (response.statusCode !== 301) {
-              throw new Error(
-                `Unexpected status code ${response.statusCode} for ${url}`,
-              );
-            }
-
-            const location = response.headers.location;
-
-            if (typeof location !== "string") {
-              throw new Error(`Invalid location header: ${location}`);
-            }
-
-            abortController.abort();
-
-            console.log(`[deviantart] [debug] orig url: ${url}`);
-            console.log(`[deviantart] [debug] redirects to: ${location}`);
-
-            return await probeAndValidateImageUrl(
-              location,
-              deviation.extended.originalFile.type,
-              deviation.extended.originalFile.width,
-              deviation.extended.originalFile.height,
-            );
-          },
-          { concurrency: 16 * 16 },
-        );
-
-        const result = probes.find(Boolean);
+        const result = await probePaths(paths);
 
         if (result) {
-          await pool.close();
           return result;
         }
       }
@@ -567,6 +623,26 @@ async function extractProbeResult(
   }
 
   throw new Error("Cannot extract probe result");
+}
+
+function getDeviationFullviewUrl(deviation: Deviation) {
+  const fullview = deviation.media.types.find((t) => t.t === "fullview");
+
+  if (!fullview) {
+    throw new Error("Could not find fullview media file");
+  }
+
+  const fullviewUrl = new URL(deviation.media.baseUri);
+
+  if (fullview.c) {
+    fullviewUrl.pathname += fullview.c;
+  }
+
+  if (fullview.r >= 0 && deviation.media.token) {
+    fullviewUrl.searchParams.set("token", deviation.media.token[fullview.r]);
+  }
+
+  return fullviewUrl;
 }
 
 function parseJwtToken<T>(token: string): T {
@@ -972,4 +1048,29 @@ export async function fetchAPI<T extends z.ZodTypeAny>(
   const json = await response.body.json();
 
   return body.parse(json);
+}
+
+async function fetchTinEyeMatches(imageUrl: string): Promise<TinEyeMatch[]> {
+  const form = new undici.FormData();
+  form.append("url", imageUrl);
+  const response = await undici.request(
+    "https://tineye.com/api/v1/result_json/",
+    {
+      method: "POST",
+      query: {
+        sort: "score",
+        order: "desc",
+      },
+      body: form,
+      throwOnError: true,
+    },
+  );
+  const json = await response.body.json();
+  const data = z
+    .object({
+      matches: TinEyeMatch.array(),
+    })
+    .parse(json);
+
+  return data.matches;
 }
