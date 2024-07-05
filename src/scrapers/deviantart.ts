@@ -380,6 +380,17 @@ async function extractProbeResult(
             .flatMap((match) => match.backlinks)
             .map(({ url }) => new URL(url))
             .filter((url) => url.hostname.endsWith(".deviantart.net"))
+            .filter(
+              (url) =>
+                url.pathname
+                  .split("/")
+                  .at(-1)!
+                  .split(".")
+                  .at(0)!
+                  .split("-")
+                  .at(-1)!
+                  .substring(1) === deviation.deviationId.toString(36),
+            )
             .map((url) => {
               const segments = url.pathname.split("/");
 
