@@ -280,8 +280,8 @@ async function extractProbeResult(
       : [deviation.author.username]) {
       for (const i of (function* () {
         yield 0;
-        for (let i = -1; i > -28; --i) yield i;
         for (let i = 1; i < 28; ++i) yield i;
+        for (let i = -1; i > -28; --i) yield i;
       })()) {
         const dt = deviation.publishedTime.plus({ days: i });
 
