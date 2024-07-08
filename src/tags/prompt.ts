@@ -38,8 +38,16 @@ export default async function promptTags(tags: Tag[]) {
     const addedTags = [];
 
     for (const input of tagInput.split(",").map((name) => name.trim())) {
+      if (!input) {
+        continue;
+      }
+
       if (input.startsWith("-")) {
         const tagName = input.substring(1).trimStart();
+
+        if (!tagName) {
+          continue;
+        }
 
         let index = tags.findIndex((tag) => tag.name === tagName);
         if (index !== -1) {
