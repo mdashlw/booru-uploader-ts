@@ -25,6 +25,7 @@ const { values: args } = util.parseArgs({
     booru: { type: "string" },
     query: { type: "string" },
     sort: { type: "string" },
+    hashCheck: { type: "boolean" },
   },
 });
 
@@ -232,6 +233,8 @@ for await (const image of images(
       }
     }
 
+    console.log(imageData);
+
     const isBetterDimensions =
       imageData.width > image.width || imageData.height > image.height;
     const isBetterFormat = imageData.type === "png" && image.format === "jpg";
@@ -264,23 +267,24 @@ for await (const image of images(
       );
     }
 
-    // if (
-    //   ok &&
-    //   image.width === imageData.width &&
-    //   image.height === imageData.height &&
-    //   image.format === imageData.type &&
-    //   !hashMatch &&
-    //   imageData.blob &&
-    //   crypto
-    //     .createHash("sha512")
-    //     .update(Buffer.from(await imageData.blob.arrayBuffer()))
-    //     .digest("hex") !== image.orig_sha512_hash
-    // ) {
-    //   ok = false;
-    //   console.log(
-    //     chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright hash mismatch: ${imageData.width}x${imageData.height} ${imageData.type} (${sourceData.source}) vs ${image.width}x${image.height} ${image.format} (${booru.name})}`,
-    //   );
-    // }
+    if (
+      args.hashCheck &&
+      ok &&
+      image.width === imageData.width &&
+      image.height === imageData.height &&
+      image.format === imageData.type &&
+      !hashMatch &&
+      imageData.blob &&
+      crypto
+        .createHash("sha512")
+        .update(Buffer.from(await imageData.blob.arrayBuffer()))
+        .digest("hex") !== image.orig_sha512_hash
+    ) {
+      ok = false;
+      console.log(
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright hash mismatch: ${imageData.width}x${imageData.height} ${imageData.type} (${sourceData.source}) vs ${image.width}x${image.height} ${image.format} (${booru.name})}`,
+      );
+    }
   }
 
   if (ok) {
