@@ -5,7 +5,7 @@ import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
 import { formatDate } from "../scraper/utils.js";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import { probeImageUrls } from "../utils/probe-image.js";
 
 const Project = z.object({
   tags: z.string().array(),
@@ -72,10 +72,13 @@ export async function scrape(url: URL): Promise<SourceData> {
       project.assets
         .filter((asset) => asset.asset_type === "image")
         .map((asset) =>
-          probeImageUrl(
+          probeImageUrls([
+            asset.image_url.replace("/large/", "/original/") +
+              `&no_cache=${crypto.randomUUID()}`,
             asset.image_url.replace("/large/", "/4k/") +
               `&no_cache=${crypto.randomUUID()}`,
-          ),
+            asset.image_url + `&no_cache=${crypto.randomUUID()}`,
+          ]),
         ),
     ),
     artist: project.user.username,

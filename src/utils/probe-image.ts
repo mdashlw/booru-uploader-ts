@@ -68,3 +68,23 @@ export async function probeImageUrl(
 
   return result;
 }
+
+export async function probeImageUrls(urls: string[]) {
+  for (const url of urls) {
+    try {
+      return await probeImageUrl(url);
+    } catch (error: any) {
+      if (
+        error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
+        error.statusCode >= 400 &&
+        error.statusCode < 500
+      ) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error("Failed to probe urls");
+}
