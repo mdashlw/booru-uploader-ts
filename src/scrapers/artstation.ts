@@ -11,9 +11,9 @@ const Project = z.object({
   tags: z.string().array(),
   assets: z
     .object({
-      title: z.string(),
+      title: z.string().nullable(),
       image_url: z.string().url(),
-      asset_type: z.enum(["cover", "video", "image", "video_clip"]),
+      asset_type: z.enum(["cover", "video", "image", "video_clip", "marmoset"]),
     })
     .array(),
   user: z.object({
