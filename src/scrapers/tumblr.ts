@@ -468,22 +468,11 @@ export async function scrape(
     artist: artistName,
     date: formatDate(new Date((trail?.post ?? post).timestamp * 1_000)),
     title: null,
-    description: (booru) => {
-      let description: string = convertTumblrNpfToMarkdown(
-        content,
-        booru.markdown,
-      );
-
-      if (post.tags.length) {
-        if (description) {
-          description += "\n\n";
-        }
-
-        description += post.tags.map((tag) => `#${tag}`).join(" ");
-      }
-
-      return description;
-    },
+    description: (booru) => convertTumblrNpfToMarkdown(content, booru.markdown),
+    tags: post.tags.map((name) => ({
+      name,
+      url: `https://www.tumblr.com/${post.blogName}/tagged/${encodeURIComponent(name)}`,
+    })),
   };
 }
 
