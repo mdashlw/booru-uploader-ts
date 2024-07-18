@@ -52,13 +52,11 @@ export async function probeImageUrl(
 
   const contentDisposition = response.headers["content-disposition"];
 
-  if (contentDisposition !== undefined) {
-    if (typeof contentDisposition !== "string") {
-      throw new Error(
-        `Invalid content-disposition header: ${contentDisposition}`,
-      );
-    }
-
+  if (
+    contentDisposition !== undefined &&
+    typeof contentDisposition === "string" &&
+    contentDisposition !== "\x00\x00"
+  ) {
     result.filename = parseContentDisposition(contentDisposition).parameters
       .filename as string | undefined;
   } else {

@@ -1,4 +1,5 @@
 import { Scraper } from "../scraper/types.js";
+import * as ArtStation from "./artstation.js";
 import * as Bluesky from "./bluesky.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
@@ -30,6 +31,7 @@ import * as YchArtAuction from "./ychart-auction.js";
 import * as YchArtCdn from "./ychart-cdn.js";
 
 export const scrapers: Scraper[] = [
+  ArtStation,
   Bluesky,
   Booru,
   Boosty,
