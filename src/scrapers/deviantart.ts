@@ -53,6 +53,7 @@ const Deviation = z.object({
     tags: z
       .object({
         name: z.string(),
+        url: z.string().url(),
       })
       .array()
       .optional(),
@@ -260,6 +261,7 @@ export async function scrape(
     date: formatDate(deviation.publishedTime.toJSDate()),
     title: deviation.title,
     description: extractDescription(deviation),
+    tags: deviation.extended.tags,
   };
 }
 
@@ -899,7 +901,10 @@ async function convertEmbed(
         baseUri: media.baseUri,
         token: media.token?.[0],
       }),
-      tags: embed.tags?.split(", ").map((name) => ({ name })),
+      tags: embed.tags?.split(", ").map((name) => ({
+        name,
+        url: `https://www.deviantart.com/tag/${encodeURIComponent(name)}`,
+      })),
       descriptionText: {
         excerpt: "",
         html: {
@@ -969,29 +974,15 @@ async function fetchDeviation(username: string, deviationid: number) {
 function extractDescription(
   deviation: Deviation,
 ): string | null | ((booru: Booru) => string) {
-  function appendTags(dest: string) {
-    if (deviation.extended.tags) {
-      if (dest) {
-        dest += "\n\n";
-      }
-
-      dest += deviation.extended.tags.map((tag) => `#${tag.name}`).join(" ");
-    }
-
-    return dest;
-  }
-
   if (deviation.extended.descriptionText.excerpt) {
-    return appendTags(deviation.extended.descriptionText.excerpt);
+    return deviation.extended.descriptionText.excerpt;
   }
 
   if (deviation.extended.descriptionText.html.type !== "draft") {
     return (booru) =>
-      appendTags(
-        convertHtmlToMarkdown(
-          deviation.extended.descriptionText.html.markup,
-          booru.markdown,
-        ),
+      convertHtmlToMarkdown(
+        deviation.extended.descriptionText.html.markup,
+        booru.markdown,
       );
   }
 
