@@ -9,23 +9,24 @@ function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
       : booru.markdown.inlineLink(source.source, source.url)) +
     (source.date ? ` (${source.date})` : "");
 
-  const formattedTitle =
-    source.title && booru.markdown.bold(booru.markdown.escape(source.title));
+  const formattedTitle = source.title
+    ? booru.markdown.bold(booru.markdown.escape(source.title))
+    : "";
   const formattedDescription = source.description
     ? typeof source.description === "string"
       ? booru.markdown.escape(source.description)
       : source.description(booru)
-    : null;
+    : "";
+  const formattedTags =
+    source.tags
+      ?.map((tag) => booru.markdown.inlineLink(`#${tag.name}`, tag.url))
+      .join(" ") ?? "";
 
-  if (formattedTitle || formattedDescription) {
+  if (formattedTitle || formattedDescription || formattedTags) {
     result +=
       "\n" +
       booru.markdown.blockQuote(
-        formattedTitle
-          ? formattedDescription
-            ? formattedTitle + "\n" + formattedDescription
-            : formattedTitle
-          : formattedDescription ?? "",
+        `${formattedTitle}\n${formattedDescription}\n\n${formattedTags}`.trim(),
       );
   }
 

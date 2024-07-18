@@ -13,6 +13,10 @@ export interface SourceData {
   date: string | null;
   title: string | null;
   description: string | null | ((booru: Booru) => string);
+  tags?: {
+    name: string;
+    url: string;
+  }[];
 }
 
 export interface SourceImageData {
