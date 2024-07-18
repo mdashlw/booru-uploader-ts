@@ -81,10 +81,16 @@ export async function scrape(url: URL): Promise<SourceData> {
     artist: project.user.username,
     date: formatDate(project.published_at),
     title: project.title, // todo image title
-    description: (booru) => {
-      // todo tags
-      return convertHtmlToMarkdown(project.description, booru.markdown);
-    },
+    description: (booru) =>
+      convertHtmlToMarkdown(project.description, booru.markdown),
+    tags: [
+      ...project.mediums.map(({ name }) => name),
+      ...project.categories.map(({ name }) => name),
+      ...project.tags,
+    ].map((name) => ({
+      name,
+      url: `https://www.artstation.com/search?query=${encodeURIComponent(name)}`,
+    })),
   };
 }
 
