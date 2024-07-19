@@ -50,23 +50,16 @@ export async function scrape(url: URL): Promise<SourceData> {
       new Date(Number(new URL(imageUrl).pathname.split("/")[3]) * 1_000),
     ),
     title: $(".submission-title").text().trim(),
-    description: (booru) => {
-      const descriptionHtml = $(".submission-description").html()!;
-      let description = convertHtmlToMarkdown(descriptionHtml, booru.markdown);
-
-      const tags = $(".tags-row .tags")
-        .map((_, el) => $(el).text().trim())
-        .toArray();
-
-      if (tags.length) {
-        if (description) {
-          description += "\n\n";
-        }
-
-        description += tags.map((tag) => `#${tag}`).join(" ");
-      }
-
-      return description;
-    },
+    description: (booru) =>
+      convertHtmlToMarkdown(
+        $(".submission-description").html()!,
+        booru.markdown,
+      ),
+    tags: $(".tags-row .tags > a")
+      .map((_, el) => ({
+        name: $(el).text().trim(),
+        url: "https://www.furaffinity.net" + encodeURI($(el).attr("href")!),
+      }))
+      .toArray(),
   };
 }
