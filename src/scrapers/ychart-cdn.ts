@@ -25,6 +25,15 @@ export async function scrape(url: URL): Promise<SourceData> {
 
 export function manipulateImageUrl(url: URL) {
   // https://docs.bunny.net/docs/stream-image-processing
+
+  if (url.pathname.endsWith(".mp4")) {
+    url.pathname = url.pathname.replace(".mp4", ".gif");
+  }
+
+  if (url.pathname.endsWith(".gif")) {
+    return;
+  }
+
   url.search = "";
   url.searchParams.append("width", "0");
   url.searchParams.append("height", "0");
