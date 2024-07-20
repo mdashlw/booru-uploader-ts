@@ -91,8 +91,7 @@ type TinEyeMatch = z.infer<typeof TinEyeMatch>;
 export function canHandle(url: URL): boolean {
   return (
     (url.hostname.endsWith(".deviantart.com") &&
-      url.pathname.substring(1).includes("/") &&
-      !url.pathname.startsWith("/stash/")) ||
+      url.pathname.substring(1).includes("/")) ||
     url.hostname === "fav.me" ||
     url.hostname === "orig00.deviantart.net"
   );
@@ -128,6 +127,16 @@ function parseDeviationInfo(hostname: string, pathname: string) {
   if (hostname.endsWith(".deviantart.net")) {
     return {
       deviationId: parseDeviationIdFromNetUrl(pathname),
+    };
+  }
+
+  if (
+    (hostname === "www.deviantart.com" && pathname.startsWith("/stash/0")) ||
+    (hostname === "sta.sh" && pathname.startsWith("/0"))
+  ) {
+    return {
+      username: "STASH",
+      deviationId: Number.parseInt(pathname.split("/").pop()!, 36),
     };
   }
 
@@ -957,6 +966,67 @@ async function fetchInternalAPI<T extends z.ZodTypeAny>(
 }
 
 async function fetchDeviation(username: string, deviationid: number) {
+  if (username === "STASH") {
+    const resp = await undici.request(
+      `https://www.deviantart.com/stash/0${deviationid.toString(36)}`,
+      {
+        dispatcher: new undici.Client("https://www.deviantart.com", {
+          connect: {
+            allowH2: true,
+            maxVersion: "TLSv1.2",
+          },
+        }),
+        headers: {
+          accept: "text/html",
+          referer: "https://www.deviantart.com/",
+          origin: "https://www.deviantart.com",
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        },
+        throwOnError: true,
+      },
+    );
+    const html = await resp.body.text();
+    const match = /window\.__INITIAL_STATE__ *= *(JSON\.parse\(".+"\));/.exec(
+      html,
+    );
+
+    if (!match) {
+      throw new Error("Failed to find __INITIAL_STATE__");
+    }
+
+    const json = eval(match[1]);
+    const data = z
+      .object({
+        "@@entities": z.object({
+          deviation: z.record(
+            Deviation.omit({ extended: true }).extend({
+              stashPrivateid: z.number(),
+              author: z.number(),
+            }),
+          ),
+          deviationExtended: z.record(Deviation.shape.extended),
+          user: z.record(Deviation.shape.author),
+        }),
+      })
+      .parse(json);
+
+    const deviation = Object.values(data["@@entities"].deviation).find(
+      (d) => d.stashPrivateid === deviationid,
+    )!;
+    const deviationExtended =
+      data["@@entities"].deviationExtended[deviation.deviationId];
+    const user = data["@@entities"].user[deviation.author];
+
+    return {
+      deviation: {
+        ...deviation,
+        extended: deviationExtended,
+        author: user,
+      },
+    };
+  }
+
   return fetchInternalAPI(
     "/_puppy/dadeviation/init",
     {
