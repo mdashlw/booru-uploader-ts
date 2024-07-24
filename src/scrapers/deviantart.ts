@@ -20,7 +20,7 @@ const COOKIE = process.env.DEVIANTART_COOKIE;
 const CSRF_TOKEN = process.env.DEVIANTART_CSRF_TOKEN;
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
-const REFRESH_TOKEN = process.env.DEVIANTART_REFRESH_TOKEN;
+let REFRESH_TOKEN = process.env.DEVIANTART_REFRESH_TOKEN;
 
 const Deviation = z.object({
   deviationId: z.number(),
@@ -1095,6 +1095,7 @@ const accessToken = lazyInit(async () => {
     fs.readFileSync(".env", "utf8").replace(REFRESH_TOKEN, refresh_token),
     "utf8",
   );
+  REFRESH_TOKEN = refresh_token;
 
   return {
     value: access_token,
