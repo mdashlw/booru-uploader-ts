@@ -2,6 +2,7 @@ import Bluebird from "bluebird";
 import { DateTime } from "luxon";
 import { Blob } from "node:buffer";
 import events from "node:events";
+import fs from "node:fs";
 import process from "node:process";
 import sharp from "sharp";
 import undici from "undici";
@@ -19,6 +20,7 @@ const COOKIE = process.env.DEVIANTART_COOKIE;
 const CSRF_TOKEN = process.env.DEVIANTART_CSRF_TOKEN;
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
+const REFRESH_TOKEN = process.env.DEVIANTART_REFRESH_TOKEN;
 
 const Deviation = z.object({
   deviationId: z.number(),
@@ -263,7 +265,9 @@ export async function scrape(
           return [];
         }
 
-        throw new Error(`Failed to extract probe result: ${error.message}`);
+        throw new Error(`Failed to extract probe result: ${error.message}`, {
+          cause: error,
+        });
       },
     ),
     artist: deviation.author.username,
@@ -278,7 +282,9 @@ async function extractProbeResult(
   deviation: Deviation,
   initialUsername?: string,
 ): Promise<ProbeResult> {
-  const fullview = deviation.media.types.find((t) => t.t === "fullview");
+  const fullview =
+    deviation.media.types.find((t) => t.t === "fullview_unpublished") ??
+    deviation.media.types.find((t) => t.t === "fullview");
 
   if (!fullview) {
     const error: any = new Error("Could not find fullview media file");
@@ -647,7 +653,9 @@ async function extractProbeResult(
 }
 
 function getDeviationFullviewUrl(deviation: Deviation) {
-  const fullview = deviation.media.types.find((t) => t.t === "fullview");
+  const fullview =
+    deviation.media.types.find((t) => t.t === "fullview_unpublished") ??
+    deviation.media.types.find((t) => t.t === "fullview");
 
   if (!fullview) {
     throw new Error("Could not find fullview media file");
@@ -1060,25 +1068,32 @@ function extractDescription(
 }
 
 const accessToken = lazyInit(async () => {
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error(
-      "Missing DEVIANTART_CLIENT_ID or DEVIANTART_CLIENT_SECRET env",
-    );
+  if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
+    throw new Error("Missing some env vars");
   }
 
-  const { access_token, expires_in } = await fetchAPI(
+  const { access_token, expires_in, refresh_token } = await fetchAPI(
     "oauth2/token",
     {
-      grant_type: "client_credentials",
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: REFRESH_TOKEN,
     },
     z.object({
       status: z.literal("success"),
       access_token: z.string(),
       expires_in: z.number().int().positive(),
+      refresh_token: z.string(),
     }),
     false,
+  );
+
+  // this is fucking stupid but i don't care
+  fs.writeFileSync(
+    ".env",
+    fs.readFileSync(".env", "utf8").replace(REFRESH_TOKEN, refresh_token),
+    "utf8",
   );
 
   return {
