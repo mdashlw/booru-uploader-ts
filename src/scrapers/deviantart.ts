@@ -62,7 +62,7 @@ const Deviation = z.object({
     descriptionText: z.object({
       excerpt: z.string(),
       html: z.object({
-        type: z.enum(["writer", "draft"]),
+        type: z.enum(["writer", "draft", "tiptap"]),
         markup: z.string(),
       }),
     }),
@@ -1056,7 +1056,7 @@ function extractDescription(
     return deviation.extended.descriptionText.excerpt;
   }
 
-  if (deviation.extended.descriptionText.html.type !== "draft") {
+  if (deviation.extended.descriptionText.html.type === "writer") {
     return (booru) =>
       convertHtmlToMarkdown(
         deviation.extended.descriptionText.html.markup,
