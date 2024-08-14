@@ -45,21 +45,13 @@ export async function scrape(url: URL): Promise<SourceData> {
   const post = await fetchPost(blogUrl, postId);
   const media = post.data.filter(({ type }) => type === "image");
 
-  let description: string = post.data
+  const description = post.data
     .filter(({ type }) => type === "text" || type === "link")
     .map(({ modificator, content }) =>
       modificator === "BLOCK_END" ? "\n" : JSON.parse(content)[0],
     )
     .join("")
     .trim();
-
-  if (post.tags.length) {
-    if (description) {
-      description += "\n\n";
-    }
-
-    description += post.tags.map((tag) => `#${tag.title}`).join(" ");
-  }
 
   return {
     source: "Boosty",
@@ -75,6 +67,10 @@ export async function scrape(url: URL): Promise<SourceData> {
     date: formatDate(new Date(post.publishTime * 1_000)),
     title: post.title,
     description,
+    tags: post.tags.map((tag) => ({
+      name: tag.title,
+      url: `https://boosty.to/${post.user.blogUrl}?postsTagsIds=${tag.id}`,
+    })),
   };
 }
 
