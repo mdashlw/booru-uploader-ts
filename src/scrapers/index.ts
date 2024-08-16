@@ -18,6 +18,7 @@ import * as Newgrounds from "./newgrounds.js";
 // import * as PassThrough from "./pass-through.js";
 import * as Pillowfort from "./pillowfort.js";
 import * as Pixiv from "./pixiv.js";
+import * as PottoArt from "./pottoart.js";
 import * as Raw from "./raw.js";
 import * as Reddit from "./reddit.js";
 import * as Stash from "./stash.js";
@@ -50,6 +51,7 @@ export const scrapers: Scraper[] = [
   // PassThrough,
   Pillowfort,
   Pixiv,
+  PottoArt,
   YchArtAuction,
   YchArtCdn,
   Raw,
