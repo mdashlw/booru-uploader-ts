@@ -16,6 +16,16 @@ const BoostyPost = z.object({
   publishTime: z.number().int().positive(),
   title: z.string().trim(),
   data: z.any().array(),
+  teaser: z
+    .object({
+      type: z.literal("image"),
+      id: z.string().uuid(),
+      rendition: z.string(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+      url: z.string().url(),
+    })
+    .array(),
   tags: z
     .object({
       id: z.number().int().positive(),
@@ -43,7 +53,16 @@ export async function scrape(url: URL): Promise<SourceData> {
   }
 
   const post = await fetchPost(blogUrl, postId);
-  const media = post.data.filter(({ type }) => type === "image");
+  let media = post.data.filter(({ type }) => type === "image");
+
+  if (!media.length) {
+    media = post.teaser
+      .filter((t) => !t.rendition)
+      .map((teaser) => ({
+        ...teaser,
+        teaser: true,
+      }));
+  }
 
   const description = post.data
     .filter(({ type }) => type === "text" || type === "link")
@@ -57,9 +76,11 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "Boosty",
     url: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}`,
     images: await Promise.all(
-      media.map(async ({ id, url, width, height }) => ({
+      media.map(async ({ id, url, width, height, teaser }) => ({
         selected: id === mediaId,
-        pageUrl: `https://boosty.to/${post.user.blogUrl}/posts/${post.id}/media/${id}`,
+        pageUrl: teaser
+          ? undefined
+          : `https://boosty.to/${post.user.blogUrl}/posts/${post.id}/media/${id}`,
         ...(await probeAndValidateImageUrl(url, undefined, width, height)),
       })),
     ),
