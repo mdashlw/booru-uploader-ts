@@ -55,22 +55,12 @@ export async function scrape(url: URL): Promise<SourceData> {
     artist: submission.owner_login,
     date: formatDate(submission.posted_at),
     title: submission.title,
-    description: (booru) => {
-      let description = convertHtmlToMarkdown(
-        submission.description,
-        booru.markdown,
-      );
-
-      if (submission.tags.length) {
-        if (description) {
-          description += "\n\n";
-        }
-
-        description += submission.tags.map((tag) => `#${tag}`).join(" ");
-      }
-
-      return description;
-    },
+    description: (booru) =>
+      convertHtmlToMarkdown(submission.description, booru.markdown),
+    tags: submission.tags.map((name) => ({
+      name,
+      url: `https://www.weasyl.com/search?q=${encodeURIComponent(name)}`,
+    })),
   };
 }
 
