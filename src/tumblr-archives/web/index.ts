@@ -82,7 +82,7 @@ fastify.get("/blog-images", async (request, reply) => {
 });
 
 try {
-  await fastify.listen({ port: 80 });
+  await fastify.listen({ port: 8080 });
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
