@@ -9,6 +9,7 @@ const Submission = z.object({
   submission_id: z.coerce.number(),
   keywords: z
     .object({
+      keyword_id: z.string().pipe(z.coerce.number()),
       keyword_name: z.string(),
     })
     .array(),
@@ -116,24 +117,15 @@ export async function scrape(url: URL): Promise<SourceData> {
     artist: submission.username,
     date: formatDate(submission.create_datetime),
     title: submission.title,
-    description: (booru) => {
-      let description = convertHtmlToMarkdown(
+    description: (booru) =>
+      convertHtmlToMarkdown(
         submission.description_bbcode_parsed,
         booru.markdown,
-      );
-
-      if (submission.keywords.length) {
-        if (description) {
-          description += "\n\n";
-        }
-
-        description += submission.keywords
-          .map((kw) => `#${kw.keyword_name}`)
-          .join(" ");
-      }
-
-      return description;
-    },
+      ),
+    tags: submission.keywords.map(({ keyword_id, keyword_name }) => ({
+      name: keyword_name,
+      url: `https://inkbunny.net/search_process.php?keyword_id=${keyword_id}`,
+    })),
   };
 }
 
