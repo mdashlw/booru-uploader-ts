@@ -457,7 +457,7 @@ export async function scrape(
   }
 
   let artistName = (trail ?? post).blog.name;
-  if (/-deactivated\d{8}$/.test(artistName)) {
+  if (/-deactivated\d+$/.test(artistName)) {
     artistName = artistName.substring(0, artistName.lastIndexOf("-"));
   }
 
