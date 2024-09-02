@@ -1,4 +1,5 @@
 import process from "node:process";
+import { setTimeout } from "node:timers/promises";
 import undici from "undici";
 import { z } from "zod";
 import { SourceData } from "../scraper/types.js";
@@ -378,7 +379,31 @@ async function fetchAPI<T extends z.ZodTypeAny>(
     { throwOnError: true },
   );
   const json = await response.body.json();
-  const data = z.object({ response: body }).parse(json);
+  const data = z
+    .union([
+      z.object({ response: body }),
+      z.object({
+        error: z.object({
+          error_code: z.number(),
+          error_msg: z.string(),
+        }),
+      }),
+    ])
+    .parse(json);
+
+  if ("error" in data) {
+    if (data.error.error_code === 6) {
+      console.log(
+        `Rate limited (API error: "${data.error.error_code}"), waiting 5 secs`,
+      );
+      await setTimeout(5_000);
+      return fetchAPI(method, params, body);
+    }
+
+    throw new Error(
+      `API error: ${data.error.error_code} "${data.error.error_msg}"`,
+    );
+  }
 
   return data.response;
 }
