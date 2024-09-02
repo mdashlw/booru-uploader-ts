@@ -3,10 +3,24 @@ import { SourceData, SourceImageData } from "./scraper/types.js";
 
 export default async function selectImage(
   source: SourceData,
+  isPrimary: true,
+): Promise<SourceImageData>;
+
+export default async function selectImage(
+  source: SourceData,
+  isPrimary?: false,
+): Promise<SourceImageData | null>;
+
+export default async function selectImage(
+  source: SourceData,
   isPrimary = false,
-): Promise<SourceImageData> {
+) {
   if (source.images.length === 0) {
-    throw new Error("No images");
+    if (isPrimary) {
+      throw new Error("No images");
+    }
+
+    return null;
   }
 
   if (source.images.length === 1) {
