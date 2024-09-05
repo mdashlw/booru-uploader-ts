@@ -53,7 +53,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     ),
     artist: post.slug,
     date: formatDate(post.createdAt),
-    title: post.title,
+    title: post.title.trim(),
     description: post.content,
     tags: post.tags.map(({ value }) => ({
       name: value,
