@@ -3,6 +3,7 @@ import * as ArtStation from "./artstation.js";
 import * as Bluesky from "./bluesky.js";
 import * as Booru from "./booru.js";
 import * as Boosty from "./boosty.js";
+import * as Cara from "./cara.js";
 import * as Commishes from "./commishes.js";
 import * as DeviantArt from "./deviantart.js";
 import * as DiscordCdn from "./discord-cdn.js";
@@ -36,6 +37,7 @@ export const scrapers: Scraper[] = [
   Bluesky,
   Booru,
   Boosty,
+  Cara,
   Commishes,
   DeviantArt,
   DiscordCdn,
