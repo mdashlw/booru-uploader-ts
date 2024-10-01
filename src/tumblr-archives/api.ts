@@ -92,6 +92,7 @@ async function fetchAPI<T extends z.ZodTypeAny>(
   return data.response;
 }
 
+// TODO: https://github.com/mikf/gallery-dl/issues/5880
 export async function* fetchBlogPosts(
   blogName: string,
 ): AsyncGenerator<{ totalPosts: number; posts: TumblrPost[] }, void, void> {
