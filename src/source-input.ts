@@ -1,6 +1,6 @@
 import { input } from "@inquirer/prompts";
-import scrape from "./scraper.js";
-import { SourceData } from "./scraper/types.js";
+import scrape from "./scraper.ts";
+import type { SourceData } from "./scraper/types.ts";
 
 export interface MultipleSources {
   primary: SourceData;

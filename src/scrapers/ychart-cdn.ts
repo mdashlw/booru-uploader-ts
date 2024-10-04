@@ -1,5 +1,5 @@
-import { SourceData } from "../scraper/types.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
   return (

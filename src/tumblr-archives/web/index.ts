@@ -2,8 +2,8 @@ import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { fetchBlogPost } from "../api.js";
-import { ArchivedTumblrPost, getAllReblogs } from "../index.js";
+import { fetchBlogPost } from "../api.ts";
+import { type ArchivedTumblrPost, getAllReblogs } from "../index.ts";
 
 const reblogsCache = new Map<string, ArchivedTumblrPost[][]>();
 

@@ -1,7 +1,7 @@
 import util from "node:util";
-import selectBoorus from "./booru-selector.js";
-import TagLists from "./booru/tag-lists.js";
-import inputTags from "./tag-input.js";
+import selectBoorus from "./booru-selector.ts";
+import TagLists from "./booru/tag-lists.ts";
+import inputTags from "./tag-input.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

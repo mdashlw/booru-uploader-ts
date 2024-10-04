@@ -1,4 +1,4 @@
-import { SourceData } from "../scraper/types.js";
+import type { SourceData } from "../scraper/types.ts";
 
 export function canHandle(url: URL): boolean {
   return false;

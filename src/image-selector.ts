@@ -1,5 +1,5 @@
 import { select } from "@inquirer/prompts";
-import { SourceData, SourceImageData } from "./scraper/types.js";
+import type { SourceData, SourceImageData } from "./scraper/types.ts";
 
 export default async function selectImage(
   source: SourceData,

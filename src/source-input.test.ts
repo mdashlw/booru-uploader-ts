@@ -1,5 +1,5 @@
 import util from "node:util";
-import inputSources from "./source-input.js";
+import inputSources from "./source-input.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

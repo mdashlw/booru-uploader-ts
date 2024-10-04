@@ -1,6 +1,6 @@
 import util from "node:util";
-import { Tag } from "./tags/index.js";
-import promptTags from "./tags/prompt.js";
+import { type Tag } from "./tags/index.ts";
+import promptTags from "./tags/prompt.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

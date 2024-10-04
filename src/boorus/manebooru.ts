@@ -1,7 +1,11 @@
 import { Blob } from "node:buffer";
 import { FormData } from "undici";
-import Booru from "../booru/index.js";
-import { AutocompletedTag, Image, MarkdownDialect } from "../booru/types.js";
+import Booru from "../booru/index.ts";
+import type {
+  AutocompletedTag,
+  Image,
+  MarkdownDialect,
+} from "../booru/types.ts";
 
 export default class Manebooru extends Booru {
   constructor(options?: { key?: string }) {

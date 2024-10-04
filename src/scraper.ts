@@ -1,5 +1,5 @@
-import { Scraper, SourceData } from "./scraper/types.js";
-import { scrapers } from "./scrapers/index.js";
+import type { Scraper, SourceData } from "./scraper/types.ts";
+import { scrapers } from "./scrapers/index.ts";
 
 export function findScraper(url: URL): Scraper | undefined {
   return scrapers.find((scraper) => scraper.canHandle(url));

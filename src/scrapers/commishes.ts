@@ -1,8 +1,8 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate } from "../scraper/utils.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 const Upload = z.object({
   id: z.number().int().positive(),

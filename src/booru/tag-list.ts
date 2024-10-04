@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import Booru from "./index.js";
-import { Tag, TagName, TagSlug } from "./types.js";
+import Booru from "./index.ts";
+import type { Tag, TagName, TagSlug } from "./types.ts";
 
 export default class TagList {
   constructor(

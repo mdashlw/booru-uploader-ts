@@ -1,9 +1,9 @@
 import { Separator } from "@inquirer/prompts";
-import type { ChoiceOrSeparatorArray } from "inquirer-autocomplete-standalone";
+import { type ChoiceOrSeparatorArray } from "inquirer-autocomplete-standalone";
 import autocomplete from "inquirer-autocomplete-standalone";
-import TagLists from "./booru/tag-lists.js";
-import { TagName } from "./booru/types.js";
-import { debounceAsync } from "./lodash.js";
+import TagLists from "./booru/tag-lists.ts";
+import type { TagName } from "./booru/types.ts";
+import { debounceAsync } from "./lodash.ts";
 
 export default async function inputTags(tags: TagLists) {
   const userInput: string[] = [];

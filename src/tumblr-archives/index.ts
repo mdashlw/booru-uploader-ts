@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.js";
-import { fetchBlogPosts } from "./api.js";
-import { pool } from "./internal.js";
+import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.ts";
+import { fetchBlogPosts } from "./api.ts";
+import { pool } from "./internal.ts";
 
 export type ArchivedTumblrPost = {
   root_post_id: string;

@@ -1,8 +1,8 @@
 import autocomplete from "inquirer-autocomplete-standalone";
-import autocompleteTags from "./autocomplete.js";
-import { fetchTagsByNames } from "./fetch.js";
-import { Tag } from "./index.js";
-import { printTags } from "./print.js";
+import autocompleteTags from "./autocomplete.ts";
+import { fetchTagsByNames } from "./fetch.ts";
+import { type Tag } from "./index.ts";
+import { printTags } from "./print.ts";
 
 export default async function promptTags(tags: Tag[]) {
   while (true) {

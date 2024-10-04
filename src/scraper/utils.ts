@@ -1,10 +1,10 @@
 import { Blob } from "node:buffer";
-import { IncomingHttpHeaders } from "undici/types/header.js";
+import type { IncomingHttpHeaders } from "undici/types/header.ts";
 import {
-  ProbeResult,
+  type ProbeResult,
   probeImageBlob,
   probeImageUrl,
-} from "../utils/probe-image.js";
+} from "../utils/probe-image.ts";
 
 export function formatDate(date: Date): string {
   return date.toLocaleString("en-US", {

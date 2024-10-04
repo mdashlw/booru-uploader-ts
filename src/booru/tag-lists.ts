@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import Booru from "./index.js";
-import TagList from "./tag-list.js";
-import { TagName } from "./types.js";
+import Booru from "./index.ts";
+import TagList from "./tag-list.ts";
+import type { TagName } from "./types.ts";
 
 export default class TagLists {
   private readonly tagLists: Map<Booru, TagList>;

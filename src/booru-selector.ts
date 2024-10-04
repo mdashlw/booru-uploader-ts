@@ -1,6 +1,6 @@
 import { checkbox } from "@inquirer/prompts";
-import Booru from "./booru/index.js";
-import { boorus } from "./boorus.js";
+import Booru from "./booru/index.ts";
+import { boorus } from "./boorus.ts";
 
 export default async function selectBoorus(): Promise<Booru[]> {
   const selectedBoorus = await checkbox({

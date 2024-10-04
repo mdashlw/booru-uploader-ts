@@ -1,5 +1,5 @@
 import undici from "undici";
-import { convertTagSlugToName, Tag } from "./index.js";
+import { convertTagSlugToName, type Tag } from "./index.ts";
 
 const BASE_URL = "https://derpibooru.org";
 const USER_AGENT =

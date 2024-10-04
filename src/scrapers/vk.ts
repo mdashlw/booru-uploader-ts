@@ -2,9 +2,9 @@ import process from "node:process";
 import { setTimeout } from "node:timers/promises";
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 const API_VERSION = "5.199";
 const API_ACCESS_TOKEN = process.env.VK_ACCESS_TOKEN;

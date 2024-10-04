@@ -1,9 +1,9 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
-import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 const BASE_URL = "https://www.hentai-foundry.com";
 

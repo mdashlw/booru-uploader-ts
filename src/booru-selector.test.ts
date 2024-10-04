@@ -1,5 +1,5 @@
 import util from "node:util";
-import selectBoorus from "./booru-selector.js";
+import selectBoorus from "./booru-selector.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

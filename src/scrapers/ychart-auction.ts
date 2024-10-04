@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
-import { SourceData } from "../scraper/types.js";
-import { probeImageUrl } from "../utils/probe-image.js";
-import { manipulateImageUrl } from "./ychart-cdn.js";
+import type { SourceData } from "../scraper/types.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
+import { manipulateImageUrl } from "./ychart-cdn.ts";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "ych.art" && url.pathname.startsWith("/auction/");

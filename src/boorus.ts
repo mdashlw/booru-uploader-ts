@@ -1,7 +1,7 @@
 import process from "node:process";
-import Booru from "./booru/index.js";
-import Derpibooru from "./boorus/derpibooru.js";
-import Manebooru from "./boorus/manebooru.js";
+import Booru from "./booru/index.ts";
+import Derpibooru from "./boorus/derpibooru.ts";
+import Manebooru from "./boorus/manebooru.ts";
 
 export const boorus: Booru[] = [
   new Derpibooru({

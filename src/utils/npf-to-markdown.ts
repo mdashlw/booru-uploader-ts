@@ -1,5 +1,5 @@
-import { MarkdownDialect } from "../booru/types.js";
-import { NpfContentBlock } from "./tumblr-npf-types.js";
+import type { MarkdownDialect } from "../booru/types.ts";
+import { NpfContentBlock } from "./tumblr-npf-types.ts";
 
 export default function convertTumblrNpfToMarkdown(
   npf: NpfContentBlock[],

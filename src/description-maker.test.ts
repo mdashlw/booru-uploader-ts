@@ -1,8 +1,8 @@
 import { select } from "@inquirer/prompts";
 import clipboard from "clipboardy";
-import { boorus } from "./boorus.js";
-import makeDescription from "./description-maker.js";
-import inputSources from "./source-input.js";
+import { boorus } from "./boorus.ts";
+import makeDescription from "./description-maker.ts";
+import inputSources from "./source-input.ts";
 
 const sources = await inputSources(true);
 

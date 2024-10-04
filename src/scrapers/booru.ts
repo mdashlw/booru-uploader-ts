@@ -1,6 +1,6 @@
-import { boorus } from "../boorus.js";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
+import { boorus } from "../boorus.ts";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 export function canHandle(url: URL): boolean {
   return (

@@ -1,13 +1,13 @@
 import { confirm, select } from "@inquirer/prompts";
 import process from "node:process";
 import util from "node:util";
-import selectBoorus from "./booru-selector.js";
-import makeDescription from "./description-maker.js";
-import selectImage from "./image-selector.js";
-import { ratingTags } from "./rating-tags.js";
-import inputSources from "./source-input.js";
-import { fetchTagsByNames } from "./tags/fetch.js";
-import promptTags from "./tags/prompt.js";
+import selectBoorus from "./booru-selector.ts";
+import makeDescription from "./description-maker.ts";
+import selectImage from "./image-selector.ts";
+import { ratingTags } from "./rating-tags.ts";
+import inputSources from "./source-input.ts";
+import { fetchTagsByNames } from "./tags/fetch.ts";
+import promptTags from "./tags/prompt.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

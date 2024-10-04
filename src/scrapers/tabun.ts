@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
-import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
-import probeImageSize from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate } from "../scraper/utils.ts";
+import probeImageSize from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "tabun.everypony.ru";

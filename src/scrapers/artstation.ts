@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import { match, P } from "ts-pattern";
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { probeImageUrls } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { probeImageUrls } from "../utils/probe-image.ts";
 
 const Project = z.object({
   tags: z.string().array(),

@@ -2,7 +2,7 @@ import { parse as parseContentDisposition } from "@tinyhttp/content-disposition"
 import { imageSize } from "image-size";
 import { Blob, Buffer } from "node:buffer";
 import undici from "undici";
-import { IncomingHttpHeaders } from "undici/types/header.js";
+import type { IncomingHttpHeaders } from "undici/types/header.ts";
 
 export type ProbeResult = {
   blob: Blob;

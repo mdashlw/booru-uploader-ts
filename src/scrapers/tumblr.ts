@@ -1,19 +1,19 @@
 import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
-import { ZipEntry, unzip } from "unzipit";
+import { type ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
-import { SourceData, SourceImageData } from "../scraper/types.js";
+import type { SourceData, SourceImageData } from "../scraper/types.ts";
 import {
   formatDate,
   probeAndValidateImageBlob,
   probeAndValidateImageUrl,
-} from "../scraper/utils.js";
-import { getReblogs } from "../tumblr-archives/index.js";
-import { lazyInit } from "../utils/lazy-init.js";
-import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.js";
-import { ProbeResult } from "../utils/probe-image.js";
-import { NpfContentBlock } from "../utils/tumblr-npf-types.js";
+} from "../scraper/utils.ts";
+import { getReblogs } from "../tumblr-archives/index.ts";
+import { lazyInit } from "../utils/lazy-init.ts";
+import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.ts";
+import { type ProbeResult } from "../utils/probe-image.ts";
+import { NpfContentBlock } from "../utils/tumblr-npf-types.ts";
 
 /*
  * Images can be:

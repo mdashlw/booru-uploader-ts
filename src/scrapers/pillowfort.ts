@@ -1,9 +1,9 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 const pool = new undici.Pool("https://www.pillowfort.social");
 

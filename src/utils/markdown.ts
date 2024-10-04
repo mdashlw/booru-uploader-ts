@@ -1,4 +1,4 @@
-import { MarkdownDialect } from "../booru/types.js";
+import type { MarkdownDialect } from "../booru/types.ts";
 
 export function escapeMarkdownWithWhitespace(
   text: string,

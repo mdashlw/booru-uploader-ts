@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData, SourceImageData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
+import type { SourceData, SourceImageData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const fakeArtistTags = ["sound_warning", "third-party_edit"];
 

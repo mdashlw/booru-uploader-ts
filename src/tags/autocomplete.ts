@@ -1,5 +1,5 @@
 import undici from "undici";
-import LocalAutocompleter from "./local-autocompleter.js";
+import LocalAutocompleter from "./local-autocompleter.ts";
 
 async function fetchLocalAutocomplete(): Promise<LocalAutocompleter> {
   const now = new Date();

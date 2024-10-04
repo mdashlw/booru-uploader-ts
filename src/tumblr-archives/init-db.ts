@@ -1,4 +1,4 @@
-import { pool } from "./internal.js";
+import { pool } from "./internal.ts";
 
 // RUN THIS FILE MANUALLY
 // tsx -r dotenv/config src/tumblr-archives/init-db.ts

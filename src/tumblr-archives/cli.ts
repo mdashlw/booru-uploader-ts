@@ -2,7 +2,7 @@ import Bluebird from "bluebird";
 import fs from "node:fs";
 import process from "node:process";
 import util from "node:util";
-import { archivePosts, getMediaByPostId, getReblogs } from "./index.js";
+import { archivePosts, getMediaByPostId, getReblogs } from "./index.ts";
 
 util.inspect.defaultOptions.depth = null;
 

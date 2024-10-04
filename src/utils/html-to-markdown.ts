@@ -1,6 +1,6 @@
 import TurndownService from "turndown";
-import { MarkdownDialect } from "../booru/types.js";
-import { escapeMarkdownWithWhitespace } from "./markdown.js";
+import type { MarkdownDialect } from "../booru/types.ts";
+import { escapeMarkdownWithWhitespace } from "./markdown.ts";
 
 const MAGIC_NEW_LINE = "\0";
 

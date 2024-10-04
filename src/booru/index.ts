@@ -1,17 +1,17 @@
-import { Semaphore, SemaphoreInterface } from "async-mutex";
+import { Semaphore, type SemaphoreInterface } from "async-mutex";
 import _ from "lodash";
 import { Blob } from "node:buffer";
 import timers from "node:timers/promises";
 import undici from "undici";
-import { IncomingHttpHeaders } from "undici/types/header.js";
-import {
+import type { IncomingHttpHeaders } from "undici/types/header.ts";
+import type {
   AutocompletedTag,
   Image,
   MarkdownDialect,
   Tag,
   TagName,
   TagSlug,
-} from "./types.js";
+} from "./types.ts";
 
 export function convertTagNameToSlug(name: TagName): TagSlug {
   return name

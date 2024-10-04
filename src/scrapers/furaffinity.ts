@@ -1,9 +1,9 @@
 import * as cheerio from "cheerio";
 import process from "node:process";
 import undici from "undici";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 
 const COOKIE = process.env.FURAFFINITY_COOKIE;
 

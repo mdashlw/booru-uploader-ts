@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const BoostyUser = z.object({
   id: z.number().int().positive(),

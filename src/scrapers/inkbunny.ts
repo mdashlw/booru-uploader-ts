@@ -1,9 +1,9 @@
 import undici from "undici";
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { lazyInit } from "../utils/lazy-init.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { lazyInit } from "../utils/lazy-init.ts";
 
 const Submission = z.object({
   submission_id: z.coerce.number(),

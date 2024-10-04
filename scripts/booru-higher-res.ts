@@ -4,11 +4,11 @@ import crypto from "node:crypto";
 import process from "node:process";
 import readline from "node:readline/promises";
 import util from "node:util";
-import { Image, TagName } from "../src/booru/types.js";
-import { boorus } from "../src/boorus.js";
-import { ratingTags } from "../src/rating-tags.js";
-import { findScraper } from "../src/scraper.js";
-import type { SourceData, SourceImageData } from "../src/scraper/types.js";
+import type { Image, TagName } from "../src/booru/types.ts";
+import { boorus } from "../src/boorus.ts";
+import { ratingTags } from "../src/rating-tags.ts";
+import { findScraper } from "../src/scraper.ts";
+import type { SourceData, SourceImageData } from "../src/scraper/types.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 

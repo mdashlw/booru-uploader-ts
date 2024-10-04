@@ -1,4 +1,4 @@
-import Booru from "../booru/index.js";
+import Booru from "../booru/index.ts";
 
 export interface Scraper {
   canHandle: (url: URL) => boolean;

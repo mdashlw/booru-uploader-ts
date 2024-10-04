@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { SourceData } from "../scraper/types.js";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.js";
-import { convertHtmlToMarkdown } from "../utils/html-to-markdown.js";
-import { fetchAPI } from "./deviantart.js";
+import type { SourceData } from "../scraper/types.ts";
+import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { fetchAPI } from "./deviantart.ts";
 
 const StashItem = z.object({
   itemid: z.number().positive(),

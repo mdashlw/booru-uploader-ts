@@ -1,8 +1,8 @@
-import type { SourceData } from "../scraper/types.js";
+import type { SourceData } from "../scraper/types.ts";
 import undici from "undici";
 import { z } from "zod";
-import { formatDate } from "../scraper/utils.js";
-import { probeImageUrl } from "../utils/probe-image.js";
+import { formatDate } from "../scraper/utils.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 const Image = z.object({
   id: z.string().uuid(),

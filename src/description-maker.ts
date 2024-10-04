@@ -1,6 +1,6 @@
-import Booru from "./booru/index.js";
-import { SourceData } from "./scraper/types.js";
-import { MultipleSources } from "./source-input.js";
+import Booru from "./booru/index.ts";
+import type { SourceData } from "./scraper/types.ts";
+import { type MultipleSources } from "./source-input.ts";
 
 function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
   let result =
