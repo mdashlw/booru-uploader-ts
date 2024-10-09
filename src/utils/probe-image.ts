@@ -10,6 +10,7 @@ export type ProbeResult = {
   type: string;
   width: number;
   height: number;
+  size: number;
 };
 
 export async function probeImageBlob(blob: Blob): Promise<ProbeResult> {
@@ -35,6 +36,7 @@ export async function probeImageBlob(blob: Blob): Promise<ProbeResult> {
     type: result.type,
     width: result.width,
     height: result.height,
+    size: blob.size,
   };
 }
 

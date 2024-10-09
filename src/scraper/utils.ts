@@ -19,8 +19,15 @@ export async function probeAndValidateImageBlob(
   type?: string,
   width?: number,
   height?: number,
+  size?: number,
 ): Promise<ProbeResult> {
-  return validateProbeResult(await probeImageBlob(blob), type, width, height);
+  return validateProbeResult(
+    await probeImageBlob(blob),
+    type,
+    width,
+    height,
+    size,
+  );
 }
 
 export async function probeAndValidateImageUrl(
@@ -29,12 +36,14 @@ export async function probeAndValidateImageUrl(
   width?: number,
   height?: number,
   headers?: IncomingHttpHeaders,
+  size?: number,
 ): Promise<ProbeResult> {
   return validateProbeResult(
     await probeImageUrl(url, headers),
     type,
     width,
     height,
+    size,
   );
 }
 
@@ -43,6 +52,7 @@ function validateProbeResult(
   type?: string,
   width?: number,
   height?: number,
+  size?: number,
 ): ProbeResult {
   if (type?.startsWith("image/")) {
     type = type.substring("image/".length);
@@ -64,6 +74,12 @@ function validateProbeResult(
   ) {
     throw new Error(
       `Unexpected image size: ${result.width}x${result.height} (expected ${width}x${height})`,
+    );
+  }
+
+  if (size !== undefined && result.size !== size) {
+    throw new Error(
+      `Unexpected image size: ${result.size} bytes (expected ${size} bytes)`,
     );
   }
 
