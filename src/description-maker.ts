@@ -2,21 +2,47 @@ import Booru from "./booru/index.ts";
 import type { SourceData } from "./scraper/types.ts";
 import { type MultipleSources } from "./source-input.ts";
 
-function formatSource(booru: Booru, source: SourceData, isAlternate = false) {
+function formatSource(booru: Booru, source: SourceData) {
+  const image = source.images.find((i) => i.selected);
+
   let result =
     (booru.supportsMultipleSources
       ? source.source
       : booru.markdown.inlineLink(source.source, source.url)) +
     (source.date ? ` (${source.date})` : "");
 
-  const formattedTitle = source.title
-    ? booru.markdown.bold(booru.markdown.escape(source.title))
-    : "";
-  const formattedDescription = source.description
-    ? typeof source.description === "string"
-      ? booru.markdown.escape(source.description)
-      : source.description(booru)
-    : "";
+  let title = "";
+
+  if (source.title) {
+    if (image?.title) {
+      title = `${source.title} - ${image.title}`;
+    } else {
+      title = source.title;
+    }
+  } else if (image?.title) {
+    title = image.title;
+  }
+
+  const formattedTitle = title ? booru.markdown.bold(title) : "";
+
+  let description = "";
+
+  if (source.description) {
+    const sourceDescription =
+      typeof source.description === "string"
+        ? booru.markdown.escape(source.description)
+        : source.description(booru);
+
+    if (image?.description) {
+      description = `${sourceDescription}\n\n${booru.markdown.escape(image.description)}`;
+    } else {
+      description = sourceDescription;
+    }
+  } else if (image?.description) {
+    description = booru.markdown.escape(image.description);
+  }
+
+  const formattedDescription = description;
   const formattedTags =
     source.tags
       ?.map((tag) => booru.markdown.inlineLink(`#${tag.name}`, tag.url))
@@ -40,7 +66,7 @@ export default function makeDescription(
   let result = formatSource(booru, sources.primary);
 
   for (const alternateSource of sources.alternate) {
-    result += "\n\n" + formatSource(booru, alternateSource, true);
+    result += "\n\n" + formatSource(booru, alternateSource);
   }
 
   return result;
