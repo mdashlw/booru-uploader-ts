@@ -17,6 +17,7 @@ export interface SourceData {
     name: string;
     url: string;
   }[];
+  imagePageUrlsAreStandalone?: boolean;
 }
 
 export interface SourceImageData {

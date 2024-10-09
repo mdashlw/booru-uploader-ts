@@ -61,10 +61,19 @@ await Promise.allSettled(
         ...tags.map((tag) => tag.name),
       ],
       sourceUrl: image.pageUrl ?? sources.primary.url,
-      sourceUrls: [sources.primary, ...sources.alternate].map(
-        (source) =>
-          source.images.find((i) => i.selected)?.pageUrl ?? source.url,
-      ),
+      sourceUrls: [sources.primary, ...sources.alternate].flatMap((source) => {
+        const image = source.images.find((i) => i.selected);
+
+        if (image?.pageUrl) {
+          if (source.imagePageUrlsAreStandalone) {
+            return [source.url, image.pageUrl];
+          } else {
+            return [image.pageUrl];
+          }
+        } else {
+          return [source.url];
+        }
+      }),
       description: makeDescription(booru, sources),
     });
   }),
