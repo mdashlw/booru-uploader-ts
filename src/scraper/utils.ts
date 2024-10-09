@@ -77,9 +77,9 @@ function validateProbeResult(
     );
   }
 
-  if (size !== undefined && result.size !== size) {
+  if (size !== undefined && result.blob.size !== size) {
     throw new Error(
-      `Unexpected image size: ${result.size} bytes (expected ${size} bytes)`,
+      `Unexpected image size: ${result.blob.size} bytes (expected ${size} bytes)`,
     );
   }
 
