@@ -46,7 +46,6 @@ export function canHandle(url: URL): boolean {
 export async function scrape(url: URL): Promise<SourceData> {
   if (url.pathname.startsWith("/a/")) {
     const postId = url.pathname.split("/")[2].split("-").at(-1)!;
-    console.log(postId);
     const post = await fetchAlbumPost(postId);
 
     return {
