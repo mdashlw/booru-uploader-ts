@@ -11,6 +11,7 @@ import * as E621 from "./e621.ts";
 import * as FurAffinity from "./furaffinity.ts";
 import * as FurryNetwork from "./furrynetwork.ts";
 import * as HentaiFoundry from "./hentai-foundry.ts";
+import * as Imgur from "./imgur.ts";
 import * as Inkbunny from "./inkbunny.ts";
 import * as Itaku from "./itaku.ts";
 import * as Lofter from "./lofter.ts";
@@ -45,6 +46,7 @@ export const scrapers: Scraper[] = [
   FurAffinity,
   FurryNetwork,
   HentaiFoundry,
+  Imgur,
   Inkbunny,
   Itaku,
   Lofter,
