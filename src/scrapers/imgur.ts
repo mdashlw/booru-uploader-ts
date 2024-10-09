@@ -66,6 +66,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             pageUrl: `${ORIGIN}/${media.id}`,
             title: media.metadata.title,
             description: media.metadata.description,
+            displayName: media.name,
           })),
       ),
       artist: null,

@@ -30,4 +30,5 @@ export interface SourceImageData {
   height: number;
   title?: string;
   description?: string;
+  displayName?: string;
 }

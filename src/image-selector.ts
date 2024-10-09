@@ -37,7 +37,7 @@ export default async function selectImage(
     message: isPrimary ? "Primary image" : `${source.source} (${source.url})`,
     choices: source.images.map((image, index) => ({
       value: image,
-      name: `#${index + 1}`,
+      name: `#${index + 1}${image.displayName ? ` - ${image.displayName}` : ""}`,
     })),
   });
 
