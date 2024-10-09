@@ -20,11 +20,17 @@ export async function scrape(url: URL): Promise<SourceData> {
 
   return {
     source: "Potto",
-    url: url.href,
-    images: [await probeImageUrl(url)],
+    url: "https://pottoart.uk/gallery",
+    images: [
+      {
+        ...(await probeImageUrl(url)),
+        pageUrl: decodeURIComponent(url.href),
+      },
+    ],
     artist: "potato22",
     date: formatDate(new Date(Number(lastModified))),
     title: null,
     description: null,
+    imagePageUrlsAreStandalone: true,
   };
 }
