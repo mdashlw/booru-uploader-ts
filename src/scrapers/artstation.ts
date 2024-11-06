@@ -71,19 +71,20 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: await Promise.all(
       project.assets
         .filter((asset) => asset.asset_type === "image")
-        .map((asset) =>
-          probeImageUrls([
+        .map(async (asset) => ({
+          ...(await probeImageUrls([
             asset.image_url.replace("/large/", "/original/") +
               `&no_cache=${crypto.randomUUID()}`,
             asset.image_url.replace("/large/", "/4k/") +
               `&no_cache=${crypto.randomUUID()}`,
             asset.image_url + `&no_cache=${crypto.randomUUID()}`,
-          ]),
-        ),
+          ])),
+          description: asset.title,
+        })),
     ),
     artist: project.user.username,
     date: formatDate(project.published_at),
-    title: project.title, // todo image title
+    title: project.title,
     description: (booru) =>
       convertHtmlToMarkdown(project.description, booru.markdown),
     tags: [

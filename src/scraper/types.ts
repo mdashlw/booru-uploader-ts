@@ -29,6 +29,6 @@ export interface SourceImageData {
   width: number;
   height: number;
   title?: string;
-  description?: string;
+  description?: string | null;
   displayName?: string;
 }
