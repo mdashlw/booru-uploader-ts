@@ -1,5 +1,6 @@
 import type { Scraper } from "../scraper/types.ts";
 import * as ArtStation from "./artstation.ts";
+import * as Behance from "./behance.ts";
 import * as Bluesky from "./bluesky.ts";
 import * as Booru from "./booru.ts";
 import * as Boosty from "./boosty.ts";
@@ -35,6 +36,7 @@ import * as YchArtCdn from "./ychart-cdn.ts";
 
 export const scrapers: Scraper[] = [
   ArtStation,
+  Behance,
   Bluesky,
   Booru,
   Boosty,
