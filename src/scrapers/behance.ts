@@ -28,7 +28,12 @@ type Module = z.infer<typeof Module>;
 const Project = z.object({
   id: z.number(),
   name: z.string(),
-  published_on: z.number().int().positive().pipe(z.coerce.date()),
+  published_on: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
   url: z.string().url(),
   owners: z
     .object({
