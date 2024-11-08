@@ -61,7 +61,72 @@ function parseUrl(url: URL) {
     });
 }
 
+async function workAssetUrl(assetImageUrl: string) {
+  const nocache = crypto.randomUUID();
+  let finalUrl: string | undefined, probeResult: ProbeResult | undefined;
+
+  for (const url of [
+    assetImageUrl.replace("/large/", "/original/"),
+    assetImageUrl.replace("/large/", "/4k/"),
+    assetImageUrl,
+  ]) {
+    try {
+      probeResult = await probeImageUrl(`${url}&nocache=${nocache}`);
+      finalUrl = url;
+      break;
+    } catch (error: any) {
+      if (
+        error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
+        error.statusCode >= 400 &&
+        error.statusCode < 500
+      ) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  if (!probeResult || !finalUrl) {
+    throw new Error("failed to find working asset url");
+  }
+
+  return {
+    ...probeResult,
+    pageUrl: finalUrl
+      .substring(0, finalUrl.indexOf("?"))
+      .replace("cdna.", "cdn.")
+      .replace("cdnb.", "cdn."),
+  };
+}
+
 export async function scrape(url: URL): Promise<SourceData> {
+  if (
+    url.hostname === "cdn.artstation.com" ||
+    url.hostname === "cdna.artstation.com" ||
+    url.hostname === "cdnb.artstation.com"
+  ) {
+    let assetImageUrl = url.href
+      .replace("/original/", "/large/")
+      .replace("/4k/", "/large/");
+
+    if (!assetImageUrl.includes("?")) {
+      assetImageUrl += "?";
+    }
+
+    const probeResult = await workAssetUrl(assetImageUrl);
+
+    return {
+      source: null,
+      url: probeResult.pageUrl,
+      images: [probeResult],
+      artist: null,
+      date: null,
+      title: null,
+      description: null,
+    };
+  }
+
   const urlInfo = parseUrl(url);
   const project = await fetchProject(urlInfo.projectId);
 
@@ -71,46 +136,10 @@ export async function scrape(url: URL): Promise<SourceData> {
     images: await Promise.all(
       project.assets
         .filter((asset) => asset.asset_type === "image")
-        .map(async (asset) => {
-          const nocache = crypto.randomUUID();
-          let finalUrl: string | undefined,
-            probeResult: ProbeResult | undefined;
-
-          for (const url of [
-            asset.image_url.replace("/large/", "/original/"),
-            asset.image_url.replace("/large/", "/4k/"),
-            asset.image_url,
-          ]) {
-            try {
-              probeResult = await probeImageUrl(`${url}&nocache=${nocache}`);
-              finalUrl = url;
-              break;
-            } catch (error: any) {
-              if (
-                error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
-                error.statusCode >= 400 &&
-                error.statusCode < 500
-              ) {
-                continue;
-              }
-
-              throw error;
-            }
-          }
-
-          if (!probeResult || !finalUrl) {
-            throw new Error("failed to find working asset url");
-          }
-
-          finalUrl = finalUrl.replace("cdna.", "cdn.").replace("cdnb.", "cdn.");
-          finalUrl = finalUrl.substring(0, finalUrl.indexOf("?"));
-
-          return {
-            ...probeResult,
-            pageUrl: finalUrl,
-            description: asset.title,
-          };
-        }),
+        .map(async (asset) => ({
+          ...(await workAssetUrl(asset.image_url)),
+          description: asset.title,
+        })),
     ),
     artist: project.user.username,
     date: formatDate(project.published_at),

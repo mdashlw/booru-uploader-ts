@@ -6,7 +6,7 @@ export interface Scraper {
 }
 
 export interface SourceData {
-  source: string;
+  source: string | null;
   url: string;
   images: SourceImageData[];
   artist: string | string[] | null;

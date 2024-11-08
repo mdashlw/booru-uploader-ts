@@ -3,6 +3,10 @@ import type { SourceData } from "./scraper/types.ts";
 import { type MultipleSources } from "./source-input.ts";
 
 function formatSource(booru: Booru, source: SourceData) {
+  if (!source.source) {
+    return "";
+  }
+
   const image = source.images.find((i) => i.selected);
 
   let result =
@@ -69,5 +73,5 @@ export default function makeDescription(
     result += "\n\n" + formatSource(booru, alternateSource);
   }
 
-  return result;
+  return result.trim();
 }
