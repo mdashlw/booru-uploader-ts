@@ -29,8 +29,8 @@ const Project = z.object({
       name: z.string(),
     })
     .array(),
-  title: z.string(),
-  description: z.string(),
+  title: z.string().trim(),
+  description: z.string().trim(),
   permalink: z.string().url(),
   published_at: z.string().pipe(z.coerce.date()),
 });
