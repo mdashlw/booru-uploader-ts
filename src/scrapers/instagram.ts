@@ -28,19 +28,32 @@ export async function scrape(url: URL): Promise<SourceData> {
     throw new Error("post not found");
   }
 
-  const post = data[1][2];
+  let img_index = Number(url.searchParams.get("img_index"));
+
+  if (Number.isNaN(img_index) || img_index <= 0) {
+    img_index = 1;
+  }
+
+  img_index -= 1;
+
+  const post = data[0][1];
 
   return {
     source: "Instagram",
     url: post.post_url,
-    images: [
-      await probeAndValidateImageUrl(
-        post.display_url,
-        post.extension,
-        post.width,
-        post.height,
-      ),
-    ],
+    images: await Promise.all(
+      data
+        .slice(1)
+        .map(async ([_a, _b, image]: [any, any, any], i: number) => ({
+          ...(await probeAndValidateImageUrl(
+            image.display_url,
+            image.extension,
+            image.width,
+            image.height,
+          )),
+          selected: i === img_index,
+        })),
+    ),
     artist: post.username,
     date: formatDate(new Date(post.post_date.replace(" ", "T") + "Z")),
     title: null,
