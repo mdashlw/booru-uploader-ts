@@ -19,7 +19,7 @@ import * as Itaku from "./itaku.ts";
 import * as Lofter from "./lofter.ts";
 import * as Mastodon from "./mastodon.ts";
 import * as Newgrounds from "./newgrounds.ts";
-// import * as PassThrough from "./pass-through.ts";
+import * as PassThrough from "./pass-through.ts";
 import * as Pillowfort from "./pillowfort.ts";
 import * as Pixiv from "./pixiv.ts";
 import * as PottoArt from "./pottoart.ts";
@@ -56,7 +56,6 @@ export const scrapers: Scraper[] = [
   Lofter,
   Mastodon,
   Newgrounds,
-  // PassThrough,
   Pillowfort,
   Pixiv,
   PottoArt,
@@ -71,4 +70,5 @@ export const scrapers: Scraper[] = [
   Vk,
   Weasyl,
   Xiaohongshu,
+  PassThrough,
 ];

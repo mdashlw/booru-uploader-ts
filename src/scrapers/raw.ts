@@ -11,8 +11,8 @@ export function canHandle(url: URL): boolean {
 
 export async function scrape(url: URL): Promise<SourceData> {
   return {
-    source: "Direct",
-    url: url.toString(),
+    source: null,
+    url: url.href,
     images: [await probeImageUrl(url)],
     artist: null,
     date: null,

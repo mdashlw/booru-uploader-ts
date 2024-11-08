@@ -1,13 +1,13 @@
 import type { SourceData } from "../scraper/types.ts";
 
 export function canHandle(url: URL): boolean {
-  return false;
+  return true;
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
   return {
-    source: url.hostname,
-    url: url.toString(),
+    source: null,
+    url: url.href,
     images: [],
     artist: null,
     date: null,
