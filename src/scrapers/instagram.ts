@@ -47,7 +47,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         .map(async ([_a, _b, image]: [any, any, any], i: number) => ({
           ...(await probeAndValidateImageUrl(
             image.display_url,
-            image.extension,
+            undefined,
             image.width,
             image.height,
           )),
