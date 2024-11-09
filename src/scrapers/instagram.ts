@@ -31,10 +31,10 @@ export async function scrape(url: URL): Promise<SourceData> {
   let img_index = Number(url.searchParams.get("img_index"));
 
   if (Number.isNaN(img_index) || img_index <= 0) {
-    img_index = 1;
+    img_index = -1;
+  } else {
+    img_index -= 1;
   }
-
-  img_index -= 1;
 
   const post = data[0][1];
 
