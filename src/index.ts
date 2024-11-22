@@ -24,6 +24,22 @@ for (const source of sources.alternate) {
 
 console.log(sources);
 
+console.log("\n");
+console.table(
+  [sources.primary, ...sources.alternate].map((source) => {
+    const image = source.images.find((i) => i.selected);
+
+    return {
+      source: source.source,
+      width: image?.width,
+      height: image?.height,
+      type: image?.type,
+      size: image?.blob?.size,
+    };
+  }),
+);
+console.log("\n");
+
 const boorus = await selectBoorus();
 
 const ratingTag = await select({
