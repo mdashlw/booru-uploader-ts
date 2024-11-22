@@ -2,10 +2,12 @@ import type { SourceData } from "../scraper/types.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
+  const pathname = url.pathname.toLowerCase();
+
   return (
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".jpg") ||
-    url.pathname.endsWith(".jpeg")
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".jpg") ||
+    pathname.endsWith(".jpeg")
   );
 }
 
