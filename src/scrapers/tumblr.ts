@@ -13,7 +13,14 @@ import { getReblogs } from "../tumblr-archives/index.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.ts";
 import { type ProbeResult } from "../utils/probe-image.ts";
-import { NpfContentBlock } from "../utils/tumblr-npf-types.ts";
+import {
+  Blog,
+  NpfContentBlock,
+  NpfPost,
+  V1Post,
+  ReblogTrail,
+  NpfLayoutBlock,
+} from "../utils/tumblr-types.ts";
 
 /*
  * Images can be:
@@ -72,81 +79,6 @@ import { NpfContentBlock } from "../utils/tumblr-npf-types.ts";
  */
 
 const COOKIE = process.env.TUMBLR_COOKIE;
-
-const V1RegularPost = z.object({
-  type: z.literal("regular"),
-  "regular-body": z.string(),
-});
-type V1RegularPost = z.infer<typeof V1RegularPost>;
-
-const V1PhotoPost = z.object({
-  type: z.literal("photo"),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
-  photos: z
-    .object({
-      width: z.number().int().positive(),
-      height: z.number().int().positive(),
-    })
-    .array(),
-});
-type V1PhotoPost = z.infer<typeof V1PhotoPost>;
-
-const V1AnswerPost = z.object({
-  type: z.literal("answer"),
-  question: z.string(),
-  answer: z.string(),
-});
-type V1AnswerPost = z.infer<typeof V1AnswerPost>;
-
-const V1Post = z.discriminatedUnion("type", [
-  V1RegularPost,
-  V1PhotoPost,
-  V1AnswerPost,
-]);
-type V1Post = z.infer<typeof V1Post>;
-
-const Blog = z.object({
-  name: z.string(),
-  url: z.string().url(),
-  uuid: z.string().startsWith("t:"),
-});
-type Blog = z.infer<typeof Blog>;
-
-const ReblogTrail = z.union([
-  z.object({
-    content: NpfContentBlock.array(),
-    post: z.object({
-      id: z.string(),
-      timestamp: z.number().int().positive(),
-    }),
-    blog: Blog,
-  }),
-  z.object({
-    content: NpfContentBlock.array(),
-    brokenBlog: z.object({
-      name: z.string(),
-    }),
-    post: z.object({}),
-  }),
-]);
-type ReblogTrail = z.infer<typeof ReblogTrail>;
-
-const NpfPost = z.object({
-  objectType: z.literal("post"),
-  blogName: z.string(),
-  blog: Blog,
-  idString: z.string(),
-  postUrl: z.string().url(),
-  timestamp: z.number().int().positive(),
-  reblogKey: z.string(),
-  tags: z.string().array(),
-  content: NpfContentBlock.array(),
-  trail: ReblogTrail.array(),
-  rebloggedRootId: z.string().optional(),
-  rebloggedRootUrl: z.string().url().optional(),
-});
-type NpfPost = z.infer<typeof NpfPost>;
 
 const getCsrfToken = lazyInit(() => fetchCsrfToken());
 const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
@@ -248,7 +180,7 @@ export async function scrape(
 
   const trail = post.trail[0] as ReblogTrail | undefined;
 
-  let content: NpfContentBlock[];
+  let content: NpfContentBlock[], layout: NpfLayoutBlock[];
 
   if (post.rebloggedRootId) {
     if (!trail) {
@@ -263,11 +195,11 @@ export async function scrape(
       throw new Error("Trail post id does not match reblogged root id");
     }
 
-    content = trail.content;
+    ({ content, layout } = trail);
   } else if (trail) {
     throw new Error("Post is not a reblog but a trail present");
   } else {
-    content = post.content;
+    ({ content, layout } = post);
   }
 
   let v1PostPromise: Promise<V1Post | null> | undefined;
@@ -468,7 +400,8 @@ export async function scrape(
     artist: artistName,
     date: formatDate(new Date((trail?.post ?? post).timestamp * 1_000)),
     title: null,
-    description: (booru) => convertTumblrNpfToMarkdown(content, booru.markdown),
+    description: (booru) =>
+      convertTumblrNpfToMarkdown(content, layout, booru.markdown),
     tags: post.tags.map((name) => ({
       name,
       url: `https://www.tumblr.com/${post.blogName}/tagged/${encodeURIComponent(name)}`,

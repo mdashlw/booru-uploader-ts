@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-npf-types.ts";
+import { NpfContentBlock, NpfMediaObject } from "../utils/tumblr-types.ts";
 import { fetchBlogPosts } from "./api.ts";
 import { pool } from "./internal.ts";
 

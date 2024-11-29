@@ -1,7 +1,7 @@
 import retry from "async-retry";
 import undici from "undici";
 import { z } from "zod";
-import { NpfContentBlock } from "../utils/tumblr-npf-types.ts";
+import { NpfContentBlock } from "../utils/tumblr-types.ts";
 
 export const TumblrPost = z.object({
   blogName: z.string(),
