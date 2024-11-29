@@ -142,7 +142,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             .get("w")!
             .substring(url.searchParams.get("w")!.indexOf("_r") + "_r".length),
       );
-      comment = await fetchComment(post.owner_id, post.id, commentId);
+      comment = await fetchWallComment(post.owner_id, post.id, commentId);
       attachments = comment.attachments;
     } else {
       attachments = post.attachments;
@@ -228,20 +228,65 @@ export async function scrape(url: URL): Promise<SourceData> {
     }
 
     const photo = await fetchExtendedPhotoWithOwner(photoId);
+    let comment: VkComment | undefined;
+    let attachments: VkAttachment[] | undefined;
+
+    if (url.searchParams.has("reply")) {
+      const commentId = Number(url.searchParams.get("reply"));
+
+      comment = await fetchPhotoComment(photo.owner_id, photo.id, commentId);
+      attachments = comment.attachments;
+    }
 
     return {
       source: "VK",
-      url: `https://vk.com/photo${photo.owner_id}_${photo.id}`,
-      images: [
-        await probeAndValidateImageUrl(
-          photo.orig_photo.url,
-          undefined,
-          photo.orig_photo.width,
-          photo.orig_photo.height,
-        ),
-      ],
+      url: `https://vk.com/photo${photo.owner_id}_${photo.id}${
+        comment ? `?reply=${comment.id}` : ""
+      }`,
+      images: attachments
+        ? await Promise.all(
+            attachments
+              ?.map((attachment) => {
+                if (attachment.type === "photo") {
+                  // const photo = extendedPhotos?.find(
+                  //   ({ id }) => id === attachment.photo.id,
+                  // );
+
+                  // if (!photo) {
+                  //   throw new Error("Extended photo not found");
+                  // }
+
+                  // return probeAndValidateImageUrl(
+                  //   photo.orig_photo.url,
+                  //   undefined,
+                  //   photo.orig_photo.width,
+                  //   photo.orig_photo.height,
+                  // );
+                  return null;
+                }
+
+                if (attachment.type === "doc") {
+                  if (attachment.doc.type !== 4) {
+                    return null;
+                  }
+
+                  return probeImageUrl(attachment.doc.url);
+                }
+
+                return null;
+              })
+              .filter((promise) => promise !== null) ?? [],
+          )
+        : [
+            await probeAndValidateImageUrl(
+              photo.orig_photo.url,
+              undefined,
+              photo.orig_photo.width,
+              photo.orig_photo.height,
+            ),
+          ],
       artist: getGroupCustomScreenName(photo.owner),
-      date: formatDate(photo.date),
+      date: formatDate((comment ?? photo).date),
       title: null,
       description: photo.text,
     };
@@ -295,7 +340,7 @@ async function fetchPostWithOwner(
   };
 }
 
-async function fetchComment(
+async function fetchWallComment(
   ownerId: number,
   postId: number,
   commentId: number,
@@ -305,6 +350,32 @@ async function fetchComment(
     {
       owner_id: ownerId.toString(),
       post_id: postId.toString(),
+      start_comment_id: commentId.toString(),
+      count: "1",
+    },
+    z.object({
+      items: VkComment.array(),
+    }),
+  );
+  const [comment] = data.items;
+
+  if (!comment) {
+    throw new Error("Comment not found");
+  }
+
+  return comment;
+}
+
+async function fetchPhotoComment(
+  ownerId: number,
+  photoId: number,
+  commentId: number,
+): Promise<VkComment> {
+  const data = await fetchAPI(
+    "photos.getComments",
+    {
+      owner_id: ownerId.toString(),
+      photo_id: photoId.toString(),
       start_comment_id: commentId.toString(),
       count: "1",
     },
