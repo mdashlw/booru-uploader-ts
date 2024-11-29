@@ -36,10 +36,10 @@ export default class Derpibooru extends Booru {
           .replaceAll("=", "\\=")
           .replaceAll("[", "\\[")
           .replaceAll("]", "\\]")
-          .replaceAll("-", "\\-")
-          .replaceAll(">", "\\>")
-          .replaceAll(/^(\d+)\. /g, "$1\\. ")
-          .replaceAll("+", "\\+"),
+          .replaceAll("- ", "\\- ")
+          .replaceAll("> ", "\\> ")
+          .replaceAll("+ ", "\\+ ")
+          .replaceAll(/(\d+)\. /g, "$1\\. "),
       boldStart: "**",
       boldEnd: "**",
       italicStart: "*",
