@@ -164,9 +164,12 @@ export default function convertTumblrNpfToMarkdown(
       let text = formatTextBlock(block, markdown);
 
       if (ask?.blocks.includes(originalBlockIndex)) {
-        const who = ask.attribution?.blog.name ?? "Anonymous";
-        const attr = `${markdown.italicStart}${markdown.bold(who)} asked:${markdown.italicEnd}`;
-        text = `${attr}\n${text}`;
+        if (ask.blocks.indexOf(originalBlockIndex) === 0) {
+          const who = ask.attribution?.blog.name ?? "Anonymous";
+          const attr = `${markdown.italicStart}${markdown.bold(who)} asked:${markdown.italicEnd}`;
+          text = `${attr}\n${text}`;
+        }
+
         return markdown.blockQuote(text);
       }
 

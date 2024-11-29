@@ -42,6 +42,8 @@ export async function probeImageUrl(
   url: string | URL,
   headers?: IncomingHttpHeaders,
 ): Promise<ProbeResult> {
+  console.log("probeImageUrl", url);
+
   const response = await undici.request(url, {
     headers,
     maxRedirections: 10,
