@@ -1,5 +1,6 @@
 import undici from "undici";
 import { convertTagSlugToName, type Tag } from "./index.ts";
+import _ from "lodash";
 
 const BASE_URL = "https://derpibooru.org";
 const USER_AGENT =
@@ -40,23 +41,31 @@ export async function fetchTagsByNames(names: string[]): Promise<Tag[]> {
   }
 
   if (uncachedTagNames.length) {
-    const response = await pool.request({
-      method: "GET",
-      path: `/api/v1/json/search/tags`,
-      query: {
-        per_page: MAX_PER_PAGE,
-        q: uncachedTagNames.join(" OR "),
-      },
-      headers: {
-        "user-agent": USER_AGENT,
-      },
-      throwOnError: true,
-    });
-    const json = (await response.body.json()) as { tags: Tag[] };
+    const uncachedTags = (
+      await Promise.all(
+        _.chunk(uncachedTagNames, MAX_PER_PAGE).map(async (chunk) => {
+          const response = await pool.request({
+            method: "GET",
+            path: `/api/v1/json/search/tags`,
+            query: {
+              per_page: MAX_PER_PAGE,
+              q: chunk.join(" OR "),
+            },
+            headers: {
+              "user-agent": USER_AGENT,
+            },
+            throwOnError: true,
+          });
+          const json = (await response.body.json()) as { tags: Tag[] };
 
-    json.tags.forEach(cacheTag);
+          return json.tags;
+        }),
+      )
+    ).flat();
 
-    return [...cachedTags, ...json.tags];
+    uncachedTags.forEach(cacheTag);
+
+    return [...cachedTags, ...uncachedTags];
   }
 
   return cachedTags;
