@@ -165,8 +165,18 @@ export default function convertTumblrNpfToMarkdown(
 
       if (ask?.blocks.includes(originalBlockIndex)) {
         if (ask.blocks.indexOf(originalBlockIndex) === 0) {
-          const who = ask.attribution?.blog.name ?? "Anonymous";
-          const attr = `${markdown.italicStart}${markdown.bold(who)} asked:${markdown.italicEnd}`;
+          let asker: string;
+
+          if (ask.attribution) {
+            asker = markdown.inlineLink(
+              ask.attribution.blog.name,
+              ask.attribution.blog.url,
+            );
+          } else {
+            asker = "Anonymous";
+          }
+
+          const attr = `${markdown.italicStart}${markdown.bold(asker)} asked:${markdown.italicEnd}`;
           text = `${attr}\n${text}`;
         }
 
