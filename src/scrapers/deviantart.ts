@@ -233,10 +233,10 @@ export async function scrape(
           throw new Error(`Deviation #${deviationId} not found.`);
         }
 
-        const embed = await fetchDeviationEmbed(deviationId);
-        const deviation = await convertEmbed(deviationId, embed);
+        // const embed = await fetchDeviationEmbed(deviationId);
+        // const deviation = await convertEmbed(deviationId, embed);
 
-        return { deviation };
+        // return { deviation };
       }
 
       throw error;
