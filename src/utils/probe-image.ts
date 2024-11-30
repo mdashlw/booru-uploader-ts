@@ -42,7 +42,7 @@ export async function probeImageUrl(
   url: string | URL,
   headers?: IncomingHttpHeaders,
 ): Promise<ProbeResult> {
-  console.log("probeImageUrl", url);
+  console.log(`probeImageUrl: ${url}`);
 
   const response = await undici.request(url, {
     headers,
