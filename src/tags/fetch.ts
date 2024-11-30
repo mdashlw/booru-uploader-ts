@@ -49,7 +49,11 @@ export async function fetchTagsByNames(names: string[]): Promise<Tag[]> {
             path: `/api/v1/json/search/tags`,
             query: {
               per_page: MAX_PER_PAGE,
-              q: chunk.join(" OR "),
+              q: chunk
+                .map((name) =>
+                  name.includes("(") || name.includes(")") ? `"${name}"` : name,
+                )
+                .join(" OR "),
             },
             headers: {
               "user-agent": USER_AGENT,
