@@ -210,6 +210,22 @@ export async function scrape(
       }>
     | undefined;
 
+  const mediaContent = post.content.filter(
+    (block) => block.type === "image" || block.type === "video",
+  );
+  const selectedMediaIndex = url.hash ? Number(url.hash.substring(1)) - 1 : NaN;
+
+  let canonicalUrl = post.postUrl;
+  if (post.rebloggedRootUrl) {
+    if (
+      post.rebloggedRootUrl.startsWith("https://www.tumblr.com/blog/private_")
+    ) {
+      canonicalUrl = `https://${trail!.blog.name}.tumblr.com/post/${post.rebloggedRootId}`;
+    } else {
+      canonicalUrl = post.rebloggedRootUrl;
+    }
+  }
+
   const images: SourceImageData[] = await Promise.all(
     content
       .filter((block) => block.type === "image")
@@ -373,20 +389,17 @@ export async function scrape(
           probeResult.filename = entry.name;
         }
 
-        return probeResult;
+        const thisIndex = mediaContent.indexOf(block);
+        return {
+          ...probeResult,
+          pageUrl:
+            mediaContent.length > 1
+              ? `${canonicalUrl}#${thisIndex + 1}`
+              : canonicalUrl,
+          selected: selectedMediaIndex === thisIndex,
+        };
       }),
   );
-
-  let canonicalUrl = post.postUrl;
-  if (post.rebloggedRootUrl) {
-    if (
-      post.rebloggedRootUrl.startsWith("https://www.tumblr.com/blog/private_")
-    ) {
-      canonicalUrl = `https://${trail!.blog.name}.tumblr.com/post/${post.rebloggedRootId}`;
-    } else {
-      canonicalUrl = post.rebloggedRootUrl;
-    }
-  }
 
   let artistName = (trail ?? post).blog.name;
   if (/-deactivated\d+$/.test(artistName)) {
