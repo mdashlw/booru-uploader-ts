@@ -24,7 +24,7 @@ fastify.get("/blog-viewer", (_request, reply) =>
 );
 
 fastify.get("/blog-images", async (request, reply) => {
-  const blog = request.query.blog;
+  const blog = request.query.blog.toLowerCase();
   const offset = Number(request.query.offset);
 
   if (!reblogsCache.has(blog)) {

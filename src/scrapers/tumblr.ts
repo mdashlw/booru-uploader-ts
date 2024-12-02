@@ -210,7 +210,7 @@ export async function scrape(
       }>
     | undefined;
 
-  const mediaContent = post.content.filter(
+  const mediaContent = content.filter(
     (block) => block.type === "image" || block.type === "video",
   );
   const selectedMediaIndex = url.hash ? Number(url.hash.substring(1)) - 1 : NaN;
