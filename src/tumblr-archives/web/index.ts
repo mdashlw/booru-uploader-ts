@@ -160,6 +160,7 @@ fastify.get("/posts", async (request) => {
             }
 
             post = reblogPost;
+            break;
           }
         }
 
