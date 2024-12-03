@@ -13,13 +13,19 @@ export async function scrape(url: URL): Promise<SourceData> {
   manipulateImageUrl(url);
 
   return {
-    source: "YCH.art",
-    url: decodeURIComponent(url.href),
-    images: [await probeImageUrl(url)],
+    source: null,
+    url: `https://ych.art/user/${username}/portfolio`,
+    images: [
+      {
+        ...(await probeImageUrl(url)),
+        pageUrl: decodeURIComponent(url.href),
+      },
+    ],
     artist: username,
     date: null,
     title: null,
     description: null,
+    imagePageUrlsAreStandalone: true,
   };
 }
 
