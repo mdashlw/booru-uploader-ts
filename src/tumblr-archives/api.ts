@@ -26,7 +26,7 @@ export type TumblrPost = z.infer<typeof TumblrPost>;
 
 const pool = new undici.Pool("https://www.tumblr.com");
 
-async function fetchAPI<T extends z.ZodTypeAny>(
+export async function fetchAPI<T extends z.ZodTypeAny>(
   path: string,
   body: T,
 ): Promise<z.infer<T>> {
