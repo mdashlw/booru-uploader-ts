@@ -102,69 +102,71 @@ fastify.get("/posts", async (request) => {
   const allReblogs = reblogsCache.get(blogName)!;
   const listOfReblogs = allReblogs.slice(offset, offset + perPage);
 
-  const posts = await Promise.all(
-    listOfReblogs.map(async (reblogs) => {
-      let post: any;
+  const posts = (
+    await Promise.all(
+      listOfReblogs.map(async (reblogs) => {
+        let post: any;
 
-      const [anyReblog] = reblogs;
-      try {
-        const response = await fetchAPI(
-          `/api/v2/blog/${anyReblog.root_blog_uuid}/posts/${anyReblog.root_post_id}/permalink?${proxiedParamsString}`,
-          z
-            .object({
-              timeline: z.object({
-                elements: z.any().array().length(1),
-              }),
-            })
-            .passthrough(),
-        );
-
-        post = response.timeline.elements[0];
-      } catch (error) {
-        console.error(
-          `Failed to fetch post ${anyReblog.root_post_id} (blog ${anyReblog.root_blog_uuid} - ${anyReblog.root_blog_name})`,
-        );
-      }
-
-      if (!post) {
-        for (const reblog of reblogs) {
-          let reblogPost: any;
-
-          try {
-            const response = await fetchAPI(
-              `/api/v2/blog/${reblog.reblog_blog_uuid}/posts/${reblog.reblog_post_id}/permalink?${proxiedParamsString}`,
-              z
-                .object({
-                  timeline: z.object({
-                    elements: z.any().array().length(1),
-                  }),
-                })
-                .passthrough(),
-            );
-            reblogPost = response.timeline.elements[0];
-          } catch (error) {
-            console.error(
-              `Failed to fetch reblog post ${reblog.reblog_post_id} (blog ${reblog.reblog_blog_uuid} - ${reblog.reblog_blog_name})`,
-              error,
-            );
-            continue;
-          }
-
-          const trail = reblogPost.trail.find(
-            (t) => t.post.id === reblogPost.rebloggedRootId,
+        const [anyReblog] = reblogs;
+        try {
+          const response = await fetchAPI(
+            `/api/v2/blog/${anyReblog.root_blog_uuid}/posts/${anyReblog.root_post_id}/permalink?${proxiedParamsString}`,
+            z
+              .object({
+                timeline: z.object({
+                  elements: z.any().array().length(1),
+                }),
+              })
+              .passthrough(),
           );
 
-          if (!trail) {
-            continue;
-          }
-
-          post = reblogPost;
+          post = response.timeline.elements[0];
+        } catch (error) {
+          console.error(
+            `Failed to fetch post ${anyReblog.root_post_id} (blog ${anyReblog.root_blog_uuid} - ${anyReblog.root_blog_name})`,
+          );
         }
-      }
 
-      return post;
-    }),
-  );
+        if (!post) {
+          for (const reblog of reblogs) {
+            let reblogPost: any;
+
+            try {
+              const response = await fetchAPI(
+                `/api/v2/blog/${reblog.reblog_blog_uuid}/posts/${reblog.reblog_post_id}/permalink?${proxiedParamsString}`,
+                z
+                  .object({
+                    timeline: z.object({
+                      elements: z.any().array().length(1),
+                    }),
+                  })
+                  .passthrough(),
+              );
+              reblogPost = response.timeline.elements[0];
+            } catch (error) {
+              console.error(
+                `Failed to fetch reblog post ${reblog.reblog_post_id} (blog ${reblog.reblog_blog_uuid} - ${reblog.reblog_blog_name})`,
+                error,
+              );
+              continue;
+            }
+
+            const trail = reblogPost.trail.find(
+              (t) => t.post.id === reblogPost.rebloggedRootId,
+            );
+
+            if (!trail) {
+              continue;
+            }
+
+            post = reblogPost;
+          }
+        }
+
+        return post;
+      }),
+    )
+  ).filter(Boolean);
 
   let blog = posts.find((p) => !p.rebloggedRootId)?.blog;
   if (!blog) {
