@@ -407,6 +407,31 @@ const services: Service[] = [
       return `https://www.pillowfort.social/${name}`;
     },
   },
+  {
+    name: "FurryNetwork",
+    async check(name) {
+      let json: any;
+
+      try {
+        const response = await undici.request(
+          `https://furrynetwork.com/api/character/${encodeURIComponent(name)}`,
+          { throwOnError: true },
+        );
+        json = await response.body.json();
+      } catch (error: any) {
+        if (
+          error.code === "UND_ERR_RESPONSE_STATUS_CODE" &&
+          error.statusCode === 404
+        ) {
+          return false;
+        }
+
+        throw error;
+      }
+
+      return `https://furrynetwork.com/${json.name}/`;
+    },
+  },
 ];
 
 // https://github.com/philomena-dev/philomena/blob/0c865b3f2a161679dfebd8858ba754a91b78cc8d/lib/philomena/slug.ex#L42
