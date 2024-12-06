@@ -1,6 +1,7 @@
 import process from "node:process";
 import undici from "undici";
 import { getAllReblogs } from "../src/tumblr-archives/index.ts";
+import exitHook from "exit-hook";
 
 const [, , blogName] = process.argv;
 
@@ -19,6 +20,14 @@ console.log(posts.length, "posts");
 
 const checkedBlogs = new Set();
 
+exitHook(() => {
+  console.log(
+    Array.from(outputBlogs)
+      .map((b) => `--blogs ${b}`)
+      .join(" "),
+  );
+});
+
 for (const post of posts) {
   if (checkedBlogs.has(post.reblog_blog_name)) {
     continue;
@@ -32,6 +41,10 @@ for (const post of posts) {
     const resp = await pool.request({
       method: "GET",
       path: href,
+      headers: {
+        cookie:
+          "euconsent-v2=CQJDuQAQJDuQAECACAENBSEgAPLAAELAAKiQGTgBxCJUCCFBIGBHAIIEIAgMQDAAQgQAAAIAAQAAAAAAEIgAgAAAAAAAACAAAAAAAAAAIAAAAAAAAAAAAIAABAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAEQABAAAEAAEAAAAAAAIACBk4AIAgVAABQABAQQAABAAAAEAQAEAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAABAAAAAAAAAAAAAgAAAAA; euconsent-v2-noniab=AAhFgAAA; euconsent-v2-analytics=1",
+      },
     });
     const json: any = await resp.body.json();
 
@@ -51,9 +64,3 @@ for (const post of posts) {
     href = json.response._links?.next?.href;
   }
 }
-
-console.log(
-  Array.from(outputBlogs)
-    .map((b) => `--blogs ${b}`)
-    .join(" "),
-);

@@ -12,6 +12,7 @@
     "cheerio": "^1.0.0",
     "clipboardy": "^4.0.0",
     "dotenv": "^16.4.7",
+    "exit-hook": "^4.0.0",
     "fastify": "^5.1.0",
     "html-entities": "^2.5.2",
     "html5parser": "^2.0.2",
@@ -40,5 +41,8 @@
     "@types/turndown": "^5.0.5",
     "prettier": "^3.4.1",
     "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types -r dotenv/config src/index.ts"
   }
 }
