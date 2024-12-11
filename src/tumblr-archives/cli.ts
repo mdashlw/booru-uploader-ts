@@ -90,7 +90,7 @@ if (command === "archive") {
   console.log(`Found ${reblogs.length} reblogs for post ${args.postId}`);
 
   for (const reblog of reblogs) {
-    const reblogUrl = `https://www.tumblr.com/${reblog.reblog_blog_name}/${reblog.reblog_post_id}`;
+    const reblogUrl = `https://www.tumblr.com/${reblog.reblog_blog_name}/${reblog.reblog_post_id} (${reblog.root_blog_name} / ${reblog.root_blog_uuid})`;
 
     console.log(`- ${reblogUrl}`);
   }

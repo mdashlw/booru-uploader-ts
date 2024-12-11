@@ -38,15 +38,25 @@ for (const post of posts) {
   let href = `/svc/tumblelog/${post.reblog_blog_name}/${post.reblog_post_id}/notes?mode=all`;
   while (href) {
     console.log(href);
-    const resp = await pool.request({
-      method: "GET",
-      path: href,
-      headers: {
-        cookie:
-          "euconsent-v2=CQJDuQAQJDuQAECACAENBSEgAPLAAELAAKiQGTgBxCJUCCFBIGBHAIIEIAgMQDAAQgQAAAIAAQAAAAAAEIgAgAAAAAAAACAAAAAAAAAAIAAAAAAAAAAAAIAABAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAEQABAAAEAAEAAAAAAAIACBk4AIAgVAABQABAQQAABAAAAEAQAEAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAABAAAAAAAAAAAAAgAAAAA; euconsent-v2-noniab=AAhFgAAA; euconsent-v2-analytics=1",
-      },
-    });
-    const json: any = await resp.body.json();
+    let json: any;
+
+    for (let at = 0; at < 10; at++) {
+      try {
+        const resp = await pool.request({
+          method: "GET",
+          path: href,
+          headers: {
+            cookie:
+              "euconsent-v2=CQJDuQAQJDuQAECACAENBSEgAPLAAELAAKiQGTgBxCJUCCFBIGBHAIIEIAgMQDAAQgQAAAIAAQAAAAAAEIgAgAAAAAAAACAAAAAAAAAAIAAAAAAAAAAAAIAABAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAEQABAAAEAAEAAAAAAAIACBk4AIAgVAABQABAQQAABAAAAEAQAEAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAABAAAAAAAAAAAAAgAAAAA; euconsent-v2-noniab=AAhFgAAA; euconsent-v2-analytics=1",
+          },
+        });
+        json = await resp.body.json();
+        break;
+      } catch (error: any) {
+        console.error(`Failed to fetch ${href} attempt ${at}`, error);
+        continue;
+      }
+    }
 
     if (json.meta.status !== 200) {
       console.error(href, json.meta.msg);

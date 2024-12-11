@@ -51,7 +51,7 @@ export const scrapers: Scraper[] = [
   HentaiFoundry,
   Imgur,
   Inkbunny,
-  Instagram,
+  // Instagram,
   Itaku,
   Lofter,
   Mastodon,
