@@ -10,22 +10,43 @@ const BoostyUser = z.object({
 });
 type BoostyUser = z.infer<typeof BoostyUser>;
 
+const BoostyTextBlock = z.object({
+  type: z.literal("text"),
+  modificator: z.string(),
+  content: z.string(),
+});
+type BoostyTextBlock = z.infer<typeof BoostyTextBlock>;
+
+const BoostyLinkBlock = z.object({
+  type: z.literal("link"),
+  content: z.string(),
+});
+type BoostyLinkBlock = z.infer<typeof BoostyLinkBlock>;
+
+const BoostyImageBlock = z.object({
+  type: z.literal("image"),
+  id: z.string().uuid(),
+  rendition: z.string(),
+  url: z.string().url(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+});
+type BoostyImageBlock = z.infer<typeof BoostyImageBlock>;
+
+const BoostyPostBlock = z.discriminatedUnion("type", [
+  BoostyTextBlock,
+  BoostyLinkBlock,
+  BoostyImageBlock,
+]);
+type BoostyPostBlock = z.infer<typeof BoostyPostBlock>;
+
 const BoostyPost = z.object({
   id: z.string().uuid(),
   user: BoostyUser,
   publishTime: z.number().int().positive(),
   title: z.string().trim(),
-  data: z.any().array(),
-  teaser: z
-    .object({
-      type: z.literal("image"),
-      id: z.string().uuid(),
-      rendition: z.string(),
-      width: z.number().int().positive(),
-      height: z.number().int().positive(),
-      url: z.string().url(),
-    })
-    .array(),
+  data: BoostyPostBlock.array(),
+  teaser: BoostyPostBlock.array(),
   tags: z
     .object({
       id: z.number().int().positive(),
@@ -53,21 +74,29 @@ export async function scrape(url: URL): Promise<SourceData> {
   }
 
   const post = await fetchPost(blogUrl, postId);
-  let media = post.data.filter(({ type }) => type === "image");
+  let media = post.data
+    .filter((block) => block.type === "image")
+    .map((block) => ({
+      ...block,
+      teaser: false,
+    }));
 
   if (!media.length) {
     media = post.teaser
-      .filter((t) => !t.rendition)
-      .map((teaser) => ({
-        ...teaser,
+      .filter((block) => block.type === "image")
+      .filter((block) => !block.rendition)
+      .map((block) => ({
+        ...block,
         teaser: true,
       }));
   }
 
   const description = post.data
-    .filter(({ type }) => type === "text" || type === "link")
-    .map(({ modificator, content }) =>
-      modificator === "BLOCK_END" ? "\n" : JSON.parse(content)[0],
+    .filter((block) => block.type === "text" || block.type === "link")
+    .map((block) =>
+      block.type === "text" && block.modificator === "BLOCK_END"
+        ? "\n"
+        : JSON.parse(block.content)[0],
     )
     .join("")
     .trim();
