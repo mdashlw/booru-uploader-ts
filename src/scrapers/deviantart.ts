@@ -96,7 +96,8 @@ export function canHandle(url: URL): boolean {
       url.hostname.endsWith(".deviantart.com")) &&
       url.pathname.substring(1).includes("/")) ||
     url.hostname === "fav.me" ||
-    url.hostname === "orig00.deviantart.net"
+    url.hostname === "orig00.deviantart.net" ||
+    url.hostname === "sta.sh"
   );
 }
 
@@ -974,10 +975,10 @@ async function fetchInternalAPI<T extends z.ZodTypeAny>(
   return body.parse(json);
 }
 
-async function fetchDeviation(username: string, deviationid: number) {
+async function fetchDeviation(username: string, deviationId: number) {
   if (username === "STASH") {
     const resp = await undici.request(
-      `https://www.deviantart.com/stash/0${deviationid.toString(36)}`,
+      `https://www.deviantart.com/stash/0${deviationId.toString(36)}`,
       {
         dispatcher: new undici.Client("https://www.deviantart.com", {
           connect: {
@@ -1021,7 +1022,7 @@ async function fetchDeviation(username: string, deviationid: number) {
       .parse(json);
 
     const deviation = Object.values(data["@@entities"].deviation).find(
-      (d) => d.stashPrivateid === deviationid,
+      (d) => d.deviationId === deviationId || d.stashPrivateid === deviationId,
     )!;
     const deviationExtended =
       data["@@entities"].deviationExtended[deviation.deviationId];
@@ -1041,7 +1042,7 @@ async function fetchDeviation(username: string, deviationid: number) {
     {
       type: "art",
       username,
-      deviationid: deviationid.toString(),
+      deviationid: deviationId.toString(),
       include_session: "",
     },
     z.object({
