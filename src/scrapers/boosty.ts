@@ -33,10 +33,16 @@ const BoostyImageBlock = z.object({
 });
 type BoostyImageBlock = z.infer<typeof BoostyImageBlock>;
 
+const BoostyOkVideoBlock = z.object({
+  type: z.literal("ok_video"),
+});
+type BoostyOkVideoBlock = z.infer<typeof BoostyOkVideoBlock>;
+
 const BoostyPostBlock = z.discriminatedUnion("type", [
   BoostyTextBlock,
   BoostyLinkBlock,
   BoostyImageBlock,
+  BoostyOkVideoBlock,
 ]);
 type BoostyPostBlock = z.infer<typeof BoostyPostBlock>;
 
