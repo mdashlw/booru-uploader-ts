@@ -3,6 +3,7 @@ import { boorus } from "../src/boorus.ts";
 import makeDescription from "../src/make-description.ts";
 import inputSources from "../src/input-sources.ts";
 import selectImage from "../src/select-image.ts";
+import process from "node:process";
 
 const booru = boorus[0];
 
@@ -20,3 +21,4 @@ const description = makeDescription(booru, sources);
 console.log("\n\n");
 console.log(description);
 await clipboard.write(description);
+process.stdout.write("\u0007");
