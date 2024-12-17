@@ -75,11 +75,12 @@ export default function makeDescription(
   booru: Booru,
   sources: MultipleSources,
 ) {
-  let result = formatSource(booru, sources.primary);
-
-  for (const alternateSource of sources.alternate) {
-    result += "\n\n" + formatSource(booru, alternateSource);
-  }
-
-  return result.trim();
+  return [sources.primary, ...sources.alternate]
+    .sort(
+      (a, b) =>
+        (a.date?.getTime() ?? Infinity) - (b.date?.getTime() ?? Infinity),
+    )
+    .map((source) => formatSource(booru, source))
+    .join("\n\n")
+    .trim();
 }
