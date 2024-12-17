@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const BskyBlob = z.object({
   $type: z.literal("blob"),
@@ -85,7 +85,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       ),
     ),
     artist: thread.post.author.handle.split(".")[0],
-    date: formatDate(thread.post.record.createdAt),
+    date: thread.post.record.createdAt,
     title: null,
     description: thread.post.record.text,
   };

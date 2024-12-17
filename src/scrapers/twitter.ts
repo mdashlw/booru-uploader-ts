@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const APIAuthor = z.object({
   id: z.string(),
@@ -72,7 +72,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       })),
     ),
     artist: tweet.author.screen_name,
-    date: formatDate(new Date(tweet.created_timestamp * 1_000)),
+    date: new Date(tweet.created_timestamp * 1_000),
     title: null,
     description: tweet.text,
   };

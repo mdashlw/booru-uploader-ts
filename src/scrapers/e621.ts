@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData, SourceImageData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const fakeArtistTags = ["sound_warning", "third-party_edit"];
 
@@ -82,7 +82,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: `https://e621.net/posts/${postId}`,
     images: [file],
     artist: artists,
-    date: formatDate(post.created_at),
+    date: post.created_at,
     title: null,
     description: post.description,
   };

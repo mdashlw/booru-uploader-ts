@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 
@@ -115,7 +115,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       })),
     ),
     artist: submission.username,
-    date: formatDate(submission.create_datetime),
+    date: submission.create_datetime,
     title: submission.title,
     description: (booru) =>
       convertHtmlToMarkdown(

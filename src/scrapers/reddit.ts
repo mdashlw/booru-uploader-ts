@@ -1,7 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
@@ -88,7 +87,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             ),
           ),
     artist: data.author,
-    date: formatDate(data.created),
+    date: data.created,
     title: data.title,
     description: data.selftext,
   };

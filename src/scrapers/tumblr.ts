@@ -5,7 +5,6 @@ import { type ZipEntry, unzip } from "unzipit";
 import { z } from "zod";
 import type { SourceData, SourceImageData } from "../scraper/types.ts";
 import {
-  formatDate,
   probeAndValidateImageBlob,
   probeAndValidateImageUrl,
 } from "../scraper/utils.ts";
@@ -411,7 +410,7 @@ export async function scrape(
     url: canonicalUrl,
     images,
     artist: artistName,
-    date: formatDate(new Date((trail?.post ?? post).timestamp * 1_000)),
+    date: new Date((trail?.post ?? post).timestamp * 1_000),
     title: null,
     description: (booru) =>
       convertTumblrNpfToMarkdown(content, layout, booru.markdown),

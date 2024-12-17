@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 
 const COOKIE = process.env.NEWGROUNDS_COOKIE;
@@ -43,9 +43,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       await probeAndValidateImageUrl(imageUrl, undefined, width, height),
     ],
     artist: $(".item-details-main a").text().trim(),
-    date: formatDate(
-      new Date(pod.find("meta[itemprop=datePublished]").attr("content")!),
-    ),
+    date: new Date(pod.find("meta[itemprop=datePublished]").attr("content")!),
     title: pod.find("[itemprop=name]").text().trim(),
     description: (booru) => {
       let description = convertHtmlToMarkdown(

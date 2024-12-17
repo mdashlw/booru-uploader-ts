@@ -1,7 +1,6 @@
 import type { SourceData } from "../scraper/types.ts";
 import undici from "undici";
 import { z } from "zod";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 const Image = z.object({
@@ -52,7 +51,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         .map((image) => probeImageUrl(`${BASE_CDN_URL}/${image.src}`)),
     ),
     artist: post.slug,
-    date: formatDate(post.createdAt),
+    date: post.createdAt,
     title: post.title.trim(),
     description: post.content,
     tags: post.tags.map(({ value }) => ({

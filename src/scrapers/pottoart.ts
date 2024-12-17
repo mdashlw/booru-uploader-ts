@@ -1,5 +1,4 @@
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 import undici from "undici";
 
@@ -28,7 +27,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       },
     ],
     artist: "potato22",
-    date: formatDate(new Date(Number(lastModified))),
+    date: new Date(Number(lastModified)),
     title: null,
     description: null,
     imagePageUrlsAreStandalone: true,

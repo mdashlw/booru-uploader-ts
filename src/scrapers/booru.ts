@@ -1,6 +1,6 @@
 import { boorus } from "../boorus.ts";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 export function canHandle(url: URL): boolean {
   return (
@@ -48,7 +48,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       image.tags
         .find((t) => t.startsWith("artist:"))
         ?.substring("artist:".length) ?? null,
-    date: formatDate(new Date(image.first_seen_at)),
+    date: new Date(image.first_seen_at),
     title: null,
     description: image.description,
   };

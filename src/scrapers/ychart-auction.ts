@@ -32,7 +32,8 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: data.offers.url,
     images: [await probeImageUrl(completedImageUrl)],
     artist: data.offers.seller.name,
-    date: $("#auction-artist strong").attr("title")!.trim(),
+    // date: $("#auction-artist strong").attr("title")!.trim(),
+    date: null,
     title: data.name,
     description: null,
   };

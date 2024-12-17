@@ -1,7 +1,7 @@
 import type { SourceData } from "../scraper/types.ts";
 import { z } from "zod";
 import undici from "undici";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const Post = z.object({
   id: z.string(),
@@ -70,7 +70,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           })),
       ),
       artist: null,
-      date: formatDate(post.created_at),
+      date: post.created_at,
       title: post.title,
       description: post.description,
       imagePageUrlsAreStandalone: true,
@@ -103,7 +103,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         ),
       ],
       artist: null,
-      date: formatDate(post.created_at),
+      date: post.created_at,
       title: post.title,
       description: post.description,
     };

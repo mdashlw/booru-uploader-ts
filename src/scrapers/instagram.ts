@@ -1,7 +1,7 @@
 import type { SourceData } from "../scraper/types.ts";
 import child_process from "node:child_process";
 import process from "node:process";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const COOKIES_PATH = process.env.INSTAGRAM_COOKIES_PATH;
 
@@ -55,7 +55,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         })),
     ),
     artist: post.username,
-    date: formatDate(new Date(post.post_date.replace(" ", "T") + "Z")),
+    date: new Date(post.post_date.replace(" ", "T") + "Z"),
     title: null,
     description: post.description,
   };

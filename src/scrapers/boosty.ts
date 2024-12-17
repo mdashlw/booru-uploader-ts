@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const BoostyUser = z.object({
   id: z.number().int().positive(),
@@ -49,7 +49,12 @@ type BoostyPostBlock = z.infer<typeof BoostyPostBlock>;
 const BoostyPost = z.object({
   id: z.string().uuid(),
   user: BoostyUser,
-  publishTime: z.number().int().positive(),
+  publishTime: z
+    .number()
+    .int()
+    .positive()
+    .transform((ts) => ts * 1_000)
+    .pipe(z.coerce.date()),
   title: z.string().trim(),
   data: BoostyPostBlock.array(),
   teaser: BoostyPostBlock.array(),
@@ -120,7 +125,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       })),
     ),
     artist: post.user.blogUrl,
-    date: formatDate(new Date(post.publishTime * 1_000)),
+    date: post.publishTime,
     title: post.title,
     description,
     tags: post.tags.map((tag) => ({

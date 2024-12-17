@@ -1,7 +1,6 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
@@ -42,9 +41,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       await probeImageUrl("https:" + $("#picBox .boxbody > img").attr("src")!),
     ],
     artist: $("#picBox .imageTitle ~ a").text(),
-    date: formatDate(
-      new Date($("#pictureGeneralInfoBox .boxbody time").attr("datetime")!),
-    ),
+    date: new Date($("#pictureGeneralInfoBox .boxbody time").attr("datetime")!),
     title: $("#picBox .imageTitle").text(),
     description: (booru) => {
       let description = convertHtmlToMarkdown(

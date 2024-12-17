@@ -1,7 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 const Artwork = z.object({
@@ -69,7 +68,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: `https://furrynetwork.com/artwork/${artworkId}/${slugifyTitle(artwork.title)}/`,
     images: [await probeImageUrl(artwork.images.original)],
     artist: artwork.character.name,
-    date: formatDate(artwork.made_public_date),
+    date: artwork.made_public_date,
     title: artwork.title.trim(),
     description,
   };

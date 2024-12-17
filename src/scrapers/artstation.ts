@@ -3,7 +3,6 @@ import { match, P } from "ts-pattern";
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { probeImageUrl, type ProbeResult } from "../utils/probe-image.ts";
 
@@ -142,7 +141,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         })),
     ),
     artist: project.user.username,
-    date: formatDate(project.published_at),
+    date: project.published_at,
     title: project.title,
     description: (booru) =>
       convertHtmlToMarkdown(project.description, booru.markdown),

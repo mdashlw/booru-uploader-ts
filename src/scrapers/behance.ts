@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import type { SourceData } from "../scraper/types.ts";
 import undici from "undici";
 import { z } from "zod";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const Module = z.discriminatedUnion("type", [
   z.object({
@@ -90,7 +90,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         })),
     ),
     artist: project.owners.map((user) => user.username),
-    date: formatDate(project.published_on),
+    date: project.published_on,
     title: project.name,
     description: null,
     tags: project.tags.map((name) => ({

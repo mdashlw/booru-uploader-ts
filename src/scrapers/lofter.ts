@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 
 const InitializeData = z.object({
@@ -60,7 +60,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       ),
     ),
     artist: [blogInfo.blogName, blogInfo.blogNickName],
-    date: formatDate(postData.postView.publishTime),
+    date: postData.postView.publishTime,
     title: postData.postView.title,
     description: (booru) => {
       let description = convertHtmlToMarkdown(

@@ -2,6 +2,14 @@ import Booru from "./booru/index.ts";
 import type { SourceData } from "./scraper/types.ts";
 import { type MultipleSources } from "./source-input.ts";
 
+function formatDate(date: Date): string {
+  return date.toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "long",
+    timeZone: "UTC",
+  });
+}
+
 function formatSource(booru: Booru, source: SourceData) {
   if (!source.source) {
     return "";
@@ -13,7 +21,7 @@ function formatSource(booru: Booru, source: SourceData) {
     (booru.supportsMultipleSources
       ? source.source
       : booru.markdown.inlineLink(source.source, source.url)) +
-    (source.date ? ` (${source.date})` : "");
+    (source.date ? ` (${formatDate(source.date)})` : "");
 
   let title = "";
 

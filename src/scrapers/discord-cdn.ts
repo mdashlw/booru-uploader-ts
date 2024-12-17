@@ -1,7 +1,6 @@
 import process from "node:process";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
@@ -30,7 +29,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: cleanUrl.toString(),
     images: [await probeImageUrl(url)],
     artist: null,
-    date: formatDate(lastModified),
+    date: lastModified,
     title: null,
     description: null,
   };

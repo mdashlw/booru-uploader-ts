@@ -9,7 +9,7 @@ import undici from "undici";
 import { z } from "zod";
 import Booru from "../booru/index.ts";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 import { probeImageUrl, type ProbeResult } from "../utils/probe-image.ts";
@@ -273,7 +273,7 @@ export async function scrape(
       },
     ),
     artist: deviation.author.username,
-    date: formatDate(deviation.publishedTime.toJSDate()),
+    date: deviation.publishedTime.toJSDate(),
     title: deviation.title,
     description: extractDescription(deviation),
     tags: deviation.extended.tags,

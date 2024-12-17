@@ -3,7 +3,7 @@ import { setTimeout } from "node:timers/promises";
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 const API_VERSION = "5.199";
@@ -212,7 +212,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           .filter((promise) => promise !== null) ?? [],
       ),
       artist: getGroupCustomScreenName(post.owner),
-      date: formatDate((comment ?? post).date),
+      date: (comment ?? post).date,
       title: null,
       description,
     };
@@ -286,7 +286,7 @@ export async function scrape(url: URL): Promise<SourceData> {
             ),
           ],
       artist: getGroupCustomScreenName(photo.owner),
-      date: formatDate((comment ?? photo).date),
+      date: (comment ?? photo).date,
       title: null,
       description: photo.text,
     };

@@ -10,7 +10,7 @@ export interface SourceData {
   url: string;
   images: SourceImageData[];
   artist: string | string[] | null;
-  date: string | null;
+  date: Date | null;
   title: string | null;
   description: string | null | ((booru: Booru) => string);
   tags?: {

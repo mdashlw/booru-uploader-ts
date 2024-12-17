@@ -2,7 +2,6 @@ import process from "node:process";
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
@@ -53,7 +52,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: submission.link,
     images: [await probeImageUrl(submission.media.submission[0].url)],
     artist: submission.owner_login,
-    date: formatDate(submission.posted_at),
+    date: submission.posted_at,
     title: submission.title,
     description: (booru) =>
       convertHtmlToMarkdown(submission.description, booru.markdown),

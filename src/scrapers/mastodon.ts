@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 
 const Status = z.object({
@@ -60,7 +60,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         ),
     ),
     artist: status.account.username,
-    date: formatDate(status.created_at),
+    date: status.created_at,
     title: null,
     description: (booru) =>
       convertHtmlToMarkdown(status.content, booru.markdown),

@@ -6,14 +6,6 @@ import {
   probeImageUrl,
 } from "../utils/probe-image.ts";
 
-export function formatDate(date: Date): string {
-  return date.toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "long",
-    timeZone: "UTC",
-  });
-}
-
 export async function probeAndValidateImageBlob(
   blob: Blob,
   type?: string,

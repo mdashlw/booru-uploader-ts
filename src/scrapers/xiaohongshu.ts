@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 const InitialState = z.object({
   note: z.object({
@@ -85,7 +85,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       ),
     ),
     artist: note.user.nickname,
-    date: formatDate(note.time),
+    date: note.time,
     title: note.title,
     description: note.desc,
   };

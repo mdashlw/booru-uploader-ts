@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { fetchAPI } from "./deviantart.ts";
 
@@ -78,7 +78,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       ),
     ],
     artist: /_by_(.+)_d/.exec(item.files[0].src)?.[1] ?? null,
-    date: formatDate(item.creation_time),
+    date: item.creation_time,
     title: item.title,
     description: (booru) =>
       convertHtmlToMarkdown(item.artist_comments, booru.markdown),

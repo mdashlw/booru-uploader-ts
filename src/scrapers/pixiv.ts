@@ -1,7 +1,7 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 
 /*
  * Samples:
@@ -116,7 +116,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       })),
     ),
     artist: illust.author_details.user_name,
-    date: formatDate(illust.upload_timestamp),
+    date: illust.upload_timestamp,
     title: illust.title,
     description,
   };

@@ -1,7 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 /*
@@ -38,7 +37,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: `https://itaku.ee/images/${image.id}`,
     images: [await probeImageUrl(image.image)],
     artist: image.owner_username,
-    date: formatDate(image.date_added),
+    date: image.date_added,
     title: image.title,
     description: image.description,
   };

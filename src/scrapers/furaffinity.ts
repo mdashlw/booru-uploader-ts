@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import process from "node:process";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate, probeAndValidateImageUrl } from "../scraper/utils.ts";
+import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 
 const COOKIE = process.env.FURAFFINITY_COOKIE;
@@ -46,9 +46,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       await probeAndValidateImageUrl(imageUrl, undefined, width, height),
     ],
     artist: $(".submission-id-sub-container > a > strong").text(),
-    date: formatDate(
-      new Date(Number(new URL(imageUrl).pathname.split("/")[3]) * 1_000),
-    ),
+    date: new Date(Number(new URL(imageUrl).pathname.split("/")[3]) * 1_000),
     title: $(".submission-title").text().trim(),
     description: (booru) =>
       convertHtmlToMarkdown(

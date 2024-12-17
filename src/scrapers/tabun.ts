@@ -1,8 +1,7 @@
 import * as cheerio from "cheerio";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
-import probeImageSize from "../utils/probe-image.ts";
+import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "tabun.everypony.ru";
@@ -23,18 +22,11 @@ export async function scrape(url: URL): Promise<SourceData> {
             url = `https:${url}`;
           }
 
-          const { type, width, height } = await probeImageSize(url);
-
-          return {
-            url,
-            type,
-            width,
-            height,
-          };
+          return await probeImageUrl(url);
         }),
     ),
     artist: $('.topic-info a[rel="author"]').text(),
-    date: formatDate(new Date($(".topic-info-date time").attr("datetime")!)),
+    date: new Date($(".topic-info-date time").attr("datetime")!),
     title: $(".topic-title").text(),
     description: null,
   };

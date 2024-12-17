@@ -1,7 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
@@ -50,7 +49,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     url: `https://www.pillowfort.social/posts/${post.id}`,
     images: await Promise.all(post.media.map(({ url }) => probeImageUrl(url))),
     artist: post.username,
-    date: formatDate(post.publish_at),
+    date: post.publish_at,
     title: post.title,
     description: (booru) => {
       let description = convertHtmlToMarkdown(post.content, booru.markdown);

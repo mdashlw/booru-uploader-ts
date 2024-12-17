@@ -1,7 +1,6 @@
 import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
-import { formatDate } from "../scraper/utils.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 const Upload = z.object({
@@ -72,7 +71,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       url: `https://${url.host}${auctionExtended.url}`,
       images: [await probeImageUrl(auction.media.original)],
       artist: auction.username,
-      date: formatDate(auctionExtended.started),
+      date: auctionExtended.started,
       title: auction.title,
       description: auction.description?.replaceAll("\r\n", "\n") ?? null,
     };
@@ -84,7 +83,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       url: `https://${url.host}/upload/show/${objectId}/`,
       images: [await probeImageUrl(upload.media.o)],
       artist: upload.author.username,
-      date: formatDate(upload.created),
+      date: upload.created,
       title: upload.title,
       description: upload.description,
     };
