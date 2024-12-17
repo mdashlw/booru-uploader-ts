@@ -7,8 +7,13 @@ export function canHandle(url: URL): boolean {
   return url.hostname === "cdn.discordapp.com";
 }
 
-export async function scrape(url: URL): Promise<SourceData> {
-  url = await validateAndRefreshAttachmentUrl(url);
+export async function scrape(
+  url: URL,
+  metadataOnly?: boolean,
+): Promise<SourceData> {
+  if (!metadataOnly) {
+    url = await validateAndRefreshAttachmentUrl(url);
+  }
 
   const cleanUrl = new URL(url);
   cleanUrl.search = "";
@@ -16,7 +21,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   return {
     source: null,
     url: cleanUrl.toString(),
-    images: [await probeImageUrl(url)],
+    images: metadataOnly ? [] : [await probeImageUrl(url)],
     artist: null,
     date: null,
     title: null,
