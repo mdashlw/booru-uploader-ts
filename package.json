@@ -44,6 +44,8 @@
   },
   "scripts": {
     "start": "node --experimental-strip-types -r dotenv/config src/index.ts",
-    "artist-accounts": "node --experimental-strip-types scripts/artist-accounts.ts"
+    "artist-accounts": "node --experimental-strip-types scripts/artist-accounts.ts",
+    "description": "node --experimental-strip-types -r dotenv/config src/description-maker.test.ts",
+    "sources": "node --experimental-strip-types -r dotenv/config src/source-input.test.ts"
   }
 }
