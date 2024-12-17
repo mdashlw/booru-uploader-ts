@@ -2,10 +2,10 @@ import { confirm, select } from "@inquirer/prompts";
 import process from "node:process";
 import util from "node:util";
 import selectBoorus from "./booru-selector.ts";
-import makeDescription from "./description-maker.ts";
-import selectImage from "./image-selector.ts";
+import makeDescription from "./make-description.ts";
+import selectImage from "./select-image.ts";
 import { ratingTags } from "./rating-tags.ts";
-import inputSources from "./source-input.ts";
+import inputSources from "./input-sources.ts";
 import { fetchTagsByNames } from "./tags/fetch.ts";
 import promptTags from "./tags/prompt.ts";
 
@@ -15,7 +15,10 @@ process.on("unhandledRejection", (reason) => {
   console.error(reason);
 });
 
-const sources = await inputSources();
+const sources = await inputSources({
+  withPrimary: true,
+  metadataOnly: false,
+});
 const image = await selectImage(sources.primary, true);
 
 for (const source of sources.alternate) {
@@ -90,7 +93,10 @@ await Promise.allSettled(
           return [source.url];
         }
       }),
-      description: makeDescription(booru, sources),
+      description: makeDescription(booru, [
+        sources.primary,
+        ...sources.alternate,
+      ]),
     });
   }),
 );

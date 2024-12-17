@@ -5,12 +5,10 @@ export default async function selectImage(
   source: SourceData,
   isPrimary: true,
 ): Promise<SourceImageData>;
-
 export default async function selectImage(
   source: SourceData,
   isPrimary?: false,
 ): Promise<SourceImageData | null>;
-
 export default async function selectImage(
   source: SourceData,
   isPrimary = false,
@@ -34,7 +32,7 @@ export default async function selectImage(
   }
 
   const image = await select({
-    message: isPrimary ? "Primary image" : `${source.source} (${source.url})`,
+    message: isPrimary ? "Primary Image" : `${source.source} (${source.url})`,
     choices: source.images.map((image, index) => ({
       value: image,
       name: `#${index + 1}${image.displayName ? ` - ${image.displayName}` : ""}`,

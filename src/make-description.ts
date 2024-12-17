@@ -1,6 +1,5 @@
 import Booru from "./booru/index.ts";
 import type { SourceData } from "./scraper/types.ts";
-import { type MultipleSources } from "./source-input.ts";
 
 function formatDate(date: Date): string {
   return date.toLocaleString("en-US", {
@@ -71,11 +70,8 @@ function formatSource(booru: Booru, source: SourceData) {
   return result;
 }
 
-export default function makeDescription(
-  booru: Booru,
-  sources: MultipleSources,
-) {
-  return [sources.primary, ...sources.alternate]
+export default function makeDescription(booru: Booru, sources: SourceData[]) {
+  return sources
     .sort(
       (a, b) =>
         (a.date?.getTime() ?? Infinity) - (b.date?.getTime() ?? Infinity),
