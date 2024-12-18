@@ -217,3 +217,47 @@ export async function getMediaByPostId(
 
   return rows;
 }
+
+export async function getMediaByKey(
+  key: string,
+): Promise<ArchivedTumblrMedia[]> {
+  const { rows } = await pool.query<ArchivedTumblrMedia>(
+    "SELECT * FROM media WHERE key = $1",
+    [key],
+  );
+
+  return rows;
+}
+
+export async function getMediaByKeyA(
+  keyA: string,
+): Promise<ArchivedTumblrMedia[]> {
+  const { rows } = await pool.query<ArchivedTumblrMedia>(
+    "SELECT * FROM media WHERE key_a = $1",
+    [keyA],
+  );
+
+  return rows;
+}
+
+export async function getMediaByKeyB(
+  keyB: string,
+): Promise<ArchivedTumblrMedia[]> {
+  const { rows } = await pool.query<ArchivedTumblrMedia>(
+    "SELECT * FROM media WHERE key_b = $1",
+    [keyB],
+  );
+
+  return rows;
+}
+
+export async function getMediaByKeyC(
+  keyC: string,
+): Promise<ArchivedTumblrMedia[]> {
+  const { rows } = await pool.query<ArchivedTumblrMedia>(
+    "SELECT * FROM media WHERE key_c = $1",
+    [keyC],
+  );
+
+  return rows;
+}

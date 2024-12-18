@@ -2,7 +2,16 @@ import Bluebird from "bluebird";
 import fs from "node:fs";
 import process from "node:process";
 import util from "node:util";
-import { archivePosts, getMediaByPostId, getReblogs } from "./index.ts";
+import {
+  archivePosts,
+  getMediaByKey,
+  getMediaByKeyA,
+  getMediaByKeyB,
+  getMediaByKeyC,
+  getMediaByPostId,
+  getReblogs,
+  type ArchivedTumblrMedia,
+} from "./index.ts";
 
 util.inspect.defaultOptions.depth = null;
 
@@ -15,6 +24,10 @@ if (!command) {
   );
   console.error("- cli.ts reblogs --postId <post id>");
   console.error("- cli.ts media --postId <post id>");
+  console.error("- cli.ts media --key <media key>");
+  console.error("- cli.ts media --keyA <media key a>");
+  console.error("- cli.ts media --keyB <media key b>");
+  console.error("- cli.ts media --keyC <media key c>");
   process.exit(1);
 }
 
@@ -101,20 +114,45 @@ if (command === "archive") {
       postId: {
         type: "string",
       },
+      key: {
+        type: "string",
+      },
+      keyA: {
+        type: "string",
+      },
+      keyB: {
+        type: "string",
+      },
+      keyC: {
+        type: "string",
+      },
     },
   });
 
-  if (!args.postId) {
-    console.error("Invalid usage: missing --postId <post id>");
+  if (!args.postId && !args.key && !args.keyA && !args.keyB && !args.keyC) {
+    console.error(
+      "Invalid usage: missing --postId <post id> OR --key <media key> OR --keyA <media key a> OR --keyB <media key b> OR --keyC <media key c>",
+    );
     process.exit(1);
   }
 
-  const media = await getMediaByPostId(args.postId);
+  let media: ArchivedTumblrMedia[] = [];
 
-  console.log(`Found ${media.length} media items for post ${args.postId}`);
+  if (args.postId) {
+    media = await getMediaByPostId(args.postId);
+    console.log(`Found ${media.length} media items for post ${args.postId}`);
+  } else if (args.key) {
+    media = await getMediaByKey(args.key);
+  } else if (args.keyA) {
+    media = await getMediaByKeyA(args.keyA);
+  } else if (args.keyB) {
+    media = await getMediaByKeyB(args.keyB);
+  } else if (args.keyC) {
+    media = await getMediaByKeyC(args.keyC);
+  }
 
   for (const item of media.sort((a, b) => b.key.localeCompare(a.key))) {
-    console.log(`- ${item.url}`);
+    console.log(item);
   }
 } else {
   console.error("Unknown command");
