@@ -46,16 +46,15 @@ if (!_booru) {
 }
 
 const booru = _booru;
-const { perPage, filterId, selfUserId } = {
+const { perPage, filterId } = {
   perPage: 50,
   ...{
     Derpibooru: {
-      filterId: 56027,
-      selfUserId: 600220,
+      // filterId: 56027,
+      filterId: 220276,
     },
     Manebooru: {
       filterId: 2,
-      selfUserId: 1998,
     },
   }[booru.name]!,
 };
@@ -69,7 +68,7 @@ async function* images(query: string, sort?: string[] | string) {
         filter_id: filterId,
         page,
         per_page: perPage,
-        q: query.replaceAll("{selfUserId}", selfUserId.toString()),
+        q: query,
         sf: sort ? (Array.isArray(sort) ? sort[0] : sort) : undefined,
         sd: sort && Array.isArray(sort) ? sort[1] : undefined,
       },
