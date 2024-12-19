@@ -68,7 +68,7 @@ while (true) {
 }
 
 await Promise.allSettled(
-  boorus.map((booru) => {
+  boorus.map((booru) =>
     booru.postImage({
       blob: image.blob,
       filename: image.filename,
@@ -97,6 +97,8 @@ await Promise.allSettled(
         sources.primary,
         ...sources.alternate,
       ]),
-    });
-  }),
+    }),
+  ),
 );
+
+process.stdout.write("\u0007");
