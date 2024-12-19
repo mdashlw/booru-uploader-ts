@@ -12,23 +12,35 @@ const BskyBlob = z.object({
 });
 type BskyBlob = z.infer<typeof BskyBlob>;
 
+const BskyEmbedImages = z.object({
+  $type: z.literal("app.bsky.embed.images"),
+  images: z
+    .object({
+      aspectRatio: z
+        .object({
+          width: z.number().int().positive(),
+          height: z.number().int().positive(),
+        })
+        .optional(),
+      image: BskyBlob,
+    })
+    .array(),
+});
+type BskyEmbedImages = z.infer<typeof BskyEmbedImages>;
+
+const BskyEmbedRecordWithMedia = z.object({
+  $type: z.literal("app.bsky.embed.recordWithMedia"),
+  media: BskyEmbedImages,
+});
+type BskyEmbedRecordWithMedia = z.infer<typeof BskyEmbedRecordWithMedia>;
+
 const BskyPost = z.object({
   $type: z.literal("app.bsky.feed.post"),
   createdAt: z.coerce.date(),
-  embed: z.object({
-    $type: z.literal("app.bsky.embed.images"),
-    images: z
-      .object({
-        aspectRatio: z
-          .object({
-            width: z.number().int().positive(),
-            height: z.number().int().positive(),
-          })
-          .optional(),
-        image: BskyBlob,
-      })
-      .array(),
-  }),
+  embed: z.discriminatedUnion("$type", [
+    BskyEmbedImages,
+    BskyEmbedRecordWithMedia,
+  ]),
   text: z.string(),
 });
 type BskyPost = z.infer<typeof BskyPost>;
@@ -71,11 +83,16 @@ export async function scrape(url: URL): Promise<SourceData> {
     throw new Error("Post not found");
   }
 
+  const images =
+    thread.post.record.embed.$type === "app.bsky.embed.recordWithMedia"
+      ? thread.post.record.embed.media.images
+      : thread.post.record.embed.images;
+
   return {
     source: "Bluesky",
     url: `https://bsky.app/profile/${handle}/post/${rkey}`,
     images: await Promise.all(
-      thread.post.record.embed.images.map((image) =>
+      images.map((image) =>
         probeAndValidateImageUrl(
           `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${did}&cid=${image.image.ref.$link}`,
           image.image.mimeType,
