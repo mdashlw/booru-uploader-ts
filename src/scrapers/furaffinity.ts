@@ -12,6 +12,10 @@ export function canHandle(url: URL): boolean {
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
+  if (!COOKIE) {
+    throw new Error("Missing FURAFFINITY_COOKIE env var");
+  }
+
   url.protocol = "https:";
   const response = await undici.request(url, {
     headers: {
