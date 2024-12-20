@@ -45,6 +45,7 @@ fastify.get<{
   );
   reply.code(200).send("OK");
   fastify.close();
+  console.log("DONE");
 });
 
 try {
@@ -63,4 +64,5 @@ const authorizeUrl =
     scope: "browse",
   });
 
+console.log(authorizeUrl);
 child_process.execSync(`open "${authorizeUrl}"`, { stdio: "inherit" });
