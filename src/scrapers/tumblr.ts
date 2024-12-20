@@ -96,6 +96,8 @@ const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
   );
   const blog = blogs.at(-1)!;
 
+  console.log(`[tumblr] [debug] using blog: ${blog.name}`);
+
   return blog.name;
 });
 
