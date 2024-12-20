@@ -31,7 +31,7 @@ Move `.env.example` to `.env` and fill in the required values.
 - `TUMBLR_COOKIE` - login to https://www.tumblr.com/ in incognito and copy the cookie
 - `FURAFFINITY_COOKIE` login to https://www.furaffinity.net/ and copy the cookie. make sure to set time zone to Greenwich Mean Time with Daylight correction OFF here: https://www.furaffinity.net/controls/settings/
 - `DISCORD_CDN_BOT_TOKEN` - used for refreshing Discord CDN links. make a bot here and copy the BOT TOKEN: https://discord.com/developers/applications
-- `INKBUNNY_USERNAME` and `INKBUNNY_PASSWORD` - Inkbunny username and password
+- `INKBUNNY_USERNAME` and `INKBUNNY_PASSWORD` - Inkbunny username and password. optional but some submissions are member-only
 - todo
 
 ### Uploading
