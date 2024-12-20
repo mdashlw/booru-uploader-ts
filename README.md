@@ -45,6 +45,15 @@ Move `.env.example` to `.env` and fill in the required values.
 - `NEWGROUNDS_COOKIE` - login to https://www.newgrounds.com/ and copy the cookie
 - todo
 
+### How to copy cookies
+
+1. Login to the site in incognito mode (to avoid messing up the cookies by using the site normally, this is especially important for DeviantArt and Tumblr)
+2. Open DevTools with F12 or Ctrl+Shift+I
+3. Go to the Network tab
+4. Reload the page
+5. Click on the first request, scroll to REQUEST HEADERS, find `Cookie` (NOT `Set-Cookie`) header and copy the value
+6. If you don't find it, try clicking on other requests until you find it
+
 ### Uploading
 
 - `npm start`
