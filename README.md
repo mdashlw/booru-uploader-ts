@@ -32,6 +32,8 @@ Move `.env.example` to `.env` and fill in the required values.
 - `FURAFFINITY_COOKIE` login to https://www.furaffinity.net/ and copy the cookie. make sure to set time zone to Greenwich Mean Time with Daylight correction OFF here: https://www.furaffinity.net/controls/settings/
 - `DISCORD_CDN_BOT_TOKEN` - used for refreshing Discord CDN links. make a bot here and copy the BOT TOKEN: https://discord.com/developers/applications
 - `INKBUNNY_USERNAME` and `INKBUNNY_PASSWORD` - Inkbunny username and password. optional but some submissions are member-only
+- `WEASYL_API_KEY` - get here: https://www.weasyl.com/control/apikeys
+- `NEWGROUNDS_COOKIE` - login to https://www.newgrounds.com/ and copy the cookie
 - todo
 
 ### Uploading
