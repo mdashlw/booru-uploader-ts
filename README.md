@@ -29,7 +29,7 @@ npm install
 
 ### .env
 
-Move `.env.example` to `.env` and fill in the required values.
+Rename `.env.example` to `.env` and fill in the required values.
 
 - `DERPIBOORU_API_KEY` - find here: https://derpibooru.org/registrations/edit
 - variables below are only required if you want to use the respective scrapers
