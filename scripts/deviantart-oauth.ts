@@ -40,7 +40,11 @@ fastify.get<{
     ".env",
     fs
       .readFileSync(".env", "utf8")
-      .replace(process.env.DEVIANTART_REFRESH_TOKEN!, json.refresh_token),
+      .replace(
+        process.env.DEVIANTART_REFRESH_TOKEN ||
+          "DEVIANTART_REFRESH_TOKEN_REPLACEME",
+        json.refresh_token,
+      ),
     "utf8",
   );
   reply.code(200).send("OK");
