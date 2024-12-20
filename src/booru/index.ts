@@ -123,6 +123,8 @@ export default abstract class Booru {
               const retryAfterSeconds = Number(headers["retry-after"]);
 
               retryAfterMs += retryAfterSeconds * 1_000;
+            } else {
+              retryAfterMs = 5_000;
             }
           }
         }
