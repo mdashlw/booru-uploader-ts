@@ -41,7 +41,7 @@ export default class LocalAutocompleter {
   /**
    * Build a new local autocompleter.
    */
-  constructor(backingStore: ArrayBuffer) {
+  constructor(backingStore: ArrayBufferLike) {
     this.data = new Uint8Array(backingStore);
     this.view = new DataView(backingStore);
     this.decoder = new TextDecoder();

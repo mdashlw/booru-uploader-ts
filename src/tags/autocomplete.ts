@@ -10,7 +10,7 @@ async function fetchLocalAutocomplete(): Promise<LocalAutocompleter> {
   const cacheKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}`;
   const cacheFilePath = joinPath(CACHE_DIR, cacheKey);
 
-  let buffer: ArrayBuffer;
+  let buffer: ArrayBufferLike;
 
   try {
     buffer = (await fs.promises.readFile(cacheFilePath)).buffer;
