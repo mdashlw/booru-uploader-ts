@@ -64,8 +64,11 @@ const authorizeUrl =
     scope: "browse",
   });
 
+console.log("\n");
 console.log(authorizeUrl);
 
 try {
   child_process.execSync(`open "${authorizeUrl}"`, { stdio: "inherit" });
-} catch {}
+} catch {
+  console.log("\nopen the above url in your browser");
+}
