@@ -7,12 +7,21 @@ A command-line tool for scraping various sites and uploading images to Derpiboor
 ### Prerequisites
 
 - Node.js v22+
+- git
 
 ### Installation
 
 ```
 git clone https://github.com/mdashlw/booru-uploader-ts.git
 cd booru-uploader-ts
+npm install
+```
+
+### Receiving updates
+
+```
+cd booru-uploader-ts
+git pull
 npm install
 ```
 
