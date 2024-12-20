@@ -110,7 +110,6 @@ export default class Derpibooru extends Booru {
         key: this.requireKey(),
       },
       body: formData,
-      retryOnServerError: false, // Derpibooru's Cloudflare returns 500 even on success
     }).then((data) => data.image);
   }
 }

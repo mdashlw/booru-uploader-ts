@@ -81,9 +81,7 @@ export default abstract class Booru {
   }
 
   async fetch<T>(
-    options: undici.Dispatcher.RequestOptions & {
-      retryOnServerError?: boolean;
-    },
+    options: undici.Dispatcher.RequestOptions,
     retryNumber = 0,
   ): Promise<T> {
     await this.lock.acquire();
@@ -111,9 +109,7 @@ export default abstract class Booru {
         retryNumber < this.maxRetries &&
         (error.code === "ECONNRESET" ||
           (error instanceof undici.errors.ResponseStatusCodeError &&
-            ((error.statusCode >= 500 &&
-              (options.retryOnServerError ?? true)) ||
-              error.statusCode === 429)))
+            (error.statusCode >= 500 || error.statusCode === 429)))
       ) {
         let retryAfterMs: number = 0;
 
