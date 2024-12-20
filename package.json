@@ -46,6 +46,7 @@
     "start": "node --experimental-strip-types -r dotenv/config src/index.ts",
     "artist-accounts": "node --experimental-strip-types scripts/artist-accounts.ts",
     "description": "node --experimental-strip-types -r dotenv/config scripts/print-description.ts",
-    "sources": "node --experimental-strip-types -r dotenv/config scripts/print-sources.ts"
+    "sources": "node --experimental-strip-types -r dotenv/config scripts/print-sources.ts",
+    "deviantart-oauth": "node --experimental-strip-types -r dotenv/config scripts/deviantart-oauth.ts"
   }
 }
