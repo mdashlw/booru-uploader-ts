@@ -65,4 +65,7 @@ const authorizeUrl =
   });
 
 console.log(authorizeUrl);
-child_process.execSync(`open "${authorizeUrl}"`, { stdio: "inherit" });
+
+try {
+  child_process.execSync(`open "${authorizeUrl}"`, { stdio: "inherit" });
+} catch {}
