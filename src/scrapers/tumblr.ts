@@ -8,7 +8,6 @@ import {
   probeAndValidateImageBlob,
   probeAndValidateImageUrl,
 } from "../scraper/utils.ts";
-import { getReblogs } from "../tumblr-archives/index.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 import convertTumblrNpfToMarkdown from "../utils/npf-to-markdown.ts";
 import { type ProbeResult } from "../utils/probe-image.ts";
@@ -20,6 +19,7 @@ import {
   ReblogTrail,
   NpfLayoutBlock,
 } from "../utils/tumblr-types.ts";
+import { getReblogs } from "../tumblr-archives.ts";
 
 /*
  * Images can be:
