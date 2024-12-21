@@ -58,3 +58,30 @@ Rename `.env.example` to `.env` and fill in the required values.
 
 - `npm start`
 - `npm start 3506534` to copy sources from the specified Derpibooru image
+
+### Description
+
+When uploading, the tool automatically generates a description from the specified sources.
+
+Do `npm run description` or `npm run description 3506534` to generate it manually and copy to clipboard.
+
+```
+Boosty (December 20, 2023 at 10:07:19 PM UTC)
+> **🤍🎄**
+> Looks like it's that time again where the sketch looks better than the finale 😅 
+>
+> Have you put up the Christmas tree yet?🎄
+>
+> [#zipp storm](https://boosty.to/itssim?postsTagsIds=578559) [#izzy moonbow](https://boosty.to/itssim?postsTagsIds=1626400)
+
+Twitter (December 22, 2023 at 3:47:00 PM UTC)
+> 🤍🎄
+> Have you decorated your Christmas tree yet?
+> \#ZippStorm \#mlpgen5 \#mlpg5 \#IzzyMoonbow
+
+DeviantArt (January 8, 2024 at 10:51:01 AM UTC)
+> **Zippmas tree**
+>
+>
+> [#izzymoonbow](https://www.deviantart.com/tag/izzymoonbow) [#zippstorm](https://www.deviantart.com/tag/zippstorm)
+```
