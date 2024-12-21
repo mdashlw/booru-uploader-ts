@@ -20,7 +20,28 @@ const COOKIE = process.env.DEVIANTART_COOKIE;
 const CSRF_TOKEN = process.env.DEVIANTART_CSRF_TOKEN;
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
-let REFRESH_TOKEN = process.env.DEVIANTART_REFRESH_TOKEN;
+
+if (process.env.DEVIANTART_REFRESH_TOKEN) {
+  let oauth: any;
+
+  try {
+    oauth = JSON.parse(fs.readFileSync("oauth.json", "utf8"));
+  } catch {
+    oauth = {};
+  }
+
+  oauth.deviantart = { refreshToken: process.env.DEVIANTART_REFRESH_TOKEN };
+  fs.writeFileSync("oauth.json", JSON.stringify(oauth), "utf8");
+  fs.writeFileSync(
+    ".env",
+    fs
+      .readFileSync(".env", "utf8")
+      .split("\n")
+      .filter((line) => !line.startsWith("DEVIANTART_REFRESH_TOKEN="))
+      .join("\n"),
+    "utf8",
+  );
+}
 
 const Deviation = z.object({
   deviationId: z.number(),
@@ -1070,17 +1091,36 @@ function extractDescription(
 }
 
 const accessToken = lazyInit(async () => {
-  if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
-    throw new Error("Missing some env vars");
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error(
+      "Missing DEVIANTART_CLIENT_ID or DEVIANTART_CLIENT_SECRET env vars",
+    );
   }
 
-  const { access_token, expires_in, refresh_token } = await fetchAPI(
+  const oauth = await fs.promises
+    .readFile("oauth.json", "utf8")
+    .then(JSON.parse)
+    .catch(() => ({}));
+
+  const oldRefreshToken = oauth.deviantart?.refreshToken;
+
+  if (!oldRefreshToken) {
+    throw new Error(
+      "Missing DeviantArt OAuth refresh token. Do `npm run deviantart-oauth`",
+    );
+  }
+
+  const {
+    access_token,
+    expires_in,
+    refresh_token: newRefreshToken,
+  } = await fetchAPI(
     "oauth2/token",
     {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
       grant_type: "refresh_token",
-      refresh_token: REFRESH_TOKEN,
+      refresh_token: oldRefreshToken,
     },
     z.object({
       status: z.literal("success"),
@@ -1091,13 +1131,10 @@ const accessToken = lazyInit(async () => {
     false,
   );
 
-  // this is fucking stupid but i don't care
-  fs.writeFileSync(
-    ".env",
-    fs.readFileSync(".env", "utf8").replace(REFRESH_TOKEN, refresh_token),
-    "utf8",
-  );
-  REFRESH_TOKEN = refresh_token;
+  if (newRefreshToken !== oldRefreshToken) {
+    oauth.deviantart = { refreshToken: newRefreshToken };
+    await fs.promises.writeFile("oauth.json", JSON.stringify(oauth), "utf8");
+  }
 
   return {
     value: access_token,

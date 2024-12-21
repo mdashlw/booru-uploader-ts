@@ -36,17 +36,13 @@ fastify.get<{
 
   console.log(json);
 
-  await fs.promises.writeFile(
-    ".env",
-    fs
-      .readFileSync(".env", "utf8")
-      .replace(
-        process.env.DEVIANTART_REFRESH_TOKEN ||
-          "DEVIANTART_REFRESH_TOKEN_REPLACEME",
-        json.refresh_token,
-      ),
-    "utf8",
-  );
+  const oauth = await fs.promises
+    .readFile("oauth.json", "utf8")
+    .then(JSON.parse)
+    .catch(() => ({}));
+  oauth.deviantart = { refreshToken: json.refresh_token };
+  await fs.promises.writeFile("oauth.json", JSON.stringify(oauth), "utf8");
+
   reply.code(200).send("OK");
   fastify.close();
   console.log("DONE");
