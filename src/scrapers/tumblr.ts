@@ -235,6 +235,8 @@ export async function scrape(
           media: [media],
         } = block;
 
+        console.log(`Media #${index + 1}: ${media.url}`);
+
         if (media.width === undefined || media.height === undefined) {
           throw new Error("Missing media dimensions");
         }
