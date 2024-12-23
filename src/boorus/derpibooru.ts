@@ -33,7 +33,6 @@ export default class Derpibooru extends Booru {
           .replaceAll("^", "\\^") // superscript
           .replaceAll("%", "\\%") // subscript
           .replaceAll("#", "\\#") // headings
-          .replaceAll("=", "\\=")
           .replaceAll("[", "\\[")
           .replaceAll("]", "\\]")
           .replaceAll("- ", "\\- ")
