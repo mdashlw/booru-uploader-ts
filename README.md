@@ -2,12 +2,19 @@
 
 A command-line tool for scraping various sites and uploading images to Derpibooru.
 
+Derpibooru topic: https://derpibooru.org/forums/meta/topics/my-derpibooru-uploader
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js v22+
-- git
+- [Node.js v22+](https://nodejs.org/en/download/prebuilt-installer)
+- [git](https://git-scm.com/downloads)
+
+### Where to type commands:
+
+- **Windows:** PowerShell (or [Windows Terminal](https://aka.ms/terminal), recommended)
+- **MacOS/Linux:** Terminal
 
 ### Installation
 
