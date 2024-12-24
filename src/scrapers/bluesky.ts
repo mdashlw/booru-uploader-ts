@@ -2,6 +2,7 @@ import undici from "undici";
 import { z } from "zod";
 import type { SourceData } from "../scraper/types.ts";
 import { probeAndValidateImageUrl } from "../scraper/utils.ts";
+import type { MarkdownDialect } from "../booru/types.ts";
 
 const BskyBlob = z.object({
   $type: z.literal("blob"),
@@ -35,16 +36,49 @@ const BskyEmbedRecordWithMedia = z.object({
 });
 type BskyEmbedRecordWithMedia = z.infer<typeof BskyEmbedRecordWithMedia>;
 
-const BskyPost = z.object({
+const BskyEmbedExternal = z.object({
+  $type: z.literal("app.bsky.embed.external"),
+});
+type BskyEmbedExternal = z.infer<typeof BskyEmbedExternal>;
+
+const BskyRichtextFacet = z.discriminatedUnion("$type", [
+  z.object({
+    $type: z.literal("app.bsky.richtext.facet#tag"),
+    tag: z.string(),
+  }),
+  z.object({
+    $type: z.literal("app.bsky.richtext.facet#mention"),
+    did: z.string(),
+  }),
+  z.object({
+    $type: z.literal("app.bsky.richtext.facet#link"),
+    uri: z.string(),
+  }),
+]);
+type BskyRichtextFacet = z.infer<typeof BskyRichtextFacet>;
+
+const BskyFeedPost = z.object({
   $type: z.literal("app.bsky.feed.post"),
   createdAt: z.coerce.date(),
-  embed: z.discriminatedUnion("$type", [
-    BskyEmbedImages,
-    BskyEmbedRecordWithMedia,
-  ]),
+  embed: z
+    .discriminatedUnion("$type", [
+      BskyEmbedImages,
+      BskyEmbedRecordWithMedia,
+      BskyEmbedExternal,
+    ])
+    .optional(),
+  facets: z
+    .object({
+      index: z.object({
+        byteStart: z.number(),
+        byteEnd: z.number(),
+      }),
+      features: BskyRichtextFacet.array(),
+    })
+    .array(),
   text: z.string(),
 });
-type BskyPost = z.infer<typeof BskyPost>;
+type BskyFeedPost = z.infer<typeof BskyFeedPost>;
 
 const BskyThreadViewPost = z.object({
   $type: z.literal("app.bsky.feed.defs#threadViewPost"),
@@ -55,7 +89,7 @@ const BskyThreadViewPost = z.object({
       did: z.string(),
       handle: z.string(),
     }),
-    record: BskyPost,
+    record: BskyFeedPost,
   }),
 });
 type BskyThreadViewPost = z.infer<typeof BskyThreadViewPost>;
@@ -84,10 +118,20 @@ export async function scrape(url: URL): Promise<SourceData> {
     throw new Error("Post not found");
   }
 
-  const images =
+  let images: BskyEmbedImages["images"];
+
+  if (
+    thread.post.record.embed === undefined ||
+    thread.post.record.embed.$type === "app.bsky.embed.external"
+  ) {
+    images = [];
+  } else if (
     thread.post.record.embed.$type === "app.bsky.embed.recordWithMedia"
-      ? thread.post.record.embed.media.images
-      : thread.post.record.embed.images;
+  ) {
+    images = thread.post.record.embed.media.images;
+  } else {
+    images = thread.post.record.embed.images;
+  }
 
   return {
     source: "Bluesky",
@@ -106,8 +150,40 @@ export async function scrape(url: URL): Promise<SourceData> {
     artist: thread.post.author.handle.split(".")[0],
     date: thread.post.record.createdAt,
     title: null,
-    description: thread.post.record.text,
+    description: (booru) => getRichText(thread.post.record, booru.markdown),
   };
+}
+
+function getRichText(post: BskyFeedPost, markdown: MarkdownDialect) {
+  let text = Buffer.from(post.text);
+
+  for (const { index, features } of [...post.facets].reverse()) {
+    let subtext = text.subarray(index.byteStart, index.byteEnd).toString();
+
+    for (const feature of features) {
+      if (feature.$type === "app.bsky.richtext.facet#tag") {
+        subtext = markdown.inlineLink(
+          subtext,
+          `https://bsky.app/hashtag/${feature.tag}`,
+        );
+      } else if (feature.$type === "app.bsky.richtext.facet#mention") {
+        subtext = markdown.inlineLink(
+          subtext,
+          `https://bsky.app/profile/${feature.did}`,
+        );
+      } else if (feature.$type === "app.bsky.richtext.facet#link") {
+        subtext = markdown.inlineLink(subtext, feature.uri);
+      }
+    }
+
+    text = Buffer.from(
+      text.subarray(0, index.byteStart).toString() +
+        subtext +
+        text.subarray(index.byteEnd).toString(),
+    );
+  }
+
+  return text.toString();
 }
 
 function resolveHandle(handle: string) {
