@@ -32,7 +32,7 @@ export default async function inputSources({
 }): Promise<SourceData[] | MultipleSources> {
   const booruImageId = Number(process.argv[2]);
 
-  if (booruImageId && !Number.isNaN(booruImageId)) {
+  if (!Number.isNaN(booruImageId)) {
     const booru = boorus[0];
     const booruImage = await booru.fetchImage(booruImageId);
 
@@ -109,8 +109,12 @@ export default async function inputSources({
     ),
   ]);
 
-  return {
-    primary: primarySource,
-    alternate: alternateSources,
-  };
+  if (withPrimary) {
+    return {
+      primary: primarySource,
+      alternate: alternateSources,
+    };
+  } else {
+    return [primarySource, ...alternateSources];
+  }
 }
