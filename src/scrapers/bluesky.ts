@@ -16,6 +16,7 @@ const BskyEmbedImages = z.object({
   $type: z.literal("app.bsky.embed.images"),
   images: z
     .object({
+      alt: z.string(),
       aspectRatio: z
         .object({
           width: z.number().int().positive(),
@@ -92,14 +93,15 @@ export async function scrape(url: URL): Promise<SourceData> {
     source: "Bluesky",
     url: `https://bsky.app/profile/${handle}/post/${rkey}`,
     images: await Promise.all(
-      images.map((image) =>
-        probeAndValidateImageUrl(
+      images.map(async (image) => ({
+        ...(await probeAndValidateImageUrl(
           `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${did}&cid=${image.image.ref.$link}`,
           image.image.mimeType,
           image.aspectRatio?.width,
           image.aspectRatio?.height,
-        ),
-      ),
+        )),
+        description: image.alt,
+      })),
     ),
     artist: thread.post.author.handle.split(".")[0],
     date: thread.post.record.createdAt,
