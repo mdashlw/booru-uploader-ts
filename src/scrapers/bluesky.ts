@@ -75,7 +75,8 @@ const BskyFeedPost = z.object({
       }),
       features: BskyRichtextFacet.array(),
     })
-    .array(),
+    .array()
+    .optional(),
   text: z.string(),
 });
 type BskyFeedPost = z.infer<typeof BskyFeedPost>;
@@ -155,6 +156,10 @@ export async function scrape(url: URL): Promise<SourceData> {
 }
 
 function getRichText(post: BskyFeedPost, markdown: MarkdownDialect) {
+  if (!post.facets) {
+    return post.text;
+  }
+
   let text = Buffer.from(post.text);
 
   for (const { index, features } of [...post.facets].reverse()) {
