@@ -43,4 +43,5 @@ export function manipulateImageUrl(url: URL) {
   url.search = "";
   url.searchParams.append("width", "0");
   url.searchParams.append("height", "0");
+  url.searchParams.append("format", "png");
 }
