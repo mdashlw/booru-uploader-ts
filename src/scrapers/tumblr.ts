@@ -233,6 +233,7 @@ export async function scrape(
       .map(async (block, index) => {
         const {
           media: [media],
+          altText,
         } = block;
 
         console.log(`Media #${index + 1}: ${media.url}`);
@@ -400,6 +401,7 @@ export async function scrape(
               ? `${canonicalUrl}#${thisIndex + 1}`
               : canonicalUrl,
           selected: selectedMediaIndex === thisIndex,
+          description: altText,
         };
       }),
   );

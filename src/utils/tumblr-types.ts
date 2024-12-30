@@ -61,6 +61,7 @@ export type NpfLinkBlock = z.infer<typeof NpfLinkBlock>;
 export const NpfImageBlock = z.object({
   type: z.literal("image"),
   media: NpfMediaObject.array(),
+  altText: z.string().optional(),
 });
 export type NpfImageBlock = z.infer<typeof NpfImageBlock>;
 
