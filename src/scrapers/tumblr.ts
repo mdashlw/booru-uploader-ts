@@ -216,7 +216,7 @@ export async function scrape(
   );
   const selectedMediaIndex = url.hash ? Number(url.hash.substring(1)) - 1 : NaN;
 
-  let canonicalUrl = post.postUrl;
+  let canonicalUrl = decodeURI(post.postUrl);
   if (post.rebloggedRootUrl) {
     if (
       post.rebloggedRootUrl.startsWith("https://www.tumblr.com/blog/private_")
