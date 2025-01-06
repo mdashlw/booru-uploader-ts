@@ -2,9 +2,20 @@ declare const brand: unique symbol;
 
 type Brand<T, B> = T & { readonly [brand]: B };
 
-export interface Image {
+export interface BaseImage {
   id: number;
+  created_at: string;
+  updated_at: string;
   first_seen_at: string;
+  deletion_reason: string | null;
+}
+
+export interface HiddenImage extends BaseImage {
+  hidden_from_users: true;
+}
+
+export interface VisibleImage extends BaseImage {
+  hidden_from_users: false;
   uploader: string;
   description: string;
   tags: TagName[];
@@ -19,6 +30,8 @@ export interface Image {
   source_urls?: string[];
   orig_sha512_hash: string;
 }
+
+export type Image = VisibleImage | HiddenImage;
 
 export interface AutocompletedTag {
   label: string;

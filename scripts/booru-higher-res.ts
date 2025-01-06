@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import process from "node:process";
 import readline from "node:readline/promises";
 import util from "node:util";
-import type { Image, TagName } from "../src/booru/types.ts";
+import type { TagName, VisibleImage } from "../src/booru/types.ts";
 import { boorus } from "../src/boorus.ts";
 import { ratingTags } from "../src/rating-tags.ts";
 import { findScraper } from "../src/scraper.ts";
@@ -61,7 +61,7 @@ const { perPage, filterId } = {
 
 async function* images(query: string, sort?: string[] | string) {
   for (let page = 1; ; page++) {
-    const { images } = await booru.fetch<{ images: Image[] }>({
+    const { images } = await booru.fetch<{ images: VisibleImage[] }>({
       method: "GET",
       path: "/api/v1/json/search/images",
       query: {

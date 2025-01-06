@@ -41,6 +41,10 @@ export default async function inputSources({
       throw new Error(`Booru image not found: ${booruImageId}`);
     }
 
+    if (booruImage.hidden_from_users) {
+      throw new Error(`Booru image is hidden: ${booruImageId}`);
+    }
+
     const sourceUrls = booruImage.source_urls?.map((url) => new URL(url)) ?? [];
 
     if (sourceUrls.length === 0) {
