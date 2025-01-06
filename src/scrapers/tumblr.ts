@@ -1,3 +1,4 @@
+import * as cheerio from "cheerio";
 import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
@@ -282,24 +283,24 @@ export async function scrape(
             )));
 
           if (v1Post !== null) {
-            if (v1Post.type === "regular") {
-              const match = Array.from(
-                v1Post["regular-body"].matchAll(
-                  /<img src=".+?" data-orig-height="(\d+)" data-orig-width="(\d+)"/g,
-                ),
-              )[index];
+            if (v1Post.type === "regular" || v1Post.type === "answer") {
+              const $ = cheerio.load(
+                v1Post.type === "regular"
+                  ? v1Post["regular-body"]
+                  : v1Post.answer,
+              );
+              const list = $("figure.tmblr-full").map((_, figure) => {
+                const $figure = $(figure);
+                const width = Number($figure.data("orig-width"));
+                const height = Number($figure.data("orig-height"));
 
-              width = Number(match[2]);
-              height = Number(match[1]);
-            } else if (v1Post.type === "answer") {
-              const match = Array.from(
-                v1Post.answer.matchAll(
-                  /<img src=".+?" data-orig-height="(\d+)" data-orig-width="(\d+)"/g,
-                ),
-              )[index];
+                return {
+                  width,
+                  height,
+                };
+              });
 
-              width = Number(match[2]);
-              height = Number(match[1]);
+              ({ width, height } = list[index]);
             } else if (v1Post.type === "photo") {
               const photo = v1Post.photos.length
                 ? v1Post.photos[index]
