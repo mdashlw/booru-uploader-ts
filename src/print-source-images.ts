@@ -34,7 +34,7 @@ export default async function printSourceImages(sources: SourceData[]) {
             ? source.images.filter((i) => i.selected)
             : source.images
           ).map(async (image) => ({
-            source: `${source.source} #${source.images.indexOf(image) + 1}`,
+            source: `${source.source ?? new URL(source.url).hostname} #${source.images.indexOf(image) + 1}`,
             width: image.width,
             height: image.height,
             type: image.type,
