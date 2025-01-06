@@ -3,6 +3,7 @@ import scrape from "./scraper.ts";
 import type { SourceData } from "./scraper/types.ts";
 import { boorus } from "./boorus.ts";
 import process from "node:process";
+import printSourceImages from "./print-source-images.ts";
 
 export interface MultipleSources {
   primary: SourceData;
@@ -58,7 +59,7 @@ export default async function inputSources({
         };
       }
 
-      console.log(sources);
+      await printSourceImages(sources);
 
       const primary = await select({
         message: "Primary Source",

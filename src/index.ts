@@ -8,6 +8,7 @@ import { ratingTags } from "./rating-tags.ts";
 import inputSources from "./input-sources.ts";
 import { fetchTagsByNames } from "./tags/fetch.ts";
 import promptTags from "./tags/prompt.ts";
+import printSourceImages from "./print-source-images.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 
@@ -19,29 +20,14 @@ const sources = await inputSources({
   withPrimary: true,
   metadataOnly: false,
 });
+const sourceList = [sources.primary, ...sources.alternate];
 const image = await selectImage(sources.primary, true);
 
 for (const source of sources.alternate) {
   await selectImage(source);
 }
 
-console.log(sources);
-
-console.log("\n");
-console.table(
-  [sources.primary, ...sources.alternate].map((source) => {
-    const image = source.images.find((i) => i.selected);
-
-    return {
-      source: source.source,
-      width: image?.width,
-      height: image?.height,
-      type: image?.type,
-      size: image?.blob?.size,
-    };
-  }),
-);
-console.log("\n");
+await printSourceImages(sourceList);
 
 const boorus = await selectBoorus();
 
@@ -73,14 +59,14 @@ await Promise.allSettled(
       blob: image.blob,
       filename: image.filename,
       tags: [
-        ...[sources.primary, ...sources.alternate]
+        ...sourceList
           .flatMap((source) => source.artist)
           .filter(Boolean)
           .map((artist) => `artist:${artist}`),
         ...tags.map((tag) => tag.name),
       ],
       sourceUrl: image.pageUrl ?? sources.primary.url,
-      sourceUrls: [sources.primary, ...sources.alternate].flatMap((source) => {
+      sourceUrls: sourceList.flatMap((source) => {
         const image = source.images.find((i) => i.selected);
 
         if (image?.pageUrl) {
