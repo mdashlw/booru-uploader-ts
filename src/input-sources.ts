@@ -63,11 +63,27 @@ export default async function inputSources({
         };
       }
 
+      const sourcesWithImages = sources.filter(
+        (source) => source.images.length,
+      );
+
+      if (!sourcesWithImages.length) {
+        throw new Error("No sources with images");
+      }
+
+      if (sourcesWithImages.length === 1) {
+        const primary = sourcesWithImages[0];
+        return {
+          primary,
+          alternate: sources.filter((source) => source !== primary),
+        };
+      }
+
       await printSourceImages(sources);
 
       const primary = await select({
         message: "Primary Source",
-        choices: sources.map((source, index) => ({
+        choices: sourcesWithImages.map((source, index) => ({
           value: source,
           name: `#${index + 1} - ${source.source ?? source.url}`,
         })),
@@ -82,44 +98,69 @@ export default async function inputSources({
     return sources;
   }
 
-  const primarySourceUrlString = await input({
-    message: "Primary Source",
-    validate: (value) => URL.canParse(value),
-  });
-  const primarySourceUrl = new URL(primarySourceUrlString);
-
-  const alternateSourceUrls: URL[] = [];
-
-  while (true) {
-    const alternateSourceUrlString = await input({
-      message: "Alternate Source",
-      validate: (value) => !value || URL.canParse(value),
+  if (withPrimary) {
+    const primarySourceUrlString = await input({
+      message: "Primary Source",
+      validate: (value) => URL.canParse(value),
     });
+    const primarySourceUrl = new URL(primarySourceUrlString);
 
-    if (!alternateSourceUrlString) {
-      break;
+    const alternateSourceUrls: URL[] = [];
+
+    while (true) {
+      const alternateSourceUrlString = await input({
+        message: "Alternate Source",
+        validate: (value) => !value || URL.canParse(value),
+      });
+
+      if (!alternateSourceUrlString) {
+        break;
+      }
+
+      const alternateSourceUrl = new URL(alternateSourceUrlString);
+
+      alternateSourceUrls.push(alternateSourceUrl);
     }
 
-    const alternateSourceUrl = new URL(alternateSourceUrlString);
-
-    alternateSourceUrls.push(alternateSourceUrl);
-  }
-
-  const [primarySource, alternateSources] = await Promise.all([
-    scrape(primarySourceUrl, metadataOnly),
-    Promise.all(
-      alternateSourceUrls.map((alternateSourceUrl) =>
-        scrape(alternateSourceUrl, true),
+    const [primarySource, alternateSources] = await Promise.all([
+      scrape(primarySourceUrl, metadataOnly),
+      Promise.all(
+        alternateSourceUrls.map((alternateSourceUrl) =>
+          scrape(alternateSourceUrl, true),
+        ),
       ),
-    ),
-  ]);
+    ]);
 
-  if (withPrimary) {
+    if (!primarySource.images.length) {
+      throw new Error("Primary source has no images");
+    }
+
     return {
       primary: primarySource,
       alternate: alternateSources,
     };
   } else {
-    return [primarySource, ...alternateSources];
+    const sourceUrls: URL[] = [];
+
+    while (true) {
+      const sourceUrlString = await input({
+        message: "Source",
+        validate: (value) => !value || URL.canParse(value),
+      });
+
+      if (!sourceUrlString) {
+        break;
+      }
+
+      const sourceUrl = new URL(sourceUrlString);
+
+      sourceUrls.push(sourceUrl);
+    }
+
+    const sources = await Promise.all(
+      sourceUrls.map((sourceUrl) => scrape(sourceUrl, metadataOnly)),
+    );
+
+    return sources;
   }
 }
