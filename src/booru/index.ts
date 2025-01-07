@@ -31,7 +31,6 @@ export function convertTagNameToSlug(name: TagName): TagSlug {
 export default abstract class Booru {
   readonly name: string;
   readonly baseUrl: URL;
-  readonly userAgent: string;
   readonly maxRetries: number;
   readonly key?: string;
   readonly supportsMultipleSources: boolean;
@@ -43,12 +42,10 @@ export default abstract class Booru {
     name: string,
     baseUrl: URL,
     {
-      userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
       maxRetries = 3,
       key,
       supportsMultipleSources = false,
     }: {
-      userAgent?: string;
       maxRetries?: number;
       key?: string;
       supportsMultipleSources?: boolean;
@@ -56,7 +53,6 @@ export default abstract class Booru {
   ) {
     this.name = name;
     this.baseUrl = baseUrl;
-    this.userAgent = userAgent;
     this.maxRetries = maxRetries;
     this.key = key;
     this.supportsMultipleSources = supportsMultipleSources;
@@ -97,7 +93,8 @@ export default abstract class Booru {
           ...options,
           query,
           headers: {
-            "user-agent": this.userAgent,
+            "user-agent":
+              "booru-uploader-ts (https://github.com/mdashlw/booru-uploader-ts)",
             ...options.headers,
           },
           throwOnError: true,
