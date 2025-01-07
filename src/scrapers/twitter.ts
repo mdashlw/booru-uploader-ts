@@ -49,12 +49,7 @@ export async function scrape(url: URL): Promise<SourceData> {
   const [, tweetId, _photoIdx] =
     /^\/\w+\/status\/(\d+)(?:\/photo\/(\d+))?/.exec(url.pathname)!;
   const photoIdx = _photoIdx ? Number(_photoIdx) : undefined;
-  const tweet = await fetchTweet(tweetId).catch((error) => {
-    error = new Error("Failed to fetch tweet", { cause: error });
-    error.tweetId = tweetId;
-    throw error;
-  });
-
+  const tweet = await fetchTweet(tweetId);
   const photos = tweet.media?.photos ?? [];
 
   return {
@@ -89,31 +84,29 @@ async function fetchTweet(tweetId: string): Promise<APITweet> {
       throwOnError: true,
     })
     .catch((error) => {
-      error = new Error("Failed to fetch", { cause: error });
-      error.tweetId = tweetId;
+      if (
+        error instanceof undici.errors.ResponseStatusCodeError &&
+        error.body !== null &&
+        typeof error.body === "object" &&
+        "code" in error.body &&
+        "message" in error.body
+      ) {
+        throw new Error(`${error.body.code} ${error.body.message}`);
+      }
+
       throw error;
     });
+  const json = await response.body.json();
   const data = z
     .object({
       code: z.number().int(),
       message: z.string(),
       tweet: APITweet.optional(),
     })
-    .parse(
-      await response.body.json().catch((error) => {
-        error = new Error("Failed to read response body", { cause: error });
-        error.tweetId = tweetId;
-        error.response = response;
-        throw error;
-      }),
-    );
+    .parse(json);
 
   if (data.code !== 200) {
-    const error: any = new Error(data.message);
-    error.tweetId = tweetId;
-    error.response = response;
-    error.data = data;
-    throw error;
+    throw new Error(`${data.code} ${data.message}`);
   }
 
   return data.tweet!;
