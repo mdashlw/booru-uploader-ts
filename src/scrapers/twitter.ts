@@ -14,6 +14,7 @@ const APIPhoto = z.object({
   url: z.string().url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  altText: z.string(),
 });
 type APIPhoto = z.infer<typeof APIPhoto>;
 
@@ -69,6 +70,7 @@ export async function scrape(url: URL): Promise<SourceData> {
           media.width,
           media.height,
         )),
+        description: media.altText,
       })),
     ),
     artist: tweet.author.screen_name,
