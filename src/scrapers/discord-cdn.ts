@@ -4,13 +4,20 @@ import type { SourceData } from "../scraper/types.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
 
 export function canHandle(url: URL): boolean {
-  return url.hostname === "cdn.discordapp.com";
+  return (
+    url.hostname === "cdn.discordapp.com" ||
+    url.hostname === "media.discordapp.net"
+  );
 }
 
 export async function scrape(
   url: URL,
   metadataOnly?: boolean,
 ): Promise<SourceData> {
+  if (url.hostname === "media.discordapp.net") {
+    url.hostname = "cdn.discordapp.com";
+  }
+
   if (!metadataOnly) {
     url = await validateAndRefreshAttachmentUrl(url);
   }
