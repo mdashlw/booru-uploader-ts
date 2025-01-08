@@ -1,4 +1,5 @@
 import process from "node:process";
+import { z } from "zod";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
 import { probeImageUrl } from "../utils/probe-image.ts";
@@ -84,12 +85,18 @@ async function refreshAttachmentUrls(urls: string[]) {
       throwOnError: true,
     },
   );
-  const json = (await response.body.json()) as {
-    refreshed_urls: {
-      original: string;
-      refreshed: string;
-    }[];
-  };
+  const json = await response.body.json();
+  const data = z
+    .object({
+      refreshed_urls: z
+        .object({
+          original: z.string().url(),
+          refreshed: z.string().url(),
+        })
+        .array()
+        .length(urls.length),
+    })
+    .parse(json);
 
-  return json.refreshed_urls;
+  return data.refreshed_urls;
 }
