@@ -10,17 +10,12 @@ export function canHandle(url: URL): boolean {
   );
 }
 
-export async function scrape(
-  url: URL,
-  metadataOnly?: boolean,
-): Promise<SourceData> {
+export async function scrape(url: URL): Promise<SourceData> {
   if (url.hostname === "media.discordapp.net") {
     url.hostname = "cdn.discordapp.com";
   }
 
-  if (!metadataOnly) {
-    url = await validateAndRefreshAttachmentUrl(url);
-  }
+  url = await validateAndRefreshAttachmentUrl(url);
 
   const cleanUrl = new URL(url);
   cleanUrl.search = "";
@@ -28,7 +23,7 @@ export async function scrape(
   return {
     source: null,
     url: cleanUrl.toString(),
-    images: metadataOnly ? [] : [await probeImageUrl(url)],
+    images: [await probeImageUrl(url)],
     artist: null,
     date: null,
     title: null,
