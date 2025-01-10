@@ -12,32 +12,13 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
   const turndownService = new TurndownService({
     emDelimiter: markdown.italicStart as any,
     strongDelimiter: markdown.boldStart as any,
-    blankReplacement: function (content, node) {
-      console.log(`[blankReplacement]`, {
-        tagName: node._tagName,
-        isBlock: node.isBlock,
-        content,
-      });
-      return node.isBlock ? "\n\n" : "";
-    },
-    keepReplacement: function (content, node) {
-      console.log(`[keepReplacement]`, {
-        tagName: node._tagName,
-        isBlock: node.isBlock,
-        content,
-      });
-      return node.isBlock ? "\n\n" + node.outerHTML + "\n\n" : node.outerHTML;
-    },
-    defaultReplacement: function (content, node) {
-      console.log(`[defaultReplacement]`, {
-        tagName: node._tagName,
-        isBlock: node.isBlock,
-        content,
-      });
-      return node.isBlock
+    blankReplacement: (_content, node) => (node.isBlock ? "\n\n" : ""),
+    keepReplacement: (_content, node) =>
+      node.isBlock ? "\n\n" + node.outerHTML + "\n\n" : node.outerHTML,
+    defaultReplacement: (content, node) =>
+      node.isBlock
         ? content.replaceAll(MAGIC_NEW_LINE, "\n").trim() + MAGIC_NEW_LINE
-        : content;
-    },
+        : content,
   });
 
   turndownService.escape = (str) => escapeMarkdownWithWhitespace(str, markdown);
