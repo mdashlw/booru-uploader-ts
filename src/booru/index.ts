@@ -251,5 +251,6 @@ export default abstract class Booru {
     sourceUrls?: string[];
     sourceUrl?: string;
     description?: string;
+    anonymous?: boolean;
   }): Promise<Image>;
 }

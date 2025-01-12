@@ -82,12 +82,14 @@ export default class Derpibooru extends Booru {
     tags,
     sourceUrls = [],
     description,
+    anonymous,
   }: {
     blob: Blob;
     filename: string | undefined;
     tags: string[];
     sourceUrls?: string[];
     description?: string;
+    anonymous?: boolean;
   }): Promise<Image> {
     const formData = new FormData();
 
@@ -100,6 +102,10 @@ export default class Derpibooru extends Booru {
 
     if (description) {
       formData.append("image[description]", description);
+    }
+
+    if (anonymous) {
+      formData.append("image[anonymous]", "true");
     }
 
     return await this.fetch<{ image: Image }>({

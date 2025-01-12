@@ -53,6 +53,11 @@ while (true) {
   }
 }
 
+const anonymous = await confirm({
+  message: "Upload anonymously?",
+  default: false,
+});
+
 await Promise.allSettled(
   boorus.map((booru) =>
     booru.postImage({
@@ -83,6 +88,7 @@ await Promise.allSettled(
         sources.primary,
         ...sources.alternate,
       ]),
+      anonymous,
     }),
   ),
 );

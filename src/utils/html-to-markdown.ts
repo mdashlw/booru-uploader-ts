@@ -25,7 +25,7 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
 
   turndownService.addRule("custom_image", {
     filter: "img",
-    replacement: (content, node) => {
+    replacement: (_content, node) => {
       const src: string | null = node.getAttribute("src");
 
       if (!src) {
