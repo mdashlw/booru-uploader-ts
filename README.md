@@ -45,6 +45,7 @@ Rename `.env.example` to `.env` and fill in the required values.
 - `DEVIANTART_COOKIE` - login to https://www.deviantart.com/ in incognito and copy the cookie
 - `DEVIANTART_CSRF_TOKEN` - on the same page, click View Page Source and Ctrl+F for "csrf"
 - DeviantArt cookie and csrf token are linked. When you change the cookie, you need to update the csrf token as well.
+- `DEVIANTART_USERNAME` and `DEVIANTART_PASSWORD` - optional. `npm run deviantart-login` will try to update cookies/csrf using these credentials but it doesn't always work
 - `TUMBLR_COOKIE` - login to https://www.tumblr.com/ in incognito and copy the cookie. important: create an empty blog on the account. the last one in the list will be used for exporting images
 - `FURAFFINITY_COOKIE` - login to https://www.furaffinity.net/ and copy the cookie. make sure to set time zone to Greenwich Mean Time with Daylight correction OFF here: https://www.furaffinity.net/controls/settings/
 - `DISCORD_CDN_BOT_TOKEN` - used for refreshing Discord CDN links. make a bot here and copy the BOT TOKEN: https://discord.com/developers/applications
