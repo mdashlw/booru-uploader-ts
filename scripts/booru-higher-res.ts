@@ -12,6 +12,28 @@ import type { SourceData, SourceImageData } from "../src/scraper/types.ts";
 
 util.inspect.defaultOptions.depth = Infinity;
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = [
+    "Bytes",
+    "KiB",
+    "MiB",
+    "GiB",
+    "TiB",
+    "PiB",
+    "EiB",
+    "ZiB",
+    "YiB",
+  ];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 function numbersEqualWithinMargin(
   a: number,
   b: number,
@@ -263,6 +285,22 @@ for await (const image of images(
       ok = false;
       console.log(
         chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {redBright ${imageData.type} (${sourceData.source}) vs ${image.format} (${booru.name})}`,
+      );
+    }
+
+    if (
+      ok &&
+      image.width === imageData.width &&
+      image.height === imageData.height &&
+      image.format === imageData.type &&
+      !hashMatch &&
+      imageData.blob &&
+      imageData.blob.size > image.orig_size &&
+      image.orig_size !== image.size
+    ) {
+      ok = false;
+      console.log(
+        chalkTemplate`{blueBright [${imageUrl}]} {magentaBright [${sourceUrlString}]} {yellowBright ${imageData.type} ${formatBytes(imageData.blob.size)} (${sourceData.source}) vs ${image.format} ${formatBytes(image.orig_size)} (${booru.name})}`,
       );
     }
 

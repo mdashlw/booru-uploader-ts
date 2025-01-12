@@ -29,6 +29,8 @@ export interface VisibleImage extends BaseImage {
   source_url: string | null;
   source_urls?: string[];
   orig_sha512_hash: string;
+  size: number;
+  orig_size: number;
 }
 
 export type Image = VisibleImage | HiddenImage;
