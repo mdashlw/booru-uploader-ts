@@ -28,6 +28,7 @@ import * as Reddit from "./reddit.ts";
 import * as Stash from "./stash.ts";
 // import * as Tabun from "./tabun.ts";
 import * as Tumblr from "./tumblr.ts";
+import * as TumblrByMedia from "./tumblr-by-media.ts";
 import * as Twitter from "./twitter.ts";
 import * as Vk from "./vk.ts";
 import * as Weasyl from "./weasyl.ts";
@@ -66,6 +67,7 @@ export const scrapers: Scraper[] = [
   // Stash,
   // Tabun,
   Tumblr,
+  TumblrByMedia,
   Twitter,
   Vk,
   Weasyl,
