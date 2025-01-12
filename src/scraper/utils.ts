@@ -39,7 +39,7 @@ export async function probeAndValidateImageUrl(
   );
 }
 
-function validateProbeResult(
+export function validateProbeResult(
   result: ProbeResult,
   type?: string,
   width?: number,

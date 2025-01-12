@@ -4,6 +4,8 @@ import child_process from "node:child_process";
 import process from "node:process";
 import Fastify from "fastify";
 
+const SCOPE = "browse stash basic";
+
 const fastify = Fastify({
   logger: {
     transport: {
@@ -40,7 +42,10 @@ fastify.get<{
     .readFile("oauth.json", "utf8")
     .then(JSON.parse)
     .catch(() => ({}));
-  oauth.deviantart = { refreshToken: json.refresh_token };
+  oauth.deviantart = {
+    refreshToken: json.refresh_token,
+    scope: SCOPE,
+  };
   await fs.promises.writeFile("oauth.json", JSON.stringify(oauth), "utf8");
 
   reply.code(200).send("OK");
@@ -61,7 +66,7 @@ const authorizeUrl =
     response_type: "code",
     client_id: process.env.DEVIANTART_CLIENT_ID!,
     redirect_uri: "http://localhost:1341/callback",
-    scope: "browse",
+    scope: SCOPE,
   });
 
 console.log("\n");
