@@ -48,6 +48,11 @@ Rename `.env.example` to `.env` and fill in the required values.
 4. Do `npm run deviantart-oauth`
 5. Export your DeviantArt cookies using the instructions below
 
+### Tumblr
+
+1. Create an empty blog on your account (the last one in the list will be used for exporting images)
+2. Export your Tumblr cookies using the instructions below
+
 ### How to export cookies
 
 1. Login to the site in incognito mode (to avoid messing up the cookies by using the site normally, this is especially important for DeviantArt and Tumblr)
@@ -58,7 +63,6 @@ Rename `.env.example` to `.env` and fill in the required values.
 
 ### Others
 
-- `TUMBLR_COOKIE` - login to https://www.tumblr.com/ in incognito and copy the cookie. important: create an empty blog on the account. the last one in the list will be used for exporting images
 - `FURAFFINITY_COOKIE` - login to https://www.furaffinity.net/ and copy the cookie. make sure to set time zone to Greenwich Mean Time with Daylight correction OFF here: https://www.furaffinity.net/controls/settings/
 - `DISCORD_CDN_BOT_TOKEN` - used for refreshing Discord CDN links. make a bot here and copy the BOT TOKEN: https://discord.com/developers/applications
 - `INKBUNNY_USERNAME` and `INKBUNNY_PASSWORD` - Inkbunny username and password. optional but some submissions are member-only

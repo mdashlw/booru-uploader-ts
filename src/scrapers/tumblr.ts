@@ -21,6 +21,7 @@ import {
   NpfLayoutBlock,
 } from "../utils/tumblr-types.ts";
 import { getReblogs } from "../tumblr-archives.ts";
+import { getCookieString, setCookies } from "../cookies.ts";
 
 /*
  * Images can be:
@@ -78,7 +79,9 @@ import { getReblogs } from "../tumblr-archives.ts";
  * 4d. Upload the image and return the intermediate url.
  */
 
-const COOKIE = process.env.TUMBLR_COOKIE;
+const BASE_URL = "https://www.tumblr.com";
+
+const pool = new undici.Pool(BASE_URL);
 
 const getCsrfToken = lazyInit(() => fetchCsrfToken());
 const getIntermediaryBlogName = lazyInit(async (csrfToken: string) => {
@@ -464,25 +467,21 @@ async function fetchNpfPostTryReblogs(
 }
 
 async function fetchCsrfToken(): Promise<string> {
-  const response = await undici
-    .request("https://www.tumblr.com/settings/account", {
-      headers: {
-        accept: "text/html",
-        cookie: COOKIE,
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      },
-      throwOnError: true,
-    })
-    .catch((error) => {
-      error = new Error("Failed to fetch", { cause: error });
-      throw error;
-    });
-  const body = await response.body.text().catch((error) => {
-    error = new Error("Failed to read response body", { cause: error });
-    error.response = response;
-    throw error;
+  const response = await pool.request({
+    method: "GET",
+    path: "/settings/account",
+    headers: {
+      accept: "text/html",
+      cookie: getCookieString(`${BASE_URL}/`),
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    },
+    throwOnError: true,
   });
+
+  await setCookies(`${BASE_URL}/`, response.headers["set-cookie"]);
+
+  const body = await response.body.text();
 
   if (response.headers["set-cookie"]) {
     const setCookie = response.headers["set-cookie"];
@@ -587,33 +586,27 @@ async function fetchTumblrAPI<T extends z.ZodTypeAny>(
   body: T,
 ): Promise<z.infer<T>> {
   const { path, ...otherOptions } = options;
-  const response = await undici
-    .request(`https://www.tumblr.com/api/v2/${options.path}`, {
-      ...otherOptions,
-      headers: {
-        accept: "application/json;format=camelcase",
-        authorization:
-          "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
-        "content-type": "application/json; charset=utf8",
-        cookie: csrfToken ? COOKIE : undefined,
-        origin: "https://www.tumblr.com",
-        referer: "https://www.tumblr.com/",
-        "x-csrf": csrfToken,
-        ...options.headers,
-      },
-      throwOnError: true,
-    })
-    .catch((error) => {
-      error = new Error("Failed to fetch", { cause: error });
-      error.options = options;
-      throw error;
-    });
-  const json = await response.body.json().catch((error) => {
-    error = new Error("Failed to read response body", { cause: error });
-    error.options = options;
-    error.response = response;
-    throw error;
+  const response = await pool.request({
+    method: "GET",
+    ...otherOptions,
+    path: `/api/v2/${path}`,
+    headers: {
+      accept: "application/json;format=camelcase",
+      authorization:
+        "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
+      "content-type": "application/json; charset=utf8",
+      cookie: csrfToken ? getCookieString(`${BASE_URL}/`) : undefined,
+      origin: BASE_URL,
+      referer: `${BASE_URL}/`,
+      "x-csrf": csrfToken,
+      ...options.headers,
+    },
+    throwOnError: true,
   });
+
+  await setCookies(`${BASE_URL}/`, response.headers["set-cookie"]);
+
+  const json = await response.body.json();
   const data = z
     .object({
       meta: z.object({
