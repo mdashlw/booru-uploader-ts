@@ -161,3 +161,4 @@ dist
 *.db-journal
 derpibooru-autocomplete-cache/
 oauth.json
+_cookie-jar.json

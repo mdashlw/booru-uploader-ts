@@ -13,9 +13,8 @@ import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 import { type ProbeResult } from "../utils/probe-image.ts";
 import { ZodLuxonDateTime } from "../utils/zod.ts";
+import { getCookieString, setCookies } from "../cookies.ts";
 
-const COOKIE = process.env.DEVIANTART_COOKIE;
-const CSRF_TOKEN = process.env.DEVIANTART_CSRF_TOKEN;
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
 
@@ -90,7 +89,8 @@ const Deviation = z.object({
 });
 type Deviation = z.infer<typeof Deviation>;
 
-const pool = new undici.Pool("https://www.deviantart.com", {
+const BASE_URL = "https://www.deviantart.com";
+const pool = new undici.Pool(BASE_URL, {
   connect: {
     // allowH2: true,
     maxVersion: "TLSv1.2",
@@ -341,16 +341,38 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
   );
 }
 
+const csrfToken = lazyInit(async () => {
+  const response = await pool.request({
+    method: "GET",
+    path: "/",
+    headers: {
+      cookie: getCookieString(`${BASE_URL}/`),
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    },
+    throwOnError: true,
+  });
+
+  await setCookies(`${BASE_URL}/`, response.headers["set-cookie"]);
+
+  const html = await response.body.text();
+  const match = html.match(/window\.__CSRF_TOKEN__\s*=\s*'(.+?)';/);
+
+  if (!match) {
+    throw new Error("Failed to find __CSRF_TOKEN__");
+  }
+
+  const token = match[1];
+
+  return token;
+});
+
 async function fetchInternalAPI<T extends z.SomeZodObject>(
   path: string,
   params: Record<string, string>,
   body: T,
 ): Promise<z.infer<T>> {
-  if (!COOKIE || !CSRF_TOKEN) {
-    throw new Error("Missing DEVIANTART_COOKIE or DEVIANTART_CSRF_TOKEN env");
-  }
-
-  params.csrf_token = CSRF_TOKEN;
+  params.csrf_token = await csrfToken();
 
   const response = await pool.request({
     method: "GET",
@@ -358,13 +380,16 @@ async function fetchInternalAPI<T extends z.SomeZodObject>(
     query: params,
     headers: {
       accept: "application/json",
-      cookie: COOKIE,
-      referer: "https://www.deviantart.com/",
-      origin: "https://www.deviantart.com",
+      cookie: getCookieString(`${BASE_URL}${path}`),
+      referer: `${BASE_URL}/`,
+      origin: BASE_URL,
       "user-agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     },
   });
+
+  await setCookies(`${BASE_URL}${path}`, response.headers["set-cookie"]);
+
   const json = await response.body.json();
   const data = z
     .union([
@@ -391,15 +416,15 @@ async function fetchDeviation(username: string, deviationId: number) {
       path: `/stash/0${deviationId.toString(36)}`,
       headers: {
         accept: "text/html",
-        referer: "https://www.deviantart.com/",
-        origin: "https://www.deviantart.com",
+        referer: `${BASE_URL}/`,
+        origin: BASE_URL,
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
       throwOnError: true,
     });
     const html = await resp.body.text();
-    const match = /window\.__INITIAL_STATE__ *= *(JSON\.parse\(".+"\));/.exec(
+    const match = /window\.__INITIAL_STATE__\s*=\s*(JSON\.parse\(".+"\));/.exec(
       html,
     );
 
@@ -543,20 +568,31 @@ function apiDownloadDeviation(deviationUuid: string) {
 }
 
 async function submitStash(file: number) {
+  const docsPath =
+    "/developers/http/v1/20240701/stash_submit/0f1832daa6b58a05841ec6058520c4f3";
+  const consolePath =
+    "/developers/console/stash/stash_submit/0f1832daa6b58a05841ec6058520c4f3";
+  const apiPath = "/developers/console/do_api_request";
+
   async function fetchTokens() {
     const response = await pool.request({
       method: "GET",
-      path: "/developers/console/stash/stash_submit/0f1832daa6b58a05841ec6058520c4f3",
+      path: consolePath,
       headers: {
-        cookie: COOKIE,
-        referer:
-          "https://www.deviantart.com/developers/http/v1/20240701/stash_submit/0f1832daa6b58a05841ec6058520c4f3",
-        origin: "https://www.deviantart.com",
+        cookie: getCookieString(`${BASE_URL}${consolePath}`),
+        referer: `${BASE_URL}${docsPath}`,
+        origin: BASE_URL,
         "user-agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       },
       throwOnError: true,
     });
+
+    await setCookies(
+      `${BASE_URL}${consolePath}`,
+      response.headers["set-cookie"],
+    );
+
     const html = await response.body.text();
     const $ = cheerio.load(html);
 
@@ -584,23 +620,25 @@ async function submitStash(file: number) {
       Object.entries(params).map(([name, value]) => ({ name, value })),
     ),
   );
-  const json = await (
-    await pool.request({
-      method: "POST",
-      path: "https://www.deviantart.com/developers/console/do_api_request",
-      headers: {
-        cookie: COOKIE,
-        referer:
-          "https://www.deviantart.com/developers/console/stash/stash_submit/0f1832daa6b58a05841ec6058520c4f3",
-        origin: "https://www.deviantart.com",
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "x-requested-with": "XMLHttpRequest",
-      },
-      body: form,
-      throwOnError: true,
-    })
-  ).body.json();
+
+  const response = await pool.request({
+    method: "POST",
+    path: apiPath,
+    headers: {
+      cookie: getCookieString(`${BASE_URL}${apiPath}`),
+      referer: `${BASE_URL}${consolePath}`,
+      origin: BASE_URL,
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "x-requested-with": "XMLHttpRequest",
+    },
+    body: form,
+    throwOnError: true,
+  });
+
+  await setCookies(`${BASE_URL}${apiPath}`, response.headers["set-cookie"]);
+
+  const json = await response.body.json();
   const data = z
     .discriminatedUnion("status", [
       z.object({
