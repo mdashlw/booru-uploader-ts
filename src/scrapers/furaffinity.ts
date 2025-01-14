@@ -53,7 +53,7 @@ export async function scrape(url: URL): Promise<SourceData> {
         $(".submission-description").html()!,
         booru.markdown,
       ),
-    tags: $(".tags-row .tags > a")
+    tags: $(".tags-row .tags a:not(.tag-block)")
       .map((_, el) => ({
         name: $(el).text().trim(),
         url: BASE_URL + encodeURI($(el).attr("href")!),
