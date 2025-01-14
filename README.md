@@ -60,7 +60,7 @@ Rename `.env.example` to `.env` and fill in the required values.
 
 ### How to export cookies
 
-1. Login to the site in incognito mode (to avoid messing up the cookies by using the site normally, this is especially important for DeviantArt and Tumblr)
+1. Login to the site
 2. Install **Get cookies.txt LOCALLY** browser extension: [Chrome](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/get-cookies-txt-locally/)
 3. Click on the extension icon in the browser toolbar while on the page
 4. Set "Export Format" to JSON. Click "Export" or "Export As" (do not rename the file)
