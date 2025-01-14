@@ -43,7 +43,7 @@ Rename `.env.example` to `.env` and fill in the required values.
 ### DeviantArt
 
 1. Register an app here: https://www.deviantart.com/developers/apps
-2. Fill `DEVIANTART_CLIENT_ID` and `DEVIANTART_CLIENT_SECRET`
+2. Fill in `DEVIANTART_CLIENT_ID` and `DEVIANTART_CLIENT_SECRET`
 3. Edit your app to add `http://localhost:1341/callback` to "OAuth2 Redirect URI Whitelist"
 4. Do `npm run deviantart-oauth`
 5. Export your DeviantArt cookies using the instructions below
