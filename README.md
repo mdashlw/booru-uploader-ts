@@ -32,36 +32,40 @@ git pull
 npm install
 ```
 
-## Usage
-
-### .env
+## Setup
 
 Rename `.env.example` to `.env` and fill in the required values.
 
+### Derpibooru
+
 - `DERPIBOORU_API_KEY` - find here: https://derpibooru.org/registrations/edit
-- variables below are only required if you want to use the respective scrapers
-- `DEVIANTART_CLIENT_ID` and `DEVIANTART_CLIENT_SECRET` - register an app here: https://www.deviantart.com/developers/apps
-- additional setup for DeviantArt: edit your app to add `http://localhost:1341/callback` to "OAuth2 Redirect URI Whitelist", then do `npm run deviantart-oauth`
-- `DEVIANTART_COOKIE` - login to https://www.deviantart.com/ in incognito and copy the cookie
-- `DEVIANTART_CSRF_TOKEN` - on the same page, click View Page Source and Ctrl+F for "csrf"
-- DeviantArt cookie and csrf token are linked. When you change the cookie, you need to update the csrf token as well.
-- `DEVIANTART_USERNAME` and `DEVIANTART_PASSWORD` - optional. `npm run deviantart-login` will try to update cookies/csrf using these credentials but it doesn't always work
+
+### DeviantArt
+
+1. Register an app here: https://www.deviantart.com/developers/apps
+2. Fill `DEVIANTART_CLIENT_ID` and `DEVIANTART_CLIENT_SECRET`
+3. Edit your app to add `http://localhost:1341/callback` to "OAuth2 Redirect URI Whitelist"
+4. Do `npm run deviantart-oauth`
+5. Export your DeviantArt cookies using the instructions below
+
+### How to export cookies
+
+1. Login to the site in incognito mode (to avoid messing up the cookies by using the site normally, this is especially important for DeviantArt and Tumblr)
+2. Install **Get cookies.txt LOCALLY** browser extension: [Chrome](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/get-cookies-txt-locally/)
+3. Click on the extension icon in the browser toolbar while on the page
+4. Set "Export Format" to JSON. Click "Export" or "Export As" (do not rename the file)
+5. Move the file to the `booru-uploader-ts` folder
+
+### Others
+
 - `TUMBLR_COOKIE` - login to https://www.tumblr.com/ in incognito and copy the cookie. important: create an empty blog on the account. the last one in the list will be used for exporting images
 - `FURAFFINITY_COOKIE` - login to https://www.furaffinity.net/ and copy the cookie. make sure to set time zone to Greenwich Mean Time with Daylight correction OFF here: https://www.furaffinity.net/controls/settings/
 - `DISCORD_CDN_BOT_TOKEN` - used for refreshing Discord CDN links. make a bot here and copy the BOT TOKEN: https://discord.com/developers/applications
 - `INKBUNNY_USERNAME` and `INKBUNNY_PASSWORD` - Inkbunny username and password. optional but some submissions are member-only
 - `WEASYL_API_KEY` - get here: https://www.weasyl.com/control/apikeys
 - `NEWGROUNDS_COOKIE` - login to https://www.newgrounds.com/ and copy the cookie
-- todo
 
-### How to copy cookies
-
-1. Login to the site in incognito mode (to avoid messing up the cookies by using the site normally, this is especially important for DeviantArt and Tumblr)
-2. Open DevTools with F12 or Ctrl+Shift+I
-3. Go to the Network tab
-4. Reload the page
-5. Click on the first request, scroll to REQUEST HEADERS, find `Cookie` (NOT `Set-Cookie`) header and copy the value
-6. If you don't find it, try clicking on other requests until you find it
+## Usage
 
 ### Uploading
 
