@@ -1,5 +1,4 @@
 import * as cheerio from "cheerio";
-import process from "node:process";
 import timers from "node:timers/promises";
 import undici from "undici";
 import { type ZipEntry, unzip } from "unzipit";

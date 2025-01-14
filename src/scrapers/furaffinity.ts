@@ -1,32 +1,28 @@
 import * as cheerio from "cheerio";
-import process from "node:process";
 import undici from "undici";
 import type { SourceData } from "../scraper/types.ts";
 import { probeAndValidateImageUrl } from "../scraper/utils.ts";
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
+import { getCookieString } from "../cookies.ts";
 
-const COOKIE = process.env.FURAFFINITY_COOKIE;
+const BASE_URL = "https://www.furaffinity.net";
 
 export function canHandle(url: URL): boolean {
   return url.hostname === "www.furaffinity.net";
 }
 
 export async function scrape(url: URL): Promise<SourceData> {
-  if (!COOKIE) {
-    throw new Error("Missing FURAFFINITY_COOKIE env var");
-  }
-
   url.protocol = "https:";
   const response = await undici.request(url, {
     headers: {
-      cookie: COOKIE,
+      cookie: getCookieString(`${BASE_URL}/`),
     },
     throwOnError: true,
     maxRedirections: 1,
   });
 
   if ("set-cookie" in response.headers) {
-    throw new Error(`Invalid cookies: ${COOKIE}`);
+    throw new Error("Invalid Fur Affinity cookies");
   }
 
   const body = await response.body.text();
@@ -60,7 +56,7 @@ export async function scrape(url: URL): Promise<SourceData> {
     tags: $(".tags-row .tags > a")
       .map((_, el) => ({
         name: $(el).text().trim(),
-        url: "https://www.furaffinity.net" + encodeURI($(el).attr("href")!),
+        url: BASE_URL + encodeURI($(el).attr("href")!),
       }))
       .toArray(),
   };
