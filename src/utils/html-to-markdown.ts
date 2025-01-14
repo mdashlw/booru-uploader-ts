@@ -1,8 +1,6 @@
-import TurndownService from "turndown";
+import TurndownService, { type Node } from "turndown";
 import type { MarkdownDialect } from "../booru/types.ts";
 import { escapeMarkdownWithWhitespace } from "./markdown.ts";
-
-const MAGIC_NEW_LINE = "\0";
 
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
@@ -12,16 +10,66 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
   const turndownService = new TurndownService({
     emDelimiter: markdown.italicStart as any,
     strongDelimiter: markdown.boldStart as any,
-    blankReplacement: (_content, node) => (node.isBlock ? "\n\n" : ""),
-    keepReplacement: (_content, node) =>
-      node.isBlock ? "\n\n" + node.outerHTML + "\n\n" : node.outerHTML,
     defaultReplacement: (content, node) =>
-      node.isBlock
-        ? content.replaceAll(MAGIC_NEW_LINE, "\n").trim() + MAGIC_NEW_LINE
-        : content,
+      node.isBlock ? "\n" + content.trim() + "\n" : content,
   });
 
   turndownService.escape = (str) => escapeMarkdownWithWhitespace(str, markdown);
+
+  function anyParentMatch(node: Node, filter: (node: Node) => boolean) {
+    let parent: Node | null = node.parentNode;
+
+    while (parent) {
+      if (filter(parent)) {
+        return true;
+      }
+
+      parent = parent.parentNode;
+    }
+
+    return false;
+  }
+
+  turndownService.addRule("emphasis", {
+    filter: ["em", "i"],
+    replacement: (content, node, options) => {
+      content = content.trim();
+
+      if (!content) {
+        return "";
+      }
+
+      if (
+        anyParentMatch(node, (n) => n.nodeName === "EM" || n.nodeName === "I")
+      ) {
+        return content;
+      }
+
+      return options.emDelimiter + content + options.emDelimiter;
+    },
+  });
+
+  turndownService.addRule("strong", {
+    filter: ["strong", "b"],
+    replacement: (content, node, options) => {
+      content = content.trim();
+
+      if (!content) {
+        return "";
+      }
+
+      if (
+        anyParentMatch(
+          node,
+          (n) => n.nodeName === "STRONG" || n.nodeName === "B",
+        )
+      ) {
+        return content;
+      }
+
+      return options.strongDelimiter + content + options.strongDelimiter;
+    },
+  });
 
   turndownService.addRule("custom_image", {
     filter: "img",
@@ -91,5 +139,5 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
     },
   });
 
-  return turndownService.turndown(html).replaceAll(MAGIC_NEW_LINE, "\n").trim();
+  return turndownService.turndown(html).trim();
 }
