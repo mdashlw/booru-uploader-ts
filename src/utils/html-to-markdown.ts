@@ -16,6 +16,11 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
 
   turndownService.escape = (str) => escapeMarkdownWithWhitespace(str, markdown);
 
+  turndownService.addRule("code", {
+    filter: ["code"],
+    replacement: (content) => content,
+  });
+
   function anyParentMatch(node: Node, filter: (node: Node) => boolean) {
     let parent: Node | null = node.parentNode;
 
