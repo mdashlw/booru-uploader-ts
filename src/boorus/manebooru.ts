@@ -83,13 +83,15 @@ export default class Manebooru extends Booru {
       formData.append("image[anonymous]", "true");
     }
 
-    return await this.fetch<{ image: Image }>({
+    const { image } = await this.fetch<{ image: Image }>({
       method: "POST",
       path: "/api/v1/json/images",
       query: {
         key: this.requireKey(),
       },
       body: formData,
-    }).then((data) => data.image);
+    });
+
+    return image;
   }
 }

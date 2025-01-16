@@ -31,38 +31,34 @@ export function convertTagNameToSlug(name: TagName): TagSlug {
 export default abstract class Booru {
   readonly name: string;
   readonly baseUrl: URL;
-  readonly maxRetries: number;
   readonly key?: string;
   readonly supportsMultipleSources: boolean;
 
-  private readonly pool: undici.Pool;
+  private readonly dispatcher: undici.Dispatcher;
   private readonly lock: SemaphoreInterface;
 
   constructor(
     name: string,
     baseUrl: URL,
     {
-      maxRetries = 3,
       key,
       supportsMultipleSources = false,
     }: {
-      maxRetries?: number;
       key?: string;
       supportsMultipleSources?: boolean;
     } = {},
   ) {
     this.name = name;
     this.baseUrl = baseUrl;
-    this.maxRetries = maxRetries;
     this.key = key;
     this.supportsMultipleSources = supportsMultipleSources;
-    this.pool = new undici.Pool(baseUrl);
-    this.lock = new Semaphore(10); // TODO: mutex vs semaphore
-    this.fetch = _.memoize(this.fetch.bind(this), (options, retryNumber) =>
-      JSON.stringify({
-        options,
-        retryNumber,
-      }),
+    this.dispatcher = new undici.Pool(baseUrl).compose(
+      undici.interceptors.retry(),
+      undici.interceptors.responseError(),
+    );
+    this.lock = new Semaphore(8);
+    this.fetch = _.memoize(this.fetch.bind(this), (options) =>
+      JSON.stringify(options),
     );
   }
 
@@ -76,10 +72,7 @@ export default abstract class Booru {
     return this.key;
   }
 
-  async fetch<T>(
-    options: undici.Dispatcher.RequestOptions,
-    retryNumber = 0,
-  ): Promise<T> {
+  async fetch<T>(options: undici.Dispatcher.RequestOptions): Promise<T> {
     await this.lock.acquire();
 
     const query = options.query ?? {};
@@ -88,49 +81,18 @@ export default abstract class Booru {
     }
 
     try {
-      return await this.pool
-        .request({
-          ...options,
-          query,
-          headers: {
-            "user-agent":
-              "booru-uploader-ts (https://github.com/mdashlw/booru-uploader-ts)",
-            ...options.headers,
-          },
-          throwOnError: true,
-        })
-        .then((response) => response.body.json() as T);
-    } catch (error: any) {
-      console.error(options, error); //todo
-      if (
-        retryNumber < this.maxRetries &&
-        (error.code === "ECONNRESET" ||
-          (error instanceof undici.errors.ResponseStatusCodeError &&
-            (error.statusCode >= 500 || error.statusCode === 429)))
-      ) {
-        let retryAfterMs: number = 0;
+      const response = await this.dispatcher.request({
+        ...options,
+        query,
+        headers: {
+          "user-agent":
+            "booru-uploader-ts (https://github.com/mdashlw/booru-uploader-ts)",
+          ...options.headers,
+        },
+      });
+      const json = await response.body.json();
 
-        if (error instanceof undici.errors.ResponseStatusCodeError) {
-          retryAfterMs = 500;
-
-          if (error.statusCode === 429) {
-            const headers = error.headers as IncomingHttpHeaders;
-
-            if ("retry-after" in headers) {
-              const retryAfterSeconds = Number(headers["retry-after"]);
-
-              retryAfterMs += retryAfterSeconds * 1_000;
-            } else {
-              retryAfterMs = 5_000;
-            }
-          }
-        }
-
-        await timers.setTimeout(retryAfterMs);
-        return this.fetch(options, retryNumber + 1);
-      }
-
-      throw error;
+      return json as T;
     } finally {
       this.lock.release();
     }
@@ -188,14 +150,17 @@ export default abstract class Booru {
       return tag;
     }
 
-    tag = await this.fetch<{ tags: Tag[] }>({
-      method: "GET",
-      path: "/api/v1/json/search/tags",
-      query: {
-        per_page: 100,
-        q: name,
-      },
-    }).then(({ tags }) => tags.find((t) => t.name === name) ?? null);
+    tag =
+      (
+        await this.fetch<{ tags: Tag[] }>({
+          method: "GET",
+          path: "/api/v1/json/search/tags",
+          query: {
+            per_page: 100,
+            q: name,
+          },
+        })
+      ).tags.find((t) => t.name === name) ?? null;
 
     return tag;
   }
