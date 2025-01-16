@@ -292,6 +292,7 @@ for await (const image of images(
       ok &&
       image.width === imageData.width &&
       image.height === imageData.height &&
+      image.format === "jpg" &&
       image.format === imageData.type &&
       !hashMatch &&
       imageData.blob &&

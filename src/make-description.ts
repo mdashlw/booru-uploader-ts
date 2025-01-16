@@ -22,49 +22,39 @@ function formatSource(booru: Booru, source: SourceData) {
       : booru.markdown.inlineLink(source.source, source.url)) +
     (source.date ? ` (${formatDate(source.date)})` : "");
 
-  let title = "";
+  const mainTitle = source.title ? booru.markdown.bold(source.title) : "";
+  const imageTitle = image?.title ? booru.markdown.bold(image.title) : "";
 
-  if (source.title) {
-    if (image?.title) {
-      title = `${source.title} - ${image.title}`;
-    } else {
-      title = source.title;
-    }
-  } else if (image?.title) {
-    title = image.title;
-  }
+  const mainDescription = source.description
+    ? typeof source.description === "string"
+      ? booru.markdown.escape(source.description)
+      : source.description(booru)
+    : "";
+  const imageDescription = image?.description
+    ? booru.markdown.escape(image.description)
+    : "";
 
-  const formattedTitle = title ? booru.markdown.bold(title) : "";
-
-  let description = "";
-
-  if (source.description) {
-    const sourceDescription =
-      typeof source.description === "string"
-        ? booru.markdown.escape(source.description)
-        : source.description(booru);
-
-    if (image?.description) {
-      description = `${sourceDescription}\n\n${booru.markdown.escape(image.description)}`;
-    } else {
-      description = sourceDescription;
-    }
-  } else if (image?.description) {
-    description = booru.markdown.escape(image.description);
-  }
-
-  const formattedDescription = description;
   const formattedTags =
     source.tags
       ?.map((tag) => booru.markdown.inlineLink(`#${tag.name}`, tag.url))
       .join(" ") ?? "";
 
-  if (formattedTitle || formattedDescription || formattedTags) {
+  if (mainTitle || mainDescription || formattedTags) {
     result +=
       "\n" +
       booru.markdown.blockQuote(
-        `${formattedTitle}\n${formattedDescription}\n\n${formattedTags}`.trim(),
+        `${mainTitle}\n${mainDescription}\n\n${formattedTags}`.trim(),
       );
+
+    if (imageTitle || imageDescription) {
+      result += "\n";
+    }
+  }
+
+  if (imageTitle || imageDescription) {
+    result +=
+      "\n" +
+      booru.markdown.blockQuote(`${imageTitle}\n${imageDescription}`.trim());
   }
 
   return result;
