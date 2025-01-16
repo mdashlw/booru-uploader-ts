@@ -438,9 +438,8 @@ async function fetchNpfPostTryReblogs(
     return await fetchNpfPost(blogId, postId);
   } catch (error: any) {
     if (
-      error.message !== "Failed to fetch" ||
-      error.cause.code !== "UND_ERR_RESPONSE_STATUS_CODE" ||
-      error.cause.statusCode !== 404
+      error.code !== "UND_ERR_RESPONSE_STATUS_CODE" ||
+      error.statusCode !== 404
     ) {
       throw error;
     }
