@@ -153,9 +153,15 @@ export const NpfLayoutRows = z.object({
 });
 export type NpfLayoutRows = z.infer<typeof NpfLayoutRows>;
 
+const NpfLayoutCondensed = z.object({
+  type: z.literal("condensed"),
+});
+export type NpfLayoutCondensed = z.infer<typeof NpfLayoutCondensed>;
+
 export const NpfLayoutBlock = z.discriminatedUnion("type", [
   NpfLayoutAsk,
   NpfLayoutRows,
+  NpfLayoutCondensed,
 ]);
 export type NpfLayoutBlock = z.infer<typeof NpfLayoutBlock>;
 
