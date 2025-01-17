@@ -52,6 +52,7 @@ export async function scrape(url: URL): Promise<SourceData> {
       convertHtmlToMarkdown(
         $(".submission-description").html()!,
         booru.markdown,
+        "https://www.furaffinity.net",
       ),
     tags: $(".tags-row .tags a:not(.tag-block)")
       .map((_, el) => ({

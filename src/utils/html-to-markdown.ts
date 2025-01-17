@@ -6,7 +6,11 @@ function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
 }
 
-export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
+export function convertHtmlToMarkdown(
+  html: string,
+  markdown: MarkdownDialect,
+  baseUrl?: string,
+) {
   const turndownService = new TurndownService({
     emDelimiter: markdown.italicStart as any,
     strongDelimiter: markdown.boldStart as any,
@@ -79,10 +83,18 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
   turndownService.addRule("custom_image", {
     filter: "img",
     replacement: (_content, node) => {
-      const src: string | null = node.getAttribute("src");
+      let src: string | null = node.getAttribute("src");
 
       if (!src) {
         return "";
+      }
+
+      if (src.startsWith("//")) {
+        src = `https:${src}`;
+      }
+
+      if (src.startsWith("/") && baseUrl) {
+        src = `${baseUrl}${src}`;
       }
 
       return markdown.inlineImage(
@@ -107,6 +119,14 @@ export function convertHtmlToMarkdown(html: string, markdown: MarkdownDialect) {
 
       if (!href) {
         return "";
+      }
+
+      if (href.startsWith("//")) {
+        href = `https:${href}`;
+      }
+
+      if (href.startsWith("/") && baseUrl) {
+        href = `${baseUrl}${href}`;
       }
 
       const deviantartOutgoingPrefix =
