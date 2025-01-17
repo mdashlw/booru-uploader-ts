@@ -122,8 +122,8 @@ function process(node: any) {
 }
 
 export default function convertTipTapToMarkdown(doc: any) {
-  if (doc.version !== "1") {
-    throw new Error("Unsupported document version");
+  if (doc.version !== "1" && doc.version !== 1) {
+    throw new Error(`Unsupported document version: ${doc.version}`);
   }
 
   if (doc.document.type !== "doc") {
