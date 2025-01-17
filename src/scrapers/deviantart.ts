@@ -14,6 +14,7 @@ import { lazyInit } from "../utils/lazy-init.ts";
 import { type ProbeResult } from "../utils/probe-image.ts";
 import { ZodLuxonDateTime } from "../utils/zod.ts";
 import { getCookieString, setCookies } from "../cookies.ts";
+import convertTipTapToMarkdown from "../utils/tiptap-to-markdown.ts";
 
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
@@ -481,16 +482,34 @@ async function fetchDeviation(username: string, deviationId: number) {
 function extractDescription(
   deviation: Deviation,
 ): string | null | ((booru: Booru) => string) {
-  if (deviation.extended.descriptionText.excerpt) {
-    return deviation.extended.descriptionText.excerpt;
-  }
-
   if (deviation.extended.descriptionText.html.type === "writer") {
     return (booru) =>
       convertHtmlToMarkdown(
         deviation.extended.descriptionText.html.markup,
         booru.markdown,
       );
+  }
+
+  if (deviation.extended.descriptionText.html.type === "tiptap") {
+    return (booru) => {
+      try {
+        return convertTipTapToMarkdown(
+          JSON.parse(deviation.extended.descriptionText.html.markup),
+        );
+      } catch (error: any) {
+        console.error(
+          `Failed to convert DeviantArt TipTap text format to Markdown. Falling back to unformatted text. Please report this (deviation id: ${deviation.deviationId})`,
+        );
+        console.error(error);
+        return booru.markdown.escape(
+          deviation.extended.descriptionText.excerpt,
+        );
+      }
+    };
+  }
+
+  if (deviation.extended.descriptionText.excerpt) {
+    return deviation.extended.descriptionText.excerpt;
   }
 
   return null;
