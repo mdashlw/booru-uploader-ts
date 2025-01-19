@@ -48,6 +48,8 @@ Rename `.env.example` to `.env` and fill in the required values.
 4. Do `npm run deviantart-oauth`
 5. Export your DeviantArt cookies using the instructions below
 
+**Note:** Deviations will be exported to your [Sta.sh](https://sta.sh/) storage, which may eventually run out of space. Delete them regularly.
+
 ### Tumblr
 
 1. Create an empty blog on your account (the last one in the list will be used for exporting images)
