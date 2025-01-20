@@ -1,4 +1,5 @@
-import Booru from "../booru/index.ts";
+import type Booru from "../booru/index.ts";
+import type { Blob } from "node:buffer";
 
 export interface Scraper {
   canHandle: (url: URL) => boolean;

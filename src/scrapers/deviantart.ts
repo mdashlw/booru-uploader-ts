@@ -15,6 +15,7 @@ import { type ProbeResult } from "../utils/probe-image.ts";
 import { ZodLuxonDateTime } from "../utils/zod.ts";
 import { getCookieString, setCookies } from "../cookies.ts";
 import convertTipTapToMarkdown from "../utils/tiptap-to-markdown.ts";
+import { Blob } from "node:buffer";
 
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
