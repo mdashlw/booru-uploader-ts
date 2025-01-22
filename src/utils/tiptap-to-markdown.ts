@@ -3196,7 +3196,7 @@ function applyFormatting(
     return text;
   }
 
-  return text.replace(
+  return text.replaceAll(
     /^(\s*)(.+?)(\s*)$/gm,
     (_, leading, content, trailing) =>
       `${leading}${formatting(content)}${trailing}`,
