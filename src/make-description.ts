@@ -22,8 +22,12 @@ function formatSource(booru: Booru, source: SourceData) {
       : booru.markdown.inlineLink(source.source, source.url)) +
     (source.date ? ` (${formatDate(source.date)})` : "");
 
-  const mainTitle = source.title ? booru.markdown.bold(source.title) : "";
-  const imageTitle = image?.title ? booru.markdown.bold(image.title) : "";
+  const mainTitle = source.title
+    ? booru.markdown.bold(booru.markdown.escape(source.title))
+    : "";
+  const imageTitle = image?.title
+    ? booru.markdown.bold(booru.markdown.escape(image.title))
+    : "";
 
   const mainDescription = source.description
     ? typeof source.description === "string"
