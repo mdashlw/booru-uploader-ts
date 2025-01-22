@@ -2,8 +2,25 @@ import TurndownService, { type Node } from "turndown";
 import type { MarkdownDialect } from "../booru/types.ts";
 import { escapeMarkdownWithWhitespace } from "./markdown.ts";
 
+const MAGIC_SPACE = "\x01";
+
 function cleanAttribute(attribute: string | null) {
   return attribute?.replaceAll(/(\n+\s*)+/g, "\n") ?? "";
+}
+
+function applyFormatting(
+  text: string,
+  formatting: (content: string) => string,
+) {
+  if (!text.trim()) {
+    return text;
+  }
+
+  return text.replace(
+    /^(\s*)(.+?)(\s*)$/,
+    (_, leading, content, trailing) =>
+      `${leading}${formatting(content)}${trailing}`,
+  );
 }
 
 export function convertHtmlToMarkdown(
@@ -42,10 +59,8 @@ export function convertHtmlToMarkdown(
   turndownService.addRule("emphasis", {
     filter: ["em", "i"],
     replacement: (content, node, options) => {
-      content = content.trim();
-
-      if (!content) {
-        return "";
+      if (!content.trim()) {
+        return content;
       }
 
       if (
@@ -54,17 +69,18 @@ export function convertHtmlToMarkdown(
         return content;
       }
 
-      return options.emDelimiter + content + options.emDelimiter;
+      return applyFormatting(
+        content,
+        (content) => `${options.emDelimiter}${content}${options.emDelimiter}`,
+      );
     },
   });
 
   turndownService.addRule("strong", {
     filter: ["strong", "b"],
     replacement: (content, node, options) => {
-      content = content.trim();
-
-      if (!content) {
-        return "";
+      if (!content.trim()) {
+        return content;
       }
 
       if (
@@ -76,7 +92,26 @@ export function convertHtmlToMarkdown(
         return content;
       }
 
-      return options.strongDelimiter + content + options.strongDelimiter;
+      return applyFormatting(
+        content,
+        (content) =>
+          `${options.strongDelimiter}${content}${options.strongDelimiter}`,
+      );
+    },
+  });
+
+  turndownService.addRule("underline", {
+    filter: ["u"],
+    replacement: (content, node, options) => {
+      if (!content.trim()) {
+        return content;
+      }
+
+      if (anyParentMatch(node, (n) => n.nodeName === "U")) {
+        return content;
+      }
+
+      return applyFormatting(content, (content) => `__${content}__`);
     },
   });
 
@@ -121,6 +156,8 @@ export function convertHtmlToMarkdown(
         return "";
       }
 
+      href = href.replaceAll("\\", "");
+
       if (href.startsWith("//")) {
         href = `https:${href}`;
       }
@@ -129,10 +166,14 @@ export function convertHtmlToMarkdown(
         href = `${baseUrl}${href}`;
       }
 
-      const deviantartOutgoingPrefix =
-        "https://www.deviantart.com/users/outgoing?";
-      if (href.startsWith(deviantartOutgoingPrefix)) {
-        href = href.substring(deviantartOutgoingPrefix.length);
+      const removePrefixes = [
+        "https://href.li/?",
+        "https://www.deviantart.com/users/outgoing?",
+      ];
+      for (const prefix of removePrefixes) {
+        if (href.startsWith(prefix)) {
+          href = href.substring(prefix.length);
+        }
       }
 
       if (
@@ -164,5 +205,8 @@ export function convertHtmlToMarkdown(
     },
   });
 
-  return turndownService.turndown(html).trim();
+  return turndownService
+    .turndown(html.replaceAll("&nbsp;", MAGIC_SPACE))
+    .trim()
+    .replaceAll(MAGIC_SPACE, " ");
 }
