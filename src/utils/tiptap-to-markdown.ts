@@ -3192,6 +3192,10 @@ function applyFormatting(
   text: string,
   formatting: (content: string) => string,
 ) {
+  if (!text.trim()) {
+    return text;
+  }
+
   return text.replace(
     /^(\s*)(.+?)(\s*)$/gm,
     (_, leading, content, trailing) =>
