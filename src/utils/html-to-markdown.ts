@@ -17,7 +17,7 @@ function applyFormatting(
   }
 
   return text.replace(
-    /^(\s*)(.+?)(\s*)$/,
+    /^([\s\x01]*)(.+?)([\s\x01]*)$/,
     (_, leading, content, trailing) =>
       `${leading}${formatting(content)}${trailing}`,
   );
