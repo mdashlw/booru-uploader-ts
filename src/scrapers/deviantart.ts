@@ -1,9 +1,11 @@
 import * as cheerio from "cheerio";
+import { Blob } from "node:buffer";
 import fs from "node:fs";
 import process from "node:process";
 import undici from "undici";
 import { z } from "zod";
 import Booru from "../booru/index.ts";
+import { getCookieString, setCookies } from "../cookies.ts";
 import type { SourceData } from "../scraper/types.ts";
 import {
   probeAndValidateImageUrl,
@@ -12,10 +14,8 @@ import {
 import { convertHtmlToMarkdown } from "../utils/html-to-markdown.ts";
 import { lazyInit } from "../utils/lazy-init.ts";
 import { type ProbeResult } from "../utils/probe-image.ts";
-import { ZodLuxonDateTime } from "../utils/zod.ts";
-import { getCookieString, setCookies } from "../cookies.ts";
 import convertTipTapToMarkdown from "../utils/tiptap-to-markdown.ts";
-import { Blob } from "node:buffer";
+import { ZodLuxonDateTime } from "../utils/zod.ts";
 
 const CLIENT_ID = process.env.DEVIANTART_CLIENT_ID;
 const CLIENT_SECRET = process.env.DEVIANTART_CLIENT_SECRET;
@@ -447,6 +447,11 @@ async function fetchDeviation(username: string, deviationId: number) {
           deviationExtended: z.record(Deviation.shape.extended),
           user: z.record(Deviation.shape.author),
         }),
+        "@@HEAD": z.object({
+          headState: z.object({
+            meta: z.record(z.string()).array(),
+          }),
+        }),
       })
       .parse(json);
 
@@ -456,6 +461,11 @@ async function fetchDeviation(username: string, deviationId: number) {
     const deviationExtended =
       data["@@entities"].deviationExtended[deviation.deviationId];
     const user = data["@@entities"].user[deviation.author];
+
+    deviationExtended.deviationUuid = data["@@HEAD"].headState.meta
+      .find((o) => o.property === "da:appurl")
+      ?.content.split("/")
+      .pop()!;
 
     return {
       deviation: {
