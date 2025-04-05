@@ -14,7 +14,7 @@ const APIPhoto = z.object({
   url: z.string().url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  altText: z.string(),
+  altText: z.string().optional(),
 });
 type APIPhoto = z.infer<typeof APIPhoto>;
 
