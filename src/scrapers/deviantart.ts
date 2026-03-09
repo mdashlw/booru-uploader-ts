@@ -270,7 +270,10 @@ export async function scrape(
   };
 }
 
-async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
+async function extractProbeResult(
+  deviation: Deviation,
+  canDownload = false,
+): Promise<ProbeResult> {
   const fullview =
     deviation.media.types.find((t) => t.t === "fullview_unpublished") ??
     deviation.media.types.find((t) => t.t === "fullview");
@@ -306,7 +309,7 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
     );
   }
 
-  if (deviation.isDownloadable) {
+  if (deviation.isDownloadable && canDownload) {
     const download = await apiDownloadDeviation(
       deviation.extended.deviationUuid!,
     );
@@ -330,7 +333,7 @@ async function extractProbeResult(deviation: Deviation): Promise<ProbeResult> {
 
   const stashId = await submitStash(deviation.deviationId);
   const { deviation: stashDeviation } = await fetchDeviation("STASH", stashId);
-  const result = await extractProbeResult(stashDeviation);
+  const result = await extractProbeResult(stashDeviation, true);
 
   result.filename = deviation.media.baseUri.split("/").pop();
 
